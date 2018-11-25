@@ -1,0 +1,2 @@
+class RefractionException(Exception):
+    pass

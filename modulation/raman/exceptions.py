@@ -1,0 +1,2 @@
+class RamanException(Exception):
+    pass

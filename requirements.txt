@@ -1,0 +1,9 @@
+Cython
+matplotlib
+mpmath
+numpy
+paramiko
+psutil
+scipy
+tqdm
+simulacra
