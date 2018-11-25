@@ -76,6 +76,7 @@ class MicrosphereMode(Mode):
 
     @property
     def omega(self):
+        # this is correct because stored wavelength is for free space
         return u.twopi * u.c / self.wavelength
 
     @property

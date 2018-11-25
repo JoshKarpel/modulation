@@ -31,7 +31,7 @@ class RamanSimulation(si.Simulation):
 
         self.mode_omegas = np.array([m.omega for m in self.spec.modes])
         self.mode_amplitude_decay_rates = self.mode_omegas / (2 * self.spec.mode_total_quality_factors)  # wiki's definition
-        self.mode_index_of_refraction = np.array([m.mode_index_of_refraction for m in self.spec.modes])
+        self.mode_index_of_refraction = np.array([m.index_of_refraction for m in self.spec.modes])
         self.mode_epsilons = self.mode_index_of_refraction ** 2
         self.polarization_prefactor = 0.5j * self.spec.number_density * (self.mode_omegas / (u.epsilon_0 * self.mode_epsilons))
         self.degenerate_modes_by_frequency = self._degenerate_modes(self.spec.modes)
@@ -41,9 +41,9 @@ class RamanSimulation(si.Simulation):
         if self.spec.store_mode_amplitudes_vs_time:
             self.mode_amplitudes_vs_time = np.empty((len(self.times), len(self.mode_amplitudes)), dtype = np.complex128)
 
-        self.mode_volumes_within_R = np.array([m.mode_volume_within_R for m in self.spec.modes])
-        self.mode_volumes_outside_R = np.array([m.mode_volume_outside_R for m in self.spec.modes])
-        self.mode_volumes = self.mode_volumes_within_R + self.mode_volumes_outside_R
+        self.mode_volumes_inside_resonator = np.array([m.mode_volume_inside_resonator for m in self.spec.modes])
+        self.mode_volumes_outside_resonator = np.array([m.mode_volume_outside_resonator for m in self.spec.modes])
+        self.mode_volumes = self.mode_volumes_inside_resonator + self.mode_volumes_outside_resonator
 
         self.mode_background_magnitudes = np.sqrt(self.mode_photon_energy / self.mode_energy_prefactor)  # one photon per mode
 
@@ -83,8 +83,8 @@ class RamanSimulation(si.Simulation):
 
     @property
     def mode_energy_prefactor(self):
-        electric_inside = 0.5 * u.epsilon_0 * self.mode_epsilons * self.mode_volumes_within_R
-        electric_outside = 0.5 * u.epsilon_0 * self.mode_volumes_outside_R
+        electric_inside = 0.5 * u.epsilon_0 * self.mode_epsilons * self.mode_volumes_inside_resonator
+        electric_outside = 0.5 * u.epsilon_0 * self.mode_volumes_outside_resonator
 
         return electric_inside + electric_outside
 
