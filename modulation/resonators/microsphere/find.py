@@ -1,3 +1,4 @@
+import logging
 from typing import NamedTuple, Collection, Tuple, Optional, List, Callable, Iterable
 
 import functools
@@ -13,9 +14,11 @@ import simulacra.units as u
 from matplotlib.patches import Rectangle
 from matplotlib.lines import Line2D
 
-from ..refraction import IndexOfRefraction
+from modulation.refraction import IndexOfRefraction
 
-from . import mode
+from . import modes
+
+logger = logging.getLogger(__name__)
 
 
 def _group_by_nans(x):
@@ -59,7 +62,7 @@ class MicrosphereModeLocation(NamedTuple):
     wavelength: float
     l: int
     radial_mode_number: int
-    polarization: mode.MicrosphereModePolarization
+    polarization: modes.MicrosphereModePolarization
 
     @property
     def frequency(self):
@@ -124,8 +127,8 @@ class ModeFinder(si.Simulation):
 
     def P(self, wavelength, polarization):
         return {
-            mode.MicrosphereModePolarization.TRANSVERSE_ELECTRIC: functools.partial(TE_P, index = self.spec.n),
-            mode.MicrosphereModePolarization.TRANSVERSE_MAGNETIC: functools.partial(TM_P, index = self.spec.n),
+            modes.MicrosphereModePolarization.TRANSVERSE_ELECTRIC: functools.partial(TE_P, index = self.spec.n),
+            modes.MicrosphereModePolarization.TRANSVERSE_MAGNETIC: functools.partial(TM_P, index = self.spec.n),
         }[polarization](wavelength)
 
     def run(self):
@@ -133,7 +136,7 @@ class ModeFinder(si.Simulation):
 
         self.mode_locations = []
 
-        for polarization in mode.MicrosphereModePolarization:
+        for polarization in modes.MicrosphereModePolarization:
             for wavelength_bound in self.spec.wavelength_bounds:
                 l_bound = self.l_bound_from_wavelength_bound(wavelength_bound, polarization)
 
@@ -179,7 +182,7 @@ class ModeFinder(si.Simulation):
         self,
         wavelength,
         l: int,
-        polarization: mode.MicrosphereModePolarization,
+        polarization: modes.MicrosphereModePolarization,
     ):
         """
 
@@ -212,7 +215,7 @@ class ModeFinder(si.Simulation):
     def _l_bounds_from_wavelength(
         self,
         wavelength: float,
-        polarization: mode.MicrosphereModePolarization,
+        polarization: modes.MicrosphereModePolarization,
     ) -> LBound:
         n = self.spec.n(wavelength)
         p = self.P(wavelength, polarization)
@@ -228,7 +231,7 @@ class ModeFinder(si.Simulation):
     def l_bound_from_wavelength_bound(
         self,
         wavelength_bound: WavelengthBound,
-        polarization: mode.MicrosphereModePolarization,
+        polarization: modes.MicrosphereModePolarization,
     ) -> LBound:
         bound_1 = self._l_bounds_from_wavelength(wavelength_bound.min, polarization)
         bound_2 = self._l_bounds_from_wavelength(wavelength_bound.max, polarization)

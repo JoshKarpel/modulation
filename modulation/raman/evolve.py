@@ -1,9 +1,19 @@
+import logging
+
 import abc
 
 import numpy as np
 
+import simulacra as si
+
+logger = logging.getLogger(__name__)
+
 
 class EvolutionAlgorithm(abc.ABC):
+    """
+    An interface for an algorithm that evolves the mode amplitudes forward in time.
+    """
+
     @abc.abstractmethod
     def evolve(
         self,
@@ -13,6 +23,10 @@ class EvolutionAlgorithm(abc.ABC):
         time_final: float,
     ) -> np.ndarray:
         raise NotImplementedError
+
+    def info(self) -> si.Info:
+        info = si.Info(header = f'Evolution Algorithm: {self.__class__.__name__}')
+        return info
 
 
 class ForwardEuler(EvolutionAlgorithm):
@@ -28,13 +42,15 @@ class ForwardEuler(EvolutionAlgorithm):
         time_initial: float,
         time_final: float,
     ) -> np.ndarray:
-        return mode_amplitudes + (sim.calculate_total_derivative(mode_amplitudes, time_initial) * (time_final - time_initial))
+        deriv = sim.calculate_total_derivative(mode_amplitudes, time_initial)
+        dt = time_final - time_initial
+        return mode_amplitudes + (deriv * dt)
 
 
 class RungeKutta4(EvolutionAlgorithm):
     """
     Calculate the mode amplitudes at the next time step using the fourth-order Runge-Kutta algorithm.
-    This method has much better accuracy and stability than forward Euler, but still has trouble with the non-linear pump term.
+    This method has much better accuracy and stability than forward Euler.
     """
 
     def evolve(

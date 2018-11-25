@@ -1,3 +1,8 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 class PowerScanResult:
     def __init__(self, sim):
         self.energies = sim.mode_energies(sim.mode_amplitudes)

@@ -1,7 +1,11 @@
+import logging
+
 import itertools
 import functools
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 @functools.lru_cache(maxsize = None)

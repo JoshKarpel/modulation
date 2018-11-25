@@ -1,9 +1,13 @@
+import logging
+
 import numpy as np
 import matplotlib.pyplot as plt
 
 import simulacra as si
 import simulacra.units as u
 from simulacra.vis import anim
+
+logger = logging.getLogger(__name__)
 
 
 class PolarComplexAmplitudeAxis(anim.AxisManager):

@@ -1,8 +1,12 @@
-import abc
+import logging
 from typing import Optional
+
+import abc
 
 import numpy as np
 from simulacra import units as u
+
+logger = logging.getLogger(__name__)
 
 
 class IndexOfRefraction(abc.ABC):

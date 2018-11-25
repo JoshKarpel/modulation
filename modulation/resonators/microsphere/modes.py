@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 import simulacra as si
 from scipy import special as spc
@@ -5,8 +7,10 @@ from simulacra import units as u
 
 from . import vsh
 
-from ..refraction import index
-from ..raman import Mode
+from modulation.refraction import index
+from modulation.raman import Mode
+
+logger = logging.getLogger(__name__)
 
 
 class MicrosphereModePolarization(si.utils.StrEnum):

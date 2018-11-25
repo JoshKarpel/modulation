@@ -1,7 +1,7 @@
-import functools
-from typing import Iterable, Dict, Union, Optional
 import logging
+from typing import Iterable, Dict, Union, Optional
 
+import functools
 import itertools
 import datetime
 import collections
@@ -13,7 +13,8 @@ from tqdm import tqdm
 import simulacra as si
 import simulacra.units as u
 
-from . import mode, pumps, evolve, volume, exceptions
+from . import modes, pumps, evolve, volumes, exceptions
+from .. import fmt
 from .cy import four_wave_polarization
 
 logger = logging.getLogger(__name__)
@@ -492,7 +493,7 @@ class StimulatedRamanScatteringSimulation(RamanSimulation):
         mode_volume_ratios = np.empty((num_modes, num_modes), dtype = np.complex128)
         mode_pairs = list(itertools.combinations_with_replacement(enumerate(self.spec.modes), r = 2))
         for (r, mode_r), (s, mode_s) in tqdm(mode_pairs):
-            volume = self.spec.mode_volume_integrator.mode_volume_integral_inside((mode_r, mode_r, mode_s, mode_s), R = mode_r.microsphere_radius)
+            volume = self.spec.mode_volume_integrator.mode_volume_integral((mode_r, mode_r, mode_s, mode_s))
 
             mode_volume_ratios[r, s] = volume / self.mode_volumes[r]
             if r != s:
@@ -525,10 +526,7 @@ class FourWaveMixingSimulation(RamanSimulation):
         mode_volume_ratios = np.empty((num_modes, num_modes, num_modes, num_modes), dtype = np.float64)
         four_modes_combinations = list(itertools.combinations_with_replacement(enumerate(self.spec.modes), r = 4))
         for (q, mode_q), (r, mode_r), (s, mode_s), (t, mode_t) in tqdm(four_modes_combinations):
-            volume = self.spec.mode_volume_integrator.mode_volume_integral_inside(
-                (mode_q, mode_r, mode_s, mode_t),
-                R = mode_r.microsphere_radius,
-            )
+            volume = self.spec.mode_volume_integrator.mode_volume_integral((mode_q, mode_r, mode_s, mode_t))
 
             for q_, r_, s_, t_ in itertools.permutations((q, r, s, t)):
                 mode_volume_ratios[q_, r_, s_, t_] = volume / self.mode_volumes[q]
@@ -583,20 +581,20 @@ class RamanSpecification(si.Specification):
         self,
         name,
         *,
-        modes: Iterable[mode.Mode],
-        mode_initial_amplitudes: Dict[mode.Mode, Union[int, float, complex]],
-        mode_intrinsic_quality_factors: Dict[mode.Mode, Union[int, float]],
-        mode_coupling_quality_factors: Dict[mode.Mode, Union[int, float]],
-        mode_pump_rates: Dict[mode.Mode, pumps.Pump],
+        modes: Iterable[modes.Mode],
+        mode_initial_amplitudes: Dict[modes.Mode, Union[int, float, complex]],
+        mode_intrinsic_quality_factors: Dict[modes.Mode, Union[int, float]],
+        mode_coupling_quality_factors: Dict[modes.Mode, Union[int, float]],
+        mode_pump_rates: Dict[modes.Mode, pumps.Pump],
         modulation_omega: float,
-        C: complex,
+        coupling_prefactor: complex,
         gamma_b: float,
         number_density: float,
         time_initial: float = 0 * u.nsec,
         time_final: float = 100 * u.nsec,
         time_step: float = 1 * u.nsec,
         evolution_algorithm: evolve.EvolutionAlgorithm = evolve.RungeKutta4(),
-        mode_volume_integrator: volume.ModeVolumeIntegrator = None,
+        mode_volume_integrator: volumes.ModeVolumeIntegrator = None,
         store_mode_amplitudes_vs_time: bool = False,
         cached_polarization_sum_factors = None,
         checkpoints: bool = False,
@@ -616,9 +614,8 @@ class RamanSpecification(si.Specification):
 
         self.modulation_omega = modulation_omega
 
-        self.C = C
-        self.raman_prefactor = (C ** 2) / (4 * (u.hbar ** 3))
-        self.gamma_b = gamma_b
+        self.raman_prefactor = (coupling_prefactor ** 2) / (4 * (u.hbar ** 3))
+        self.raman_linewidth = gamma_b
 
         self.number_density = number_density
 
@@ -628,7 +625,7 @@ class RamanSpecification(si.Specification):
 
         self.evolution_algorithm = evolution_algorithm
         if mode_volume_integrator is None:
-            raise exceptions.RamanException('evolution algorithm cannot be None')
+            raise exceptions.RamanException('mode volume integrator cannot be None')
         self.mode_volume_integrator = mode_volume_integrator
 
         self.store_mode_amplitudes_vs_time = store_mode_amplitudes_vs_time
@@ -640,6 +637,55 @@ class RamanSpecification(si.Specification):
         self.checkpoint_dir = checkpoint_dir
 
         self.animators = animators
+
+    @property
+    def modulation_frequency(self):
+        return self.modulation_omega / u.twopi
+
+    def info(self) -> si.Info:
+        info = super().info()
+
+        info_material = si.Info(header = 'Material Properties')
+        info_material.add_field('Raman Coupling Prefactor', self.raman_prefactor)
+        info_material.add_field('Raman Modulation Frequency', fmt.quantity(self.modulation_omega, fmt.FREQUENCY_UNITS))
+        info_material.add_field('Raman Linewidth', fmt.quantity(self.raman_linewidth, fmt.FREQUENCY_UNITS))
+        info_material.add_field('Number Density', self.number_density)
+        info.add_info(info_material)
+
+        info_modes = si.Info(header = 'Modes')
+        info_modes.add_field('Number of Modes', len(self.modes))
+        info.add_info(info_modes)
+
+        info.add_info(self.mode_volume_integrator.info())
+
+        info_evolution = si.Info(header = 'Time Evolution')
+        info_evolution.add_field('Initial Time', fmt.quantity(self.time_initial, fmt.TIME_UNITS))
+        info_evolution.add_field('Final Time', fmt.quantity(self.time_final, fmt.TIME_UNITS))
+        info_evolution.add_field('Time Step', fmt.quantity(self.time_step, fmt.TIME_UNITS))
+        info_evolution.add_field('Inverse Time Step', fmt.quantity(1 / self.time_step, fmt.FREQUENCY_UNITS))
+        info_evolution.add_info(self.evolution_algorithm.info())
+        info.add_info(info_evolution)
+
+        info_checkpoint = si.Info(header = 'Checkpointing')
+        if self.checkpoints:
+            if self.checkpoint_dir is not None:
+                working_in = self.checkpoint_dir
+            else:
+                working_in = 'cwd'
+            info_checkpoint.header += f': every {self.checkpoint_every} time steps, working in {working_in}'
+        else:
+            info_checkpoint.header += ': disabled'
+        info.add_info(info_checkpoint)
+
+        info_animation = si.Info(header = 'Animation')
+        if len(self.animators) > 0:
+            for animator in self.animators:
+                info_animation.add_info(animator.info())
+        else:
+            info_animation.header += ': none'
+        info.add_info(info_animation)
+
+        return info
 
 
 class StimulatedRamanScatteringSpecification(RamanSpecification):

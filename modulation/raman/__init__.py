@@ -2,10 +2,10 @@ import os as _os
 import numpy as _np
 import pyximport as _pyximport
 
-pyx_dir = _os.path.join(_os.path.dirname(__file__), '.pyxbld')
+_pyx_dir = _os.path.join(_os.path.dirname(__file__), '.pyxbld')
 _pyximport.install(
     setup_args = {"include_dirs": _np.get_include()},
-    build_dir = pyx_dir,
+    build_dir = _pyx_dir,
     language_level = 3,
 )
 
@@ -31,5 +31,5 @@ from .evolve import (
     ForwardEuler,
     RungeKutta4,
 )
-from .volume import ModeVolumeIntegrator
-from .mode import Mode
+from .volumes import ModeVolumeIntegrator
+from .modes import Mode

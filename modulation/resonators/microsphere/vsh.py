@@ -1,3 +1,5 @@
+import logging
+
 from enum import IntEnum
 import functools
 
@@ -7,6 +9,8 @@ import simulacra as si
 import simulacra.units as u
 
 from .threej import threej
+
+logger = logging.getLogger(__name__)
 
 
 class CartesianComponent(IntEnum):

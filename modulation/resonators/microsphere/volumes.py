@@ -1,3 +1,6 @@
+import logging
+from typing import Tuple
+
 import functools
 import operator
 
@@ -5,17 +8,20 @@ import numpy as np
 from scipy import integrate as integ
 from simulacra import units as u
 
-from ..raman.volume import ModeVolumeIntegrator
+from ...raman import Mode, ModeVolumeIntegrator
+
+logger = logging.getLogger(__name__)
 
 
 class MicrosphereVolumeIntegrator(ModeVolumeIntegrator):
-    def __init__(self, pad = 0.8, threshold = 1e-15):
+    def __init__(self, *, outer_radius: float, pad: float = 0.8, threshold: float = 1e-15):
+        self.outer_radius = outer_radius
         self.pad = pad
         self.threshold = threshold
 
         self.phi = np.zeros(1)
 
-    def mode_volume_integral_inside(self, modes, R):
+    def mode_volume_integral(self, modes: Tuple[Mode, ...]) -> float:
         raise NotImplementedError
 
     def integrand(self, modes, r, theta, phi):
@@ -28,8 +34,8 @@ class MicrosphereVolumeIntegrator(ModeVolumeIntegrator):
     def jacobian(self, r, theta):
         return (r ** 2) * np.sin(theta)
 
-    def estimate_r_lower_bound(self, modes, R):
-        r = np.linspace(0, R, 1000)[1:]
+    def estimate_r_lower_bound(self, modes):
+        r = np.linspace(0, self.outer_radius, 1000)[1:]
         theta = np.ones(1) * u.pi / 2
 
         r_mesh, theta_mesh, phi_mesh = np.meshgrid(r, theta, self.phi, indexing = 'ij')
@@ -44,8 +50,8 @@ class MicrosphereVolumeIntegrator(ModeVolumeIntegrator):
 
         return inner_limit
 
-    def estimate_theta_bound(self, modes, R):
-        r = np.ones(1) * .95 * R
+    def estimate_theta_bound(self, modes):
+        r = np.ones(1) * .95 * self.outer_radius
         theta = np.linspace(0, u.pi, 1000)[1:-1]  # avoid poles
 
         r_mesh, theta_mesh, phi_mesh = np.meshgrid(r, theta, self.phi, indexing = 'ij')
@@ -61,18 +67,18 @@ class MicrosphereVolumeIntegrator(ModeVolumeIntegrator):
         return limit
 
 
-class RiemannMicrosphereVolumeIntegrator(MicrosphereVolumeIntegrator):
+class RiemannSumMicrosphereVolumeIntegrator(MicrosphereVolumeIntegrator):
     def __init__(self, r_points = 500, theta_points = 200, **kwargs):
         super().__init__(**kwargs)
 
         self.r_points = r_points
         self.theta_points = theta_points
 
-    def mode_volume_integral_inside(self, modes, R):
-        r_lower_bound = self.estimate_r_lower_bound(modes, R)
-        theta_bound = self.estimate_theta_bound(modes, R)
+    def mode_volume_integral(self, modes: Tuple[Mode, ...]) -> float:
+        r_lower_bound = self.estimate_r_lower_bound(modes)
+        theta_bound = self.estimate_theta_bound(modes)
 
-        r = np.linspace(r_lower_bound, R, self.r_points + 1)[1:]  # in case lower bound is zero
+        r = np.linspace(r_lower_bound, self.outer_radius, self.r_points + 1)[1:]  # in case lower bound is zero
         theta = np.linspace(theta_bound, u.pi - theta_bound, self.theta_points + 2)[1:-1]  # in case bound is zero
 
         dr = np.abs(r[1] - r[0])
@@ -89,15 +95,15 @@ class RiemannMicrosphereVolumeIntegrator(MicrosphereVolumeIntegrator):
         return result
 
 
-class SimpsonMicrosphereVolumeIntegrator(RiemannMicrosphereVolumeIntegrator):
+class FlexibleGridSimpsonMicrosphereVolumeIntegrator(RiemannSumMicrosphereVolumeIntegrator):
     def __init__(self, r_points = 501, theta_points = 201, **kwargs):
         super().__init__(r_points = r_points, theta_points = theta_points, **kwargs)
 
-    def mode_volume_integral_inside(self, modes, R):
-        r_lower_bound = self.estimate_r_lower_bound(modes, R)
-        theta_bound = self.estimate_theta_bound(modes, R)
+    def mode_volume_integral(self, modes: Tuple[Mode, ...]) -> float:
+        r_lower_bound = self.estimate_r_lower_bound(modes)
+        theta_bound = self.estimate_theta_bound(modes)
 
-        r = np.linspace(r_lower_bound, R, self.r_points + 1)[1:]  # in case lower bound is zero
+        r = np.linspace(r_lower_bound, self.outer_radius, self.r_points + 1)[1:]  # in case lower bound is zero
         theta = np.linspace(theta_bound, u.pi - theta_bound, self.theta_points + 2)[1: -1]  # in case bound is zero
 
         dr = np.abs(r[1] - r[0])
@@ -122,13 +128,13 @@ class SimpsonMicrosphereVolumeIntegrator(RiemannMicrosphereVolumeIntegrator):
         return result
 
 
-class RombergMicrosphereVolumeIntegrator(RiemannMicrosphereVolumeIntegrator):
+class RombergMicrosphereVolumeIntegrator(RiemannSumMicrosphereVolumeIntegrator):
     def __init__(self, k_r = 9, k_theta = 8, **kwargs):
         super().__init__(r_points = (2 ** k_r) + 1, theta_points = (2 ** k_theta) + 1, **kwargs)
 
-    def mode_volume_integral_inside(self, modes, R):
-        r_lower_bound = self.estimate_r_lower_bound(modes, R)
-        theta_bound = self.estimate_theta_bound(modes, R)
+    def mode_volume_integral(self, modes: Tuple[Mode, ...]) -> float:
+        r_lower_bound = self.estimate_r_lower_bound(modes)
+        theta_bound = self.estimate_theta_bound(modes)
 
         r = np.linspace(r_lower_bound, R, self.r_points + 1)[1:]  # in case lower bound is zero
         theta = np.linspace(theta_bound, u.pi - theta_bound, self.theta_points + 2)[1:-1]  # in case bound is zero
@@ -155,7 +161,7 @@ class RombergMicrosphereVolumeIntegrator(RiemannMicrosphereVolumeIntegrator):
         return result
 
 
-class FixedGridSimpsonMicrosphereVolumeIntegrator(SimpsonMicrosphereVolumeIntegrator):
+class FixedGridSimpsonMicrosphereVolumeIntegrator(FlexibleGridSimpsonMicrosphereVolumeIntegrator):
     def __init__(self, R, r_points = 2001, theta_points = 501, **kwargs):
         super().__init__(r_points = r_points, theta_points = theta_points, **kwargs)
 
@@ -175,18 +181,7 @@ class FixedGridSimpsonMicrosphereVolumeIntegrator(SimpsonMicrosphereVolumeIntegr
 
         self.fixed_jacobian = self.jacobian(self.r_mesh, self.theta_mesh) * u.twopi * dr * dtheta
 
-    def integrand(self, modes):
-        return functools.reduce(operator.mul, (self.mode_magnitude_inside(m) for m in modes))
-
-    @functools.lru_cache(maxsize = None)
-    def mode_magnitude_inside(self, mode):
-        mode_shape_vector_field = mode.evaluate_electric_field_mode_shape_inside(self.r_mesh, self.theta_mesh, self.phi_mesh)
-        return np.sqrt(np.sum(np.abs(mode_shape_vector_field) ** 2, axis = -1))
-
-    def jacobian(self, r, theta):
-        return (r ** 2) * np.sin(theta)
-
-    def mode_volume_integral_inside(self, modes, R):
+    def mode_volume_integral(self, modes: Tuple[Mode, ...]) -> float:
         integral = integ.simps(
             y = integ.simps(
                 y = self.integrand(modes) * self.fixed_jacobian,
@@ -198,3 +193,11 @@ class FixedGridSimpsonMicrosphereVolumeIntegrator(SimpsonMicrosphereVolumeIntegr
         result = integral
 
         return result
+
+    def integrand(self, modes):
+        return functools.reduce(operator.mul, (self.mode_magnitude_inside(m) for m in modes))
+
+    @functools.lru_cache(maxsize = None)
+    def mode_magnitude_inside(self, mode):
+        mode_shape_vector_field = mode.evaluate_electric_field_mode_shape_inside(self.r_mesh, self.theta_mesh, self.phi_mesh)
+        return np.sqrt(np.sum(np.abs(mode_shape_vector_field) ** 2, axis = -1))
