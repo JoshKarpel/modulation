@@ -12,9 +12,9 @@ from whisper import threej, racah
     EXPLICIT_THREEJ
 )
 def test_explicit_threej(lm, target):
-    print('lm', lm)
+    # print('lm', lm)
     result = threej.threej(*lm)
-    print('result', result)
+    # print('result', result)
     assert np.isclose(
         result,
         target,
@@ -50,7 +50,7 @@ def any_lm_builder(l_max):
 
 @pytest.mark.parametrize(
     'lm',
-    valid_lm_builder(0, 10),
+    valid_lm_builder(0, 8),
 )
 def test_small_threej_against_threej_via_racah_valid_integers(lm):
     """This test only makes sense for small enough l,m that the Racah formula can evaluate it!"""
@@ -69,7 +69,7 @@ def test_small_threej_against_threej_via_racah_valid_integers(lm):
 
 @pytest.mark.parametrize(
     'lm',
-    any_lm_builder(5),
+    any_lm_builder(4),
 )
 def test_small_threej_against_threej_via_racah_any_integers(lm):
     """This test only makes sense for small enough l,m that the Racah formula can evaluate it!"""

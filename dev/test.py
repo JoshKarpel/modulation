@@ -21,7 +21,7 @@ spec = raman.StimulatedRamanScatteringSpecification(
     mode_initial_amplitudes = {mode: 0},
     mode_coupling_quality_factors = {mode: 1e8},
     mode_intrinsic_quality_factors = {mode: 1e8},
-    mode_pump_rates = {mode: raman.pumps.ConstantPump(0)},
+    mode_pumps = {},
     mode_volume_integrator = mock.MockVolumeIntegrator(volume_integral_result = 1e-26),
     material = raman.RamanMaterial.silicon(),
 )
@@ -35,3 +35,8 @@ time.sleep(.1)
 print(sim.info())
 
 sim.run()
+time.sleep(.1)
+print(sim.info())
+
+print()
+print(sim.spec.mode_info())

@@ -128,7 +128,7 @@ class RamanSimulation(si.Simulation):
 
     @functools.lru_cache(maxsize = 4)
     def calculate_pumps(self, time):
-        return self.pump_prefactor * np.sqrt([pump.power(time) for pump in self.spec.mode_pump_rates], dtype = np.float64)
+        return self.pump_prefactor * np.sqrt([pump.power(time) for pump in self.spec.mode_pumps], dtype = np.float64)
 
     def calculate_polarization(self, mode_amplitudes, time):
         raise NotImplementedError
@@ -585,7 +585,7 @@ class RamanSpecification(si.Specification):
         mode_initial_amplitudes: Dict[modes.Mode, Union[int, float, complex]],
         mode_intrinsic_quality_factors: Dict[modes.Mode, Union[int, float]],
         mode_coupling_quality_factors: Dict[modes.Mode, Union[int, float]],
-        mode_pump_rates: Dict[modes.Mode, pumps.Pump],
+        mode_pumps: Dict[modes.Mode, pumps.Pump],
         time_initial: float = 0 * u.nsec,
         time_final: float = 100 * u.nsec,
         time_step: float = 1 * u.nsec,
@@ -607,18 +607,18 @@ class RamanSpecification(si.Specification):
         self.mode_intrinsic_quality_factors = np.array([mode_intrinsic_quality_factors[mode] for mode in self.modes], dtype = np.float64)
         self.mode_coupling_quality_factors = np.array([mode_coupling_quality_factors[mode] for mode in self.modes], dtype = np.float64)
         self.mode_total_quality_factors = (self.mode_intrinsic_quality_factors * self.mode_coupling_quality_factors) / (self.mode_intrinsic_quality_factors + self.mode_coupling_quality_factors)
-        self.mode_pump_rates = [mode_pump_rates.get(mode, pumps.ConstantPump(power = 0)) for mode in self.modes]
+        self.mode_pumps = [mode_pumps.get(mode, pumps.ConstantPump(power = 0)) for mode in self.modes]
 
         self.time_initial = time_initial
         self.time_final = time_final
         self.time_step = time_step
 
         if material is None:
-            raise exceptions.RamanException('material cannot be None')
+            raise exceptions.MissingRamanMaterial('material cannot be None')
         self.material = material
         self.evolution_algorithm = evolution_algorithm
         if mode_volume_integrator is None:
-            raise exceptions.RamanException('mode volume integrator cannot be None')
+            raise exceptions.MissingVolumeIntegrator('mode_volume_integrator cannot be None')
         self.mode_volume_integrator = mode_volume_integrator
 
         self.store_mode_amplitudes_vs_time = store_mode_amplitudes_vs_time
@@ -631,16 +631,14 @@ class RamanSpecification(si.Specification):
 
         self.animators = animators
 
-    @property
-    def modulation_frequency(self):
-        return self.modulation_omega / u.twopi
-
     def info(self) -> si.Info:
         info = super().info()
 
         info.add_info(self.material.info())
 
         info_modes = si.Info(header = 'Modes')
+        if len(self.modes) > 0:
+            info_modes.add_field('Mode Type', self.modes[0].__class__.__name__)
         info_modes.add_field('Number of Modes', len(self.modes))
         info.add_info(info_modes)
 
@@ -665,13 +663,30 @@ class RamanSpecification(si.Specification):
             info_checkpoint.header += ': disabled'
         info.add_info(info_checkpoint)
 
-        info_animation = si.Info(header = 'Animation')
         if len(self.animators) > 0:
+            info_animation = si.Info(header = 'Animation')
             for animator in self.animators:
                 info_animation.add_info(animator.info())
-        else:
-            info_animation.header += ': none'
-        info.add_info(info_animation)
+            info.add_info(info_animation)
+
+        return info
+
+    def mode_info(self) -> si.Info:
+        info = si.Info(header = 'Modes')
+
+        for mode, q_intrinsic, q_coupling, q_total, pump in zip(
+            self.modes,
+            self.mode_intrinsic_quality_factors,
+            self.mode_coupling_quality_factors,
+            self.mode_total_quality_factors,
+            self.mode_pumps,
+        ):
+            mode_info = mode.info()
+            mode_info.add_field('Intrinsic Quality Factor', f'{q_intrinsic:.4g}')
+            mode_info.add_field('Coupling Quality Factor', f'{q_coupling:.4g}')
+            mode_info.add_field('Total Quality Factor', f'{q_total:.4g}')
+            mode_info.add_info(pump.info())
+            info.add_info(mode_info)
 
         return info
 
