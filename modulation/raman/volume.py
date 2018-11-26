@@ -5,7 +5,7 @@ import abc
 
 import simulacra as si
 
-from .modes import Mode
+from .mode import Mode
 
 logger = logging.getLogger(__name__)
 

@@ -3,7 +3,7 @@ import time
 import simulacra.units as u
 
 from modulation import raman, refraction
-from modulation.resonators import microsphere, mock
+from modulation.resonator import microsphere, mock
 
 mode = mock.MockMode(
     omega = u.twopi * 250 * u.THz,

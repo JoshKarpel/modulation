@@ -13,7 +13,7 @@ from tqdm import tqdm
 import simulacra as si
 import simulacra.units as u
 
-from . import modes, pumps, evolve, volumes, materials, exceptions
+from . import mode, pump, evolve, volume, material, plotter, exceptions
 from .. import fmt
 from .cy import four_wave_polarization
 
@@ -55,6 +55,8 @@ class RamanSimulation(si.Simulation):
             logger.debug(f'Using cached polarization sum factors for {self}')
             self.polarization_sum_factors = self.spec.cached_polarization_sum_factors
 
+        self.plot = plotter.RamanSimulationPlotter(self)
+
     @property
     def times(self):
         total_time = self.spec.time_final - self.spec.time_initial
@@ -94,27 +96,16 @@ class RamanSimulation(si.Simulation):
     #     return 0.5 * u.c * u.epsilon_0 * np.sqrt(self.mode_epsilons)
 
     def mode_energies(self, mode_amplitudes):
-        # in principle, we should include the outer part
-        # but it never has any significant amount of energy in it
-
         return self.mode_energy_prefactor * (np.abs(mode_amplitudes) ** 2)
 
     def mode_output_powers(self, mode_amplitudes):
         return self.mode_energies(mode_amplitudes) * self.mode_omegas / self.spec.mode_coupling_quality_factors
 
-    def _degenerate_modes(self, modes):
-        degenerate_modes = collections.defaultdict(list)
-
-        for mode in modes:
-            degenerate_modes[mode.omega].append(mode)
-
-        return degenerate_modes
-
-    def two_photon_detuning(self, omega_x, omega_y):
+    def _two_photon_detuning(self, omega_x, omega_y):
         return (omega_x - omega_y) - (self.spec.material.modulation_omega + (1j * self.spec.material.raman_linewidth))
 
-    def double_inverse_detuning(self, omega_x, omega_y):
-        return np.conj(1 / self.two_photon_detuning(omega_x, omega_y)) + (1 / self.two_photon_detuning(omega_y, omega_x))
+    def _double_inverse_detuning(self, omega_x, omega_y):
+        return np.conj(1 / self._two_photon_detuning(omega_x, omega_y)) + (1 / self._two_photon_detuning(omega_y, omega_x))
 
     def modes_with_amplitudes(self):
         yield from zip(self.spec.modes, self.mode_amplitudes)
@@ -203,282 +194,6 @@ class RamanSimulation(si.Simulation):
     def percent_completed(self):
         return round(100 * self.time_index / (self.time_steps - 1), 2)
 
-    def plot_mode_magnitudes_vs_time(
-        self,
-        time_unit = 'nsec',
-        magnitude_unit = 'V_per_m',
-        y_log_axis = True,
-        y_pad = .05,
-        y_log_pad = 10,
-        mode_filter = None,
-        mode_kwargs = None,
-        average_over = 1 * u.nsec,
-        **kwargs,
-    ):
-        if mode_filter is None:
-            mode_filter = lambda sim, q, mode: True
-
-        if mode_kwargs is None:
-            mode_kwargs = lambda sim, q, mode: {}
-
-        mode_numbers = [q for mode, q in self.mode_to_index.items() if mode_filter(self, q, mode)]
-
-        x = self.times
-        y = [np.abs(self.mode_amplitudes_vs_time[:, q]) for q in mode_numbers]
-
-        if average_over is not None:
-            l = self.mode_amplitudes_vs_time[:, 0].size
-            R = int(1 * u.nsec / self.spec.time_step)
-            pad_size = int((np.ceil(l / R) * R) - l)
-
-            x = np.append(x, np.zeros(pad_size) * np.NaN).reshape((-1, R)).mean(axis = 1)
-            y = [np.append(yy, np.zeros(pad_size) * np.NaN).reshape((-1, R)).mean(axis = 1) for yy in y]
-
-        si.vis.xy_plot(
-            f'{self.name}__mode_magnitudes_vs_time',
-            x,
-            *y,
-            line_labels = [
-                fr'${self.spec.modes[q].tex}$'
-                for q in mode_numbers
-            ],
-            line_kwargs = [mode_kwargs(self, q, self.spec.modes[q]) for q in mode_numbers],
-            x_unit = time_unit,
-            x_label = r'$t$',
-            y_unit = magnitude_unit,
-            y_label = r'$\left| \mathcal{E}_q(t) \right|$',
-            y_log_axis = y_log_axis,
-            y_pad = y_pad,
-            y_log_pad = y_log_pad,
-            legend_on_right = True,
-            **kwargs,
-        )
-
-    def plot_mode_energies_vs_time(
-        self,
-        time_unit = 'nsec',
-        energy_unit = 'pJ',
-        y_log_axis = True,
-        y_pad = .05,
-        y_log_pad = 10,
-        mode_filter = None,
-        mode_kwargs = None,
-        average_over = 1 * u.nsec,
-        **kwargs,
-    ):
-        if mode_filter is None:
-            mode_filter = lambda sim, q, mode: True
-
-        if mode_kwargs is None:
-            mode_kwargs = lambda sim, q, mode: {}
-
-        mode_numbers = [q for mode, q in self.mode_to_index.items() if mode_filter(self, q, mode)]
-
-        x = self.times
-        y = [self.mode_energies(self.mode_amplitudes_vs_time)[:, q] for q in mode_numbers]
-
-        if average_over is not None:
-            l = self.mode_amplitudes_vs_time[:, 0].size
-            R = int(1 * u.nsec / self.spec.time_step)
-            pad_size = int((np.ceil(l / R) * R) - l)
-
-            x = np.append(x, np.zeros(pad_size) * np.NaN).reshape((-1, R)).mean(axis = 1)
-            y = [np.append(yy, np.zeros(pad_size) * np.NaN).reshape((-1, R)).mean(axis = 1) for yy in y]
-
-        si.vis.xy_plot(
-            f'{self.name}__mode_energies_vs_time',
-            x,
-            *y,
-            line_labels = [
-                fr'${self.spec.modes[q].tex}$'
-                for q in mode_numbers
-            ],
-            line_kwargs = [mode_kwargs(self, q, self.spec.modes[q]) for q in mode_numbers],
-            x_unit = time_unit,
-            x_label = r'$t$',
-            y_unit = energy_unit,
-            y_label = r'$U_q(t)$',
-            y_log_axis = y_log_axis,
-            legend_on_right = True,
-            y_pad = y_pad,
-            y_log_pad = y_log_pad,
-            **kwargs,
-        )
-
-    def plot_mode_output_powers_vs_time(
-        self,
-        time_unit = 'nsec',
-        power_unit = 'mW',
-        y_log_axis = True,
-        y_pad = .05,
-        y_log_pad = 10,
-        mode_filter = None,
-        mode_kwargs = None,
-        average_over = 1 * u.nsec,
-        **kwargs,
-    ):
-        if mode_filter is None:
-            mode_filter = lambda sim, q, mode: True
-
-        if mode_kwargs is None:
-            mode_kwargs = lambda sim, q, mode: {}
-
-        mode_numbers = [q for mode, q in self.mode_to_index.items() if mode_filter(self, q, mode)]
-
-        x = self.times
-        y = [self.mode_output_powers(self.mode_amplitudes_vs_time)[:, q] for q in mode_numbers]
-
-        if average_over is not None:
-            l = self.mode_amplitudes_vs_time[:, 0].size
-            R = int(1 * u.nsec / self.spec.time_step)
-            pad_size = int((np.ceil(l / R) * R) - l)
-
-            x = np.append(x, np.zeros(pad_size) * np.NaN).reshape((-1, R)).mean(axis = 1)
-            y = [np.append(yy, np.zeros(pad_size) * np.NaN).reshape((-1, R)).mean(axis = 1) for yy in y]
-
-        si.vis.xy_plot(
-            f'{self.name}__mode_output_powers_vs_time',
-            x,
-            *y,
-            line_labels = [
-                fr'${self.spec.modes[q].tex}$'
-                for q in mode_numbers
-            ],
-            line_kwargs = [mode_kwargs(self, q, self.spec.modes[q]) for q in mode_numbers],
-            x_unit = time_unit,
-            x_label = r'$t$',
-            y_unit = power_unit,
-            y_label = r'$P^{\mathrm{out}}_q(t)$',
-            y_log_axis = y_log_axis,
-            legend_on_right = True,
-            y_pad = y_pad,
-            y_log_pad = y_log_pad,
-            **kwargs,
-        )
-
-    def stackplot_mode_energies_vs_time(
-        self,
-        time_unit = 'nsec',
-        energy_unit = 'pJ',
-        y_log_axis = False,
-        y_pad = .05,
-        y_log_pad = 10,
-        mode_filter = None,
-        mode_kwargs = None,
-        **kwargs,
-    ):
-        if mode_filter is None:
-            mode_filter = lambda sim, q, mode: True
-
-        if mode_kwargs is None:
-            mode_kwargs = lambda sim, q, mode: {}
-
-        mode_numbers = [q for mode, q in self.mode_to_index.items() if mode_filter(self, q, mode)]
-
-        si.vis.xy_stackplot(
-            f'{self.name}__mode_energies_vs_time__stacked',
-            self.times,
-            *[self.mode_energies(self.mode_amplitudes_vs_time)[:, q] for q in mode_numbers],
-            line_labels = [
-                fr'${self.spec.modes[q].tex}$'
-                for q in mode_numbers
-            ],
-            line_kwargs = [mode_kwargs(self, q, self.spec.modes[q]) for q in mode_numbers],
-            x_unit = time_unit,
-            x_label = r'$t$',
-            y_unit = energy_unit,
-            y_label = r'$U_q(t)$',
-            y_log_axis = y_log_axis,
-            legend_on_right = True,
-            y_pad = y_pad,
-            y_log_pad = y_log_pad,
-            **kwargs,
-        )
-
-    def plot_mode_photon_counts_vs_time(
-        self,
-        time_unit = 'nsec',
-        y_log_axis = True,
-        y_pad = .05,
-        y_log_pad = 10,
-        mode_filter = None,
-        mode_kwargs = None,
-        average_over = 1 * u.nsec,
-        **kwargs,
-    ):
-        if mode_filter is None:
-            mode_filter = lambda sim, q, mode: True
-
-        if mode_kwargs is None:
-            mode_kwargs = lambda sim, q, mode: {}
-
-        mode_numbers = [q for mode, q in self.mode_to_index.items() if mode_filter(self, q, mode)]
-
-        x = self.times
-        y = [self.mode_energies(self.mode_amplitudes_vs_time)[:, q] / self.mode_photon_energy[q] for q in mode_numbers]
-
-        if average_over is not None:
-            l = self.mode_amplitudes_vs_time[:, 0].size
-            R = int(1 * u.nsec / self.spec.time_step)
-            pad_size = int((np.ceil(l / R) * R) - l)
-
-            x = np.append(x, np.zeros(pad_size) * np.NaN).reshape((-1, R)).mean(axis = 1)
-            y = [np.append(yy, np.zeros(pad_size) * np.NaN).reshape((-1, R)).mean(axis = 1) for yy in y]
-
-        si.vis.xy_plot(
-            f'{self.name}__mode_photon_counts_vs_time',
-            x,
-            *y,
-            line_labels = [
-                fr'${self.spec.modes[q].tex}$'
-                for q in mode_numbers
-            ],
-            line_kwargs = [mode_kwargs(self, q, self.spec.modes[q]) for q in mode_numbers],
-            x_unit = time_unit,
-            x_label = r'$t$',
-            y_label = r'$U_q(t) \, / \, \hbar \omega_q$',
-            y_log_axis = y_log_axis,
-            legend_on_right = True,
-            y_pad = y_pad,
-            y_log_pad = y_log_pad,
-            **kwargs,
-        )
-
-    def stackplot_mode_photon_counts_vs_time(
-        self,
-        time_unit = 'nsec',
-        y_pad = .05,
-        y_log_pad = 10,
-        mode_filter = None,
-        mode_kwargs = None,
-        **kwargs,
-    ):
-        if mode_filter is None:
-            mode_filter = lambda sim, q, mode: True
-
-        if mode_kwargs is None:
-            mode_kwargs = lambda sim, q, mode: {}
-
-        mode_numbers = [q for mode, q in self.mode_to_index.items() if mode_filter(self, q, mode)]
-
-        si.vis.xy_stackplot(
-            f'{self.name}__mode_photon_counts_vs_time__stacked',
-            self.times,
-            *[self.mode_energies(self.mode_amplitudes_vs_time)[:, q] / self.mode_photon_energy[q] for q in mode_numbers],
-            line_labels = [
-                fr'${self.spec.modes[q].tex}$'
-                for q in mode_numbers
-            ],
-            line_kwargs = [mode_kwargs(self, q, self.spec.modes[q]) for q in mode_numbers],
-            x_unit = time_unit,
-            x_label = r'$t$',
-            y_label = r'$U_q(t) \, / \, \hbar \omega_q$',
-            legend_on_right = True,
-            y_pad = y_pad,
-            y_log_pad = y_log_pad,
-            **kwargs,
-        )
-
 
 class StimulatedRamanScatteringSimulation(RamanSimulation):
     def _calculate_polarization_sum_factors(self):
@@ -487,7 +202,7 @@ class StimulatedRamanScatteringSimulation(RamanSimulation):
         logger.debug(f'Building two-mode inverse detuning array for {self}...')
         double_inverse_detunings = np.empty((num_modes, num_modes), dtype = np.complex128)
         for (r, mode_r), (s, mode_s) in itertools.product(enumerate(self.spec.modes), repeat = 2):
-            double_inverse_detunings[r, s] = self.double_inverse_detuning(mode_s.omega, mode_r.omega)
+            double_inverse_detunings[r, s] = self._double_inverse_detuning(mode_s.omega, mode_r.omega)
 
         logger.debug(f'Building four-mode volume ratio array for {self}...')
         mode_volume_ratios = np.empty((num_modes, num_modes), dtype = np.complex128)
@@ -520,7 +235,7 @@ class FourWaveMixingSimulation(RamanSimulation):
         double_inverse_detunings = np.empty((num_modes, num_modes), dtype = np.complex128)
         all_mode_pairs = list(itertools.product(enumerate(self.spec.modes), repeat = 2))
         for (s, mode_s), (t, mode_t) in tqdm(all_mode_pairs):
-            double_inverse_detunings[s, t] = self.double_inverse_detuning(mode_s.omega, mode_t.omega)
+            double_inverse_detunings[s, t] = self._double_inverse_detuning(mode_s.omega, mode_t.omega)
 
         logger.debug(f'Building four-mode volume ratio array for {self}...')
         mode_volume_ratios = np.empty((num_modes, num_modes, num_modes, num_modes), dtype = np.float64)
@@ -581,17 +296,17 @@ class RamanSpecification(si.Specification):
         self,
         name,
         *,
-        modes: Iterable[modes.Mode],
-        mode_initial_amplitudes: Dict[modes.Mode, Union[int, float, complex]],
-        mode_intrinsic_quality_factors: Dict[modes.Mode, Union[int, float]],
-        mode_coupling_quality_factors: Dict[modes.Mode, Union[int, float]],
-        mode_pumps: Dict[modes.Mode, pumps.Pump],
+        modes: Iterable[mode.Mode],
+        mode_initial_amplitudes: Dict[mode.Mode, Union[int, float, complex]],
+        mode_intrinsic_quality_factors: Dict[mode.Mode, Union[int, float]],
+        mode_coupling_quality_factors: Dict[mode.Mode, Union[int, float]],
+        mode_pumps: Dict[mode.Mode, pump.Pump],
         time_initial: float = 0 * u.nsec,
         time_final: float = 100 * u.nsec,
         time_step: float = 1 * u.nsec,
-        material: materials.RamanMaterial = None,
+        material: material.RamanMaterial = None,
         evolution_algorithm: evolve.EvolutionAlgorithm = evolve.RungeKutta4(),
-        mode_volume_integrator: volumes.ModeVolumeIntegrator = None,
+        mode_volume_integrator: volume.ModeVolumeIntegrator = None,
         store_mode_amplitudes_vs_time: bool = False,
         cached_polarization_sum_factors = None,
         checkpoints: bool = False,
@@ -607,7 +322,7 @@ class RamanSpecification(si.Specification):
         self.mode_intrinsic_quality_factors = np.array([mode_intrinsic_quality_factors[mode] for mode in self.modes], dtype = np.float64)
         self.mode_coupling_quality_factors = np.array([mode_coupling_quality_factors[mode] for mode in self.modes], dtype = np.float64)
         self.mode_total_quality_factors = (self.mode_intrinsic_quality_factors * self.mode_coupling_quality_factors) / (self.mode_intrinsic_quality_factors + self.mode_coupling_quality_factors)
-        self.mode_pumps = [mode_pumps.get(mode, pumps.ConstantPump(power = 0)) for mode in self.modes]
+        self.mode_pumps = [mode_pumps.get(mode, pump.ConstantPump(power = 0)) for mode in self.modes]
 
         self.time_initial = time_initial
         self.time_final = time_final

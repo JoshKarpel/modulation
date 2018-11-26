@@ -17,11 +17,11 @@ from .sims import (
     FourWaveMixingSpecification,
     FourWaveMixingSimulation,
 )
-from .animations import (
+from .anim import (
     PolarComplexAmplitudeAnimator,
     PolarComplexAmplitudeAxis,
 )
-from .pumps import (
+from .pump import (
     Pump,
     ConstantPump,
     RectangularPump,
@@ -31,6 +31,6 @@ from .evolve import (
     ForwardEuler,
     RungeKutta4,
 )
-from .volumes import ModeVolumeIntegrator
-from .modes import Mode
-from .materials import RamanMaterial
+from .volume import ModeVolumeIntegrator
+from .mode import Mode
+from .material import RamanMaterial
