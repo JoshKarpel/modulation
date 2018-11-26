@@ -33,3 +33,4 @@ from .evolve import (
 )
 from .volumes import ModeVolumeIntegrator
 from .modes import Mode
+from .materials import RamanMaterial

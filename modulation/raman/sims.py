@@ -13,7 +13,7 @@ from tqdm import tqdm
 import simulacra as si
 import simulacra.units as u
 
-from . import modes, pumps, evolve, volumes, exceptions
+from . import modes, pumps, evolve, volumes, materials, exceptions
 from .. import fmt
 from .cy import four_wave_polarization
 
@@ -33,7 +33,7 @@ class RamanSimulation(si.Simulation):
         self.mode_amplitude_decay_rates = self.mode_omegas / (2 * self.spec.mode_total_quality_factors)  # wiki's definition
         self.mode_index_of_refraction = np.array([m.index_of_refraction for m in self.spec.modes])
         self.mode_epsilons = self.mode_index_of_refraction ** 2
-        self.polarization_prefactor = 0.5j * self.spec.number_density * (self.mode_omegas / (u.epsilon_0 * self.mode_epsilons))
+        self.polarization_prefactor = 0.5j * self.spec.material.number_density * (self.mode_omegas / (u.epsilon_0 * self.mode_epsilons))
         self.degenerate_modes_by_frequency = self._degenerate_modes(self.spec.modes)
         self.mode_amplitudes = self.spec.mode_initial_amplitudes.copy()
         self.mode_to_index = {mode: idx for idx, mode in enumerate(self.spec.modes)}
@@ -111,7 +111,7 @@ class RamanSimulation(si.Simulation):
         return degenerate_modes
 
     def two_photon_detuning(self, omega_x, omega_y):
-        return (omega_x - omega_y) - (self.spec.modulation_omega + (1j * self.spec.gamma_b))
+        return (omega_x - omega_y) - (self.spec.material.modulation_omega + (1j * self.spec.material.raman_linewidth))
 
     def double_inverse_detuning(self, omega_x, omega_y):
         return np.conj(1 / self.two_photon_detuning(omega_x, omega_y)) + (1 / self.two_photon_detuning(omega_y, omega_x))
@@ -499,7 +499,7 @@ class StimulatedRamanScatteringSimulation(RamanSimulation):
             if r != s:
                 mode_volume_ratios[s, r] = volume / self.mode_volumes[s]
 
-        return self.spec.raman_prefactor * double_inverse_detunings * mode_volume_ratios
+        return self.spec.material.raman_prefactor * double_inverse_detunings * mode_volume_ratios
 
     def calculate_polarization(self, mode_amplitudes, time):
         raman = np.einsum(
@@ -586,13 +586,10 @@ class RamanSpecification(si.Specification):
         mode_intrinsic_quality_factors: Dict[modes.Mode, Union[int, float]],
         mode_coupling_quality_factors: Dict[modes.Mode, Union[int, float]],
         mode_pump_rates: Dict[modes.Mode, pumps.Pump],
-        modulation_omega: float,
-        coupling_prefactor: complex,
-        gamma_b: float,
-        number_density: float,
         time_initial: float = 0 * u.nsec,
         time_final: float = 100 * u.nsec,
         time_step: float = 1 * u.nsec,
+        material: materials.RamanMaterial = None,
         evolution_algorithm: evolve.EvolutionAlgorithm = evolve.RungeKutta4(),
         mode_volume_integrator: volumes.ModeVolumeIntegrator = None,
         store_mode_amplitudes_vs_time: bool = False,
@@ -612,17 +609,13 @@ class RamanSpecification(si.Specification):
         self.mode_total_quality_factors = (self.mode_intrinsic_quality_factors * self.mode_coupling_quality_factors) / (self.mode_intrinsic_quality_factors + self.mode_coupling_quality_factors)
         self.mode_pump_rates = [mode_pump_rates.get(mode, pumps.ConstantPump(power = 0)) for mode in self.modes]
 
-        self.modulation_omega = modulation_omega
-
-        self.raman_prefactor = (coupling_prefactor ** 2) / (4 * (u.hbar ** 3))
-        self.raman_linewidth = gamma_b
-
-        self.number_density = number_density
-
         self.time_initial = time_initial
         self.time_final = time_final
         self.time_step = time_step
 
+        if material is None:
+            raise exceptions.RamanException('material cannot be None')
+        self.material = material
         self.evolution_algorithm = evolution_algorithm
         if mode_volume_integrator is None:
             raise exceptions.RamanException('mode volume integrator cannot be None')
@@ -645,12 +638,7 @@ class RamanSpecification(si.Specification):
     def info(self) -> si.Info:
         info = super().info()
 
-        info_material = si.Info(header = 'Material Properties')
-        info_material.add_field('Raman Coupling Prefactor', self.raman_prefactor)
-        info_material.add_field('Raman Modulation Frequency', fmt.quantity(self.modulation_omega, fmt.FREQUENCY_UNITS))
-        info_material.add_field('Raman Linewidth', fmt.quantity(self.raman_linewidth, fmt.FREQUENCY_UNITS))
-        info_material.add_field('Number Density', self.number_density)
-        info.add_info(info_material)
+        info.add_info(self.material.info())
 
         info_modes = si.Info(header = 'Modes')
         info_modes.add_field('Number of Modes', len(self.modes))

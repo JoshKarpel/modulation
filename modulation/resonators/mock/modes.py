@@ -1,10 +1,6 @@
 import logging
 
-import simulacra as si
-import simulacra.units as u
-
 from ...raman import Mode
-from ... import fmt
 
 logger = logging.getLogger(__name__)
 
@@ -15,9 +11,13 @@ class MockMode(Mode):
         *,
         omega: float,
         index_of_refraction: float,
+        mode_volume_inside_resonator: float,
+        mode_volume_outside_resonator: float = 0,
     ):
         self._omega = omega
         self._index_of_refraction = index_of_refraction
+        self._mode_volume_inside_resonator = mode_volume_inside_resonator
+        self._mode_volume_outside_resonator = mode_volume_outside_resonator
 
     @property
     def omega(self):
@@ -26,3 +26,11 @@ class MockMode(Mode):
     @property
     def index_of_refraction(self):
         return self._index_of_refraction
+
+    @property
+    def mode_volume_inside_resonator(self) -> float:
+        return self._mode_volume_inside_resonator
+
+    @property
+    def mode_volume_outside_resonator(self) -> float:
+        return self._mode_volume_outside_resonator

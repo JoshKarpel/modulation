@@ -29,6 +29,16 @@ class Mode(abc.ABC):
     def index_of_refraction(self) -> float:
         raise NotImplementedError
 
+    @property
+    @abc.abstractmethod
+    def mode_volume_inside_resonator(self) -> float:
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def mode_volume_outside_resonator(self) -> float:
+        raise NotImplementedError
+
     def __str__(self):
         return f'{self.__class__.__name__}'
 
