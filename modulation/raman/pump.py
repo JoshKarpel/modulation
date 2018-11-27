@@ -8,6 +8,8 @@ import numpy as np
 import simulacra as si
 import simulacra.units as u
 
+from .. import fmt
+
 logger = logging.getLogger(__name__)
 
 
@@ -82,9 +84,9 @@ class RectangularPump(Pump):
     def info(self) -> si.Info:
         info = super().info()
 
-        info.add_field('Power', f'{u.uround(self._power, u.uW)} µW | {u.uround(self._power, u.mW)} mW | {u.uround(self._power, u.W)} W')
-        info.add_field('Start Time', f'{u.uround(self.start_time, u.nsec)} ns' if self.start_time != -np.inf else '-∞')
-        info.add_field('End Time', f'{u.uround(self.end_time, u.nsec)} ns' if self.end_time != np.inf else '+∞')
+        info.add_field('Power', fmt.quantity(self._power, fmt.POWER_UNITS))
+        info.add_field('Start Time', fmt.quantity(self.start_time, fmt.TIME_UNITS) if self.start_time != -np.inf else '-∞')
+        info.add_field('End Time', fmt.quantity(self.end_time, fmt.TIME_UNITS) if self.end_time != np.inf else '+∞')
 
         return info
 
@@ -109,6 +111,6 @@ class ConstantPump(Pump):
     def info(self) -> si.Info:
         info = super().info()
 
-        info.add_field('Power', f'{u.uround(self._power, u.uW)} µW | {u.uround(self._power, u.mW)} mW | {u.uround(self._power, u.W)} W')
+        info.add_field('Power', fmt.quantity(self._power, fmt.POWER_UNITS))
 
         return info

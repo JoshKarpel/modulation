@@ -84,6 +84,11 @@ class MicrosphereMode(Mode):
         return self.omega / u.twopi
 
     @property
+    def index_of_refraction(self):
+        """The index of refraction at the mode's free-space wavelength."""
+        return self._index_of_refraction(self.wavelength)
+
+    @property
     def k_inside(self):
         return self.k_outside * self.index_of_refraction
 
@@ -92,7 +97,7 @@ class MicrosphereMode(Mode):
         return u.twopi / self.wavelength
 
     @property
-    def mode_volume_within_R(self):
+    def mode_volume_inside_resonator(self):
         pre = (self.microsphere_radius ** 3) / 2
 
         kr = self.k_inside * self.microsphere_radius
@@ -103,7 +108,7 @@ class MicrosphereMode(Mode):
         return result
 
     @property
-    def mode_volume_outside_R(self):
+    def mode_volume_outside_resonator(self):
         L = 10 * self.microsphere_radius
         kl = self.k_outside * L
         kr = self.k_outside * self.microsphere_radius
@@ -117,7 +122,7 @@ class MicrosphereMode(Mode):
 
     @property
     def mode_volume(self):
-        return self.mode_volume_within_R + self.mode_volume_outside_R
+        return self.mode_volume_inside_resonator + self.mode_volume_outside_resonator
 
     @property
     def inside_outside_amplitude_ratio(self):
@@ -127,11 +132,6 @@ class MicrosphereMode(Mode):
             return bessel_ratio
         elif self.polarization is MicrosphereModePolarization.TRANSVERSE_MAGNETIC:
             return (self.k_inside / self.k_outside) * bessel_ratio
-
-    @property
-    def index_of_refraction(self):
-        """The index of refraction at the mode's free-space wavelength."""
-        return self._index_of_refraction(self.wavelength)
 
     def evaluate_electric_field_mode_shape_inside(self, r, theta, phi):
         if self.polarization is MicrosphereModePolarization.TRANSVERSE_ELECTRIC:

@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Optional, Union
 
 import abc
 
@@ -9,6 +9,8 @@ import simulacra.units as u
 import numpy as np
 
 logger = logging.getLogger(__name__)
+
+FloatOrArray = Union[float, np.ndarray]
 
 
 class IndexOfRefraction(abc.ABC):
@@ -24,7 +26,7 @@ class IndexOfRefraction(abc.ABC):
         self.name = name
 
     @abc.abstractmethod
-    def __call__(self, wavelength):
+    def __call__(self, wavelength: FloatOrArray):
         """Calculate the index of refraction at the given wavelength."""
         raise NotImplementedError
 
@@ -83,7 +85,7 @@ class SellmeierIndex(IndexOfRefraction):
         B, C = SELLMEIER_COEFFICIENTS[name]
         return cls(B, C, name = name)
 
-    def __call__(self, wavelength):
+    def __call__(self, wavelength: FloatOrArray):
         wavelength_sq = wavelength ** 2
         mod = sum(b * wavelength_sq / (wavelength_sq - c) for b, c in zip(self.B, self.C))
         return np.sqrt(1 + mod)

@@ -33,7 +33,6 @@ class RamanSimulation(si.Simulation):
         self.mode_index_of_refraction = np.array([m.index_of_refraction for m in self.spec.modes])
         self.mode_epsilons = self.mode_index_of_refraction ** 2
         self.polarization_prefactor = 0.5j * self.spec.material.number_density * (self.mode_omegas / (u.epsilon_0 * self.mode_epsilons))
-        self.degenerate_modes_by_frequency = self._degenerate_modes(self.spec.modes)
         self.mode_amplitudes = self.spec.mode_initial_amplitudes.copy()
         self.mode_to_index = {mode: idx for idx, mode in enumerate(self.spec.modes)}
 

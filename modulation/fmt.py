@@ -32,6 +32,11 @@ CHARGE_UNITS = (
 VOLUME_UNITS = (
     (u.um ** 3, 'um^3'),
 )
+POWER_UNITS = (
+    (u.uW, 'µW'),
+    (u.mW, 'mW'),
+    (u.W, 'W'),
+)
 
 
 def quantity(quantity, units: tuple):
