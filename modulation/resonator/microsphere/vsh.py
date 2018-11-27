@@ -184,7 +184,7 @@ class VectorSphericalHarmonic:
 
 
 def inner_product_of_vsh(a, b):
-    """Point-wise inner product"""
+    """Point-wise inner product of two vector spherical harmonics."""
     return np.einsum(
         'ijk,ijk->ij',
         a,

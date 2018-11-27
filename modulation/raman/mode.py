@@ -18,25 +18,30 @@ class Mode(abc.ABC):
     @property
     @abc.abstractmethod
     def omega(self) -> float:
+        """The angular frequency of the mode."""
         raise NotImplementedError
 
     @property
     def frequency(self):
+        """The cyclic frequency of the mode."""
         return self.omega / u.twopi
 
     @property
     @abc.abstractmethod
     def index_of_refraction(self) -> float:
+        """The first-order index of refraction that the mode sees in the resonator."""
         raise NotImplementedError
 
     @property
     @abc.abstractmethod
     def mode_volume_inside_resonator(self) -> float:
+        """The mode volume of the part of the mode inside the resonator."""
         raise NotImplementedError
 
     @property
     @abc.abstractmethod
     def mode_volume_outside_resonator(self) -> float:
+        """The mode volume of the part of the mode outside the resonator."""
         raise NotImplementedError
 
     def __str__(self):

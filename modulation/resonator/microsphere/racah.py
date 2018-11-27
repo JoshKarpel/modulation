@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 @functools.lru_cache(maxsize = None)
 def binomial_coefficient(n, k):
+    """Return the binomial coefficient (n choose k)."""
     if k < 0 or k > n:
         return 0
     if n <= 1 or k == 0 or k == n:
@@ -117,6 +118,7 @@ def factored_triangle_coefficient_squared(x, y, z):
 
 
 def racah_w(a, b, c, d, e, f):
+    """Return the Racah-W coefficient."""
     alpha_1 = a + b + e
     alpha_2 = c + d + e
     alpha_3 = a + c + f
@@ -149,11 +151,13 @@ def racah_w(a, b, c, d, e, f):
 
 
 def sixj_via_racah(j1, j2, j3, j4, j5, j6):
+    """Return a 6j-symbol evaluated via the Racah formula."""
     sgn = 1 if (j1 + j2 + j4 + j5) % 2 == 0 else -1
     return sgn * racah_w(j1, j2, j5, j4, j3, j6)
 
 
 def threej_via_racah(l1, l2, l3, m1, m2, m3):
+    """Return a 3j-symbol evaluated via the Racah formula."""
     if not m1 + m2 + m3 == 0:
         return 0
 

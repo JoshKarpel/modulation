@@ -3,22 +3,41 @@ from typing import Optional
 
 import abc
 
+import simulacra as si
+import simulacra.units as u
+
 import numpy as np
-from simulacra import units as u
 
 logger = logging.getLogger(__name__)
 
 
 class IndexOfRefraction(abc.ABC):
-    def __init__(self, name: Optional[str] = ''):
+    """An interface for an index of refraction."""
+
+    def __init__(self, name: Optional[str] = None):
+        """
+        Parameters
+        ----------
+        name
+            An optional human-readable name for the index of refraction (i.e., the name of the material).
+        """
         self.name = name
 
     @abc.abstractmethod
     def __call__(self, wavelength):
+        """Calculate the index of refraction at the given wavelength."""
         raise NotImplementedError
+
+    def info(self) -> si.Info:
+        info = si.Info(header = self.__class__.__name__)
+        if self.name is not None:
+            info.add_field('Name', self.name)
+        return info
 
 
 class ConstantIndex(IndexOfRefraction):
+    """A wavelength-independent index of refraction."""
+
     def __init__(self, n = 1, **kwargs):
         self.n = n
 
@@ -36,6 +55,8 @@ class ConstantIndex(IndexOfRefraction):
 
 
 class SellmeierIndex(IndexOfRefraction):
+    """An index of refraction that is calculated using the Sellmeier equation."""
+
     def __init__(self, B, C, **kwargs):
         self.B = B
         self.C = C
@@ -43,7 +64,22 @@ class SellmeierIndex(IndexOfRefraction):
         super().__init__(**kwargs)
 
     @classmethod
-    def from_name(cls, name):
+    def from_name(cls, name: str) -> 'SellmeierIndex':
+        """
+
+        Construct a :class:`SellmeierIndex` from a set of known materials.
+        See the ``SELLMEIER_COEFFICIENTS`` constant in this module.
+
+        Parameters
+        ----------
+        name
+            The name of the material.
+            See the ``SELLMEIER_COEFFICIENTS`` constant in this module for available names.
+
+        Returns
+        -------
+        index
+        """
         B, C = SELLMEIER_COEFFICIENTS[name]
         return cls(B, C, name = name)
 

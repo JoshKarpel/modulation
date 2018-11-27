@@ -4,7 +4,6 @@ from typing import Iterable, Dict, Union, Optional
 import functools
 import itertools
 import datetime
-import collections
 
 import numpy as np
 

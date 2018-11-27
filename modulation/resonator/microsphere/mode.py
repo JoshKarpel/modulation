@@ -40,7 +40,7 @@ class MicrosphereMode(Mode):
 
         self.wavelength = wavelength
         self.radial_mode_number = radial_mode_number
-        self.index_of_refraction = index_of_refraction
+        self._index_of_refraction = index_of_refraction
         self.microsphere_radius = microsphere_radius
 
         self.amplitude = amplitude
@@ -85,7 +85,7 @@ class MicrosphereMode(Mode):
 
     @property
     def k_inside(self):
-        return self.k_outside * self.index_of_refraction(self.wavelength)
+        return self.k_outside * self.index_of_refraction
 
     @property
     def k_outside(self):
@@ -129,9 +129,9 @@ class MicrosphereMode(Mode):
             return (self.k_inside / self.k_outside) * bessel_ratio
 
     @property
-    def mode_index_of_refraction(self):
-        """The index of refraction at the mode's wavelength."""
-        return self.index_of_refraction(self.wavelength)
+    def index_of_refraction(self):
+        """The index of refraction at the mode's free-space wavelength."""
+        return self._index_of_refraction(self.wavelength)
 
     def evaluate_electric_field_mode_shape_inside(self, r, theta, phi):
         if self.polarization is MicrosphereModePolarization.TRANSVERSE_ELECTRIC:

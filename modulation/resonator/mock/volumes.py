@@ -10,7 +10,15 @@ logger = logging.getLogger(__name__)
 
 
 class MockVolumeIntegrator(ModeVolumeIntegrator):
+    """A fake volume integrator with arbitrarily-settable internal parameters."""
+
     def __init__(self, *, volume_integral_result: float):
+        """
+        Parameters
+        ----------
+        volume_integral_result
+            The result to return from calling :meth:`~MockVolumeIntegrator.mode_volume_integral`.
+        """
         self.volume_integral_result = volume_integral_result
 
     def mode_volume_integral(self, modes: Tuple[Mode, ...]) -> float:

@@ -162,6 +162,11 @@ class RombergMicrosphereVolumeIntegrator(RiemannSumMicrosphereVolumeIntegrator):
 
 
 class FixedGridSimpsonMicrosphereVolumeIntegrator(FlexibleGridSimpsonMicrosphereVolumeIntegrator):
+    """
+    A Simpson volume integrator that operates on a fixed grid.
+    Because the grid is fixed, it and the mode magnitudes evaluated on it can be cached.
+    """
+
     def __init__(self, R, r_points = 2001, theta_points = 501, **kwargs):
         super().__init__(r_points = r_points, theta_points = theta_points, **kwargs)
 

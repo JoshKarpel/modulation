@@ -10,14 +10,14 @@ logger = logging.getLogger(__name__)
 
 @functools.lru_cache(maxsize = None)
 def threej(l1, l2, l3, m1, m2, m3):
-    r = look_for_threej_shortcuts(l1, l2, l3, m1, m2, m3)
+    r = _look_for_threej_shortcuts(l1, l2, l3, m1, m2, m3)
     if r is not None:
         return r
 
-    return threej_l_recursion(l1, l2, l3, m1, m2, m3)
+    return _threej_l_recursion(l1, l2, l3, m1, m2, m3)
 
 
-def look_for_threej_shortcuts(l1, l2, l3, m1, m2, m3):
+def _look_for_threej_shortcuts(l1, l2, l3, m1, m2, m3):
     if not m1 + m2 + m3 == 0:
         return 0
 
@@ -31,7 +31,7 @@ def look_for_threej_shortcuts(l1, l2, l3, m1, m2, m3):
     if any((abs(m1) > l1, abs(m2) > l2, abs(m3) > l3)):
         return 0
 
-    for (l1, l2, l3, m1, m2, m3), sign in generate_equivalent_threej_symbols(l1, l2, l3, m1, m2, m3):
+    for (l1, l2, l3, m1, m2, m3), sign in _generate_equivalent_threej_symbols(l1, l2, l3, m1, m2, m3):
         if not abs(l1 - l2) <= l3 <= l1 + l2:  # triangle relations
             return 0
 
@@ -45,7 +45,7 @@ def _zip_symbol_args(a, b, c):
     return tuple(itertools.chain.from_iterable(zip(a, b, c)))
 
 
-def generate_equivalent_threej_symbols(l1, l2, l3, m1, m2, m3):
+def _generate_equivalent_threej_symbols(l1, l2, l3, m1, m2, m3):
     yield (l1, l2, l3, m1, m2, m3), 1
 
     first, second, third = (
@@ -65,7 +65,7 @@ def generate_equivalent_threej_symbols(l1, l2, l3, m1, m2, m3):
     yield _zip_symbol_args(third, second, first), sign
 
 
-def threej_l_recursion(l1, l2, l3, m1, m2, m3):
+def _threej_l_recursion(l1, l2, l3, m1, m2, m3):
     family = _threej_l_recursion_family(l2, l3, m2, m3)
 
     return family[l1]
