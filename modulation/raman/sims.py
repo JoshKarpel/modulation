@@ -125,14 +125,14 @@ class RamanSimulation(si.Simulation):
     def generate_background_amplitudes(self):
         return self.mode_background_magnitudes * np.exp(1j * u.twopi * np.random.random(self.mode_amplitudes.shape))
 
-    def run(self, progress_bar: bool = False):
+    def run(self, show_progress_bar: bool = False):
         self.status = si.Status.RUNNING
 
         try:
             for animator in self.spec.animators:
                 animator.initialize(self)
 
-            if progress_bar:
+            if show_progress_bar:
                 pbar = tqdm(total = self.time_steps)
 
             times = self.times
@@ -151,7 +151,7 @@ class RamanSimulation(si.Simulation):
                     if self.time_index == 0 or self.time_index == self.time_steps or self.time_index % animator.decimation == 0:
                         animator.send_frame_to_ffmpeg()
 
-                if progress_bar:
+                if show_progress_bar:
                     pbar.update(1)
                 if self.time_index == self.time_steps - 1:
                     break
@@ -171,7 +171,7 @@ class RamanSimulation(si.Simulation):
                     if (now - self.latest_checkpoint_time) > self.spec.checkpoint_every:
                         self.do_checkpoint(now)
 
-            if progress_bar:
+            if show_progress_bar:
                 pbar.close()
         finally:
             for animator in self.spec.animators:
@@ -205,7 +205,7 @@ class StimulatedRamanScatteringSimulation(RamanSimulation):
         logger.debug(f'Building four-mode volume ratio array for {self}...')
         mode_volume_ratios = np.empty((num_modes, num_modes), dtype = np.complex128)
         mode_pairs = list(itertools.combinations_with_replacement(enumerate(self.spec.modes), r = 2))
-        for (r, mode_r), (s, mode_s) in tqdm(mode_pairs):
+        for (r, mode_r), (s, mode_s) in mode_pairs:
             volume = self.spec.mode_volume_integrator.mode_volume_integral((mode_r, mode_r, mode_s, mode_s))
 
             mode_volume_ratios[r, s] = volume / self.mode_volumes[r]
@@ -255,7 +255,7 @@ class FourWaveMixingSimulation(RamanSimulation):
         )
         self.frequency_differences = omega_r + omega_t - omega_s - omega_q
 
-        return self.spec.raman_prefactor * np.einsum(
+        return self.spec.material.raman_prefactor * np.einsum(
             'st,qrst->qrst',
             double_inverse_detunings,
             mode_volume_ratios,

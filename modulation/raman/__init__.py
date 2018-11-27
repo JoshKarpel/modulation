@@ -18,7 +18,7 @@ from .sims import (
     FourWaveMixingSimulation,
 )
 from .anim import (
-    PolarComplexAmplitudeAnimator,
+    SquareAnimator,
     PolarComplexAmplitudeAxis,
 )
 from .pump import (

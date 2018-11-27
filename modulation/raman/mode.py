@@ -27,6 +27,10 @@ class Mode(abc.ABC):
         return self.omega / u.twopi
 
     @property
+    def photon_energy(self):
+        return u.hbar * self.omega
+
+    @property
     @abc.abstractmethod
     def index_of_refraction(self) -> float:
         """The first-order index of refraction that the mode sees in the resonator."""

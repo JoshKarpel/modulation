@@ -11,10 +11,19 @@ logger = logging.getLogger(__name__)
 
 
 class PolarComplexAmplitudeAxis(anim.AxisManager):
-    def __init__(self, *args, trail_length = 100 * u.nsec, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        trail_length = 100 * u.nsec,
+        r_log_lower_limit = 5,
+        r_log_upper_limit = 10,
+    ):
+        super().__init__()
 
         self.trail_length = trail_length
+        self.theta = np.linspace(0, u.twopi, 500)
+
+        self.r_log_lower_limit = r_log_lower_limit
+        self.r_log_upper_limit = r_log_upper_limit
 
     def initialize(self, simulation):
         super().initialize(simulation)
@@ -47,7 +56,18 @@ class PolarComplexAmplitudeAxis(anim.AxisManager):
             self.lines.append(line)
             self.redraw.append(line)
 
-        self.axis.set_ylim(5, 10)
+        self.circles = []
+        for q, mode in enumerate(self.sim.spec.modes):
+            circle = plt.plot(
+                self.theta,
+                np.log10(np.abs(self.sim.mode_amplitudes[q])) * np.ones_like(self.theta),
+                alpha = 0.5,
+                animated = True,
+            )[0]
+            self.circles.append(circle)
+            self.redraw.append(circle)
+
+        self.axis.set_ylim(self.r_log_lower_limit, self.r_log_upper_limit)
         self.axis.grid(True)
 
         super().initialize_axis()
@@ -64,10 +84,19 @@ class PolarComplexAmplitudeAxis(anim.AxisManager):
         angles = np.angle(self.sim.mode_amplitudes_vs_time[bottom:self.sim.time_index + 1, :])
         rs = np.log10(np.abs(self.sim.mode_amplitudes_vs_time[bottom:self.sim.time_index + 1, :]))
 
+        mask = rs <= np.log10(1.1 * self.sim.mode_background_magnitudes)
+        angles = np.ma.masked_where(mask, angles)
+        rs = np.ma.masked_where(mask, rs)
+
         for q in range(len(self.lines)):
             self.lines[q].set_data(
                 angles[:, q],
                 rs[:, q],
+            )
+
+            self.circles[q].set_data(
+                self.theta,
+                np.log10(np.abs(self.sim.mode_amplitudes[q])) * np.ones_like(self.theta),
             )
 
         super().update_axis()
@@ -79,17 +108,17 @@ class PolarComplexAmplitudeAxis(anim.AxisManager):
         return r, theta
 
 
-class PolarComplexAmplitudeAnimator(anim.Animator):
+class SquareAnimator(anim.Animator):
     def __init__(
         self,
-        axman_amplitude,
+        axman,
         time_text_unit: u.Unit = 'nsec',
         **kwargs
     ):
         super().__init__(**kwargs)
 
-        self.axman_amplitude = axman_amplitude
-        self.axis_managers.append(self.axman_amplitude)
+        self.axman = axman
+        self.axis_managers.append(self.axman)
 
         self.time_text_unit, self.time_text_unit_tex = u.get_unit_value_and_latex_from_unit(time_text_unit)
 
@@ -100,11 +129,11 @@ class PolarComplexAmplitudeAnimator(anim.Animator):
             fig_dpi_scale = 3,
         )
 
-        self.ax_amplitude = self.fig.add_axes(
+        self.ax = self.fig.add_axes(
             [.05, .05, .9, .9],
             projection = 'polar',
         )
-        self.axman_amplitude.assign_axis(self.ax_amplitude)
+        self.axman.assign_axis(self.ax)
 
         self.time_text = plt.figtext(
             .025, .025,

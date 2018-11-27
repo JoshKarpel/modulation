@@ -8,7 +8,7 @@ class RamanSimulationPlotter:
     def __init__(self, sim):
         self.sim = sim
 
-    def plot_mode_magnitudes_vs_time(
+    def mode_magnitudes_vs_time(
         self,
         time_unit = 'nsec',
         magnitude_unit = 'V_per_m',
@@ -59,7 +59,7 @@ class RamanSimulationPlotter:
             **kwargs,
         )
 
-    def plot_mode_energies_vs_time(
+    def mode_energies_vs_time(
         self,
         time_unit = 'nsec',
         energy_unit = 'pJ',
@@ -110,7 +110,7 @@ class RamanSimulationPlotter:
             **kwargs,
         )
 
-    def plot_mode_output_powers_vs_time(
+    def mode_output_powers_vs_time(
         self,
         time_unit = 'nsec',
         power_unit = 'mW',
@@ -161,7 +161,7 @@ class RamanSimulationPlotter:
             **kwargs,
         )
 
-    def stackplot_mode_energies_vs_time(
+    def stackmode_energies_vs_time(
         self,
         time_unit = 'nsec',
         energy_unit = 'pJ',
@@ -200,7 +200,7 @@ class RamanSimulationPlotter:
             **kwargs,
         )
 
-    def plot_mode_photon_counts_vs_time(
+    def mode_photon_counts_vs_time(
         self,
         time_unit = 'nsec',
         y_log_axis = True,
@@ -249,7 +249,7 @@ class RamanSimulationPlotter:
             **kwargs,
         )
 
-    def stackplot_mode_photon_counts_vs_time(
+    def stackmode_photon_counts_vs_time(
         self,
         time_unit = 'nsec',
         y_pad = .05,
