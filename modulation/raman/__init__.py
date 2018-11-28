@@ -14,6 +14,8 @@ from .sims import (
     RamanSimulation,
     StimulatedRamanScatteringSpecification,
     StimulatedRamanScatteringSimulation,
+    RamanSidebandSpecification,
+    RamanSidebandSimulation,
     FourWaveMixingSpecification,
     FourWaveMixingSimulation,
 )

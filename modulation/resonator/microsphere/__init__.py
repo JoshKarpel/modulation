@@ -5,4 +5,5 @@ from .find import (
     find_modes,
     WavelengthBound,
 )
+from .coupling import coupling_quality_factor_for_tapered_fiber
 from . import exceptions

@@ -1,9 +1,10 @@
 import logging
-from typing import Iterable, Dict, Union, Optional
+from typing import Iterable, Dict, Union, Optional, Generator, Tuple
 
 import functools
 import itertools
 import datetime
+import abc
 
 import numpy as np
 
@@ -29,10 +30,9 @@ class RamanSimulation(si.Simulation):
         self.time_steps = len(self.times)
 
         self.mode_omegas = np.array([m.omega for m in self.spec.modes])
-        self.mode_amplitude_decay_rates = self.mode_omegas / (2 * self.spec.mode_total_quality_factors)  # wiki's definition
+        self.mode_amplitude_decay_rates = self.mode_omegas / (2 * self.spec.mode_total_quality_factors)
         self.mode_index_of_refraction = np.array([m.index_of_refraction for m in self.spec.modes])
         self.mode_epsilons = self.mode_index_of_refraction ** 2
-        self.polarization_prefactor = 0.5j * self.spec.material.number_density * (self.mode_omegas / (u.epsilon_0 * self.mode_epsilons))
         self.mode_amplitudes = self.spec.mode_initial_amplitudes.copy()
         self.mode_to_index = {mode: idx for idx, mode in enumerate(self.spec.modes)}
 
@@ -45,6 +45,7 @@ class RamanSimulation(si.Simulation):
 
         self.mode_background_magnitudes = np.sqrt(self.mode_photon_energy / self.mode_energy_prefactor)  # one photon per mode
 
+        self.polarization_prefactor = 0.5j * self.spec.material.number_density * (self.mode_omegas / (u.epsilon_0 * self.mode_epsilons)) * self.spec.material.raman_prefactor
         self.pump_prefactor = np.sqrt(self.mode_omegas / self.spec.mode_coupling_quality_factors) / np.sqrt(self.mode_energy_prefactor)
 
         if self.spec.cached_polarization_sum_factors is None:
@@ -56,7 +57,7 @@ class RamanSimulation(si.Simulation):
         self.plot = plotter.RamanSimulationPlotter(self)
 
     @property
-    def times(self):
+    def times(self) -> np.ndarray:
         total_time = self.spec.time_final - self.spec.time_initial
         times = np.linspace(
             self.spec.time_initial,
@@ -71,22 +72,21 @@ class RamanSimulation(si.Simulation):
         return self.times[self.time_index]
 
     @property
-    def available_animation_frames(self):
+    def available_animation_frames(self) -> int:
         return self.time_steps
-
-    def _calculate_polarization_sum_factors(self):
-        raise NotImplementedError
 
     @property
     def mode_photon_energy(self):
+        """Return what the energy of each mode would be if it had a single photon in it."""
         return u.hbar * self.mode_omegas
 
     @property
     def mode_energy_prefactor(self):
-        electric_inside = 0.5 * u.epsilon_0 * self.mode_epsilons * self.mode_volumes_inside_resonator
-        electric_outside = 0.5 * u.epsilon_0 * self.mode_volumes_outside_resonator
+        """The number that is multiplied by the square of the mode magnitude to get the energy in that mode."""
+        inside = 0.5 * u.epsilon_0 * self.mode_epsilons * self.mode_volumes_inside_resonator
+        outside = 0.5 * u.epsilon_0 * self.mode_volumes_outside_resonator
 
-        return electric_inside + electric_outside
+        return inside + outside
 
     # @property
     # def mode_intensity_prefactor(self):
@@ -94,38 +94,47 @@ class RamanSimulation(si.Simulation):
     #     return 0.5 * u.c * u.epsilon_0 * np.sqrt(self.mode_epsilons)
 
     def mode_energies(self, mode_amplitudes):
+        """Return the energy of each mode, based on the given ``mode_amplitudes``."""
         return self.mode_energy_prefactor * (np.abs(mode_amplitudes) ** 2)
 
     def mode_output_powers(self, mode_amplitudes):
+        """Return the output power of each mode, based on the given ``mode_amplitudes``."""
         return self.mode_energies(mode_amplitudes) * self.mode_omegas / self.spec.mode_coupling_quality_factors
 
-    def _two_photon_detuning(self, omega_x, omega_y):
+    def _two_photon_detuning(self, omega_x: float, omega_y: float) -> complex:
         return (omega_x - omega_y) - (self.spec.material.modulation_omega + (1j * self.spec.material.raman_linewidth))
 
-    def _double_inverse_detuning(self, omega_x, omega_y):
+    def _double_inverse_detuning(self, omega_x: float, omega_y: float) -> complex:
         return np.conj(1 / self._two_photon_detuning(omega_x, omega_y)) + (1 / self._two_photon_detuning(omega_y, omega_x))
 
-    def modes_with_amplitudes(self):
+    def modes_with_amplitudes(self) -> Generator[Tuple[mode.Mode, np.complex128], None, None]:
+        """Yields ``(mode, amplitude)`` pairs for all of the cavity modes in order."""
         yield from zip(self.spec.modes, self.mode_amplitudes)
 
-    def calculate_total_derivative(self, mode_amplitudes, time):
-        polarization = self.polarization_prefactor * self.calculate_polarization(mode_amplitudes, time)
+    def calculate_total_derivative(self, mode_amplitudes: np.ndarray, time: float) -> np.ndarray:
+        polarization = self.calculate_polarization(mode_amplitudes, time)
         pump = self.calculate_pumps(time)
         decay = -self.mode_amplitude_decay_rates * mode_amplitudes
 
         return polarization + pump + decay
 
     @functools.lru_cache(maxsize = 4)
-    def calculate_pumps(self, time):
+    def calculate_pumps(self, time: float) -> np.ndarray:
         return self.pump_prefactor * np.sqrt([pump.power(time) for pump in self.spec.mode_pumps], dtype = np.float64)
 
-    def calculate_polarization(self, mode_amplitudes, time):
+    @abc.abstractmethod
+    def _calculate_polarization_sum_factors(self) -> np.ndarray:
         raise NotImplementedError
 
-    def generate_background_amplitudes(self):
+    @abc.abstractmethod
+    def calculate_polarization(self, mode_amplitudes: np.ndarray, time: float) -> np.ndarray:
+        raise NotImplementedError
+
+    def generate_background_amplitudes(self) -> np.ndarray:
+        """Generate a set of background **amplitudes** with randomized phases."""
         return self.mode_background_magnitudes * np.exp(1j * u.twopi * np.random.random(self.mode_amplitudes.shape))
 
-    def run(self, show_progress_bar: bool = False):
+    def run(self, show_progress_bar: bool = False) -> None:
         self.status = si.Status.RUNNING
 
         try:
@@ -181,20 +190,20 @@ class RamanSimulation(si.Simulation):
 
         self.status = si.Status.FINISHED
 
-    def do_checkpoint(self, now):
+    def do_checkpoint(self, now: datetime.datetime) -> None:
         self.status = si.Status.PAUSED
         self.save(target_dir = self.spec.checkpoint_dir)
         self.latest_checkpoint_time = now
-        logger.info(f'{self} checkpointed at time index {self.time_index} / {self.time_steps - 1} ({self.percent_completed}%)')
+        logger.info(f'{self} checkpointed at time index {self.time_index} / {self.time_steps - 1} ({self.percent_completed:.2f}%)')
         self.status = si.Status.RUNNING
 
     @property
-    def percent_completed(self):
-        return round(100 * self.time_index / (self.time_steps - 1), 2)
+    def percent_completed(self) -> float:
+        return 100 * self.time_index / (self.time_steps - 1)
 
 
 class StimulatedRamanScatteringSimulation(RamanSimulation):
-    def _calculate_polarization_sum_factors(self):
+    def _calculate_polarization_sum_factors(self) -> np.ndarray:
         num_modes = len(self.spec.modes)
 
         logger.debug(f'Building two-mode inverse detuning array for {self}...')
@@ -204,7 +213,7 @@ class StimulatedRamanScatteringSimulation(RamanSimulation):
 
         logger.debug(f'Building four-mode volume ratio array for {self}...')
         mode_volume_ratios = np.empty((num_modes, num_modes), dtype = np.complex128)
-        mode_pairs = list(itertools.combinations_with_replacement(enumerate(self.spec.modes), r = 2))
+        mode_pairs = itertools.combinations_with_replacement(enumerate(self.spec.modes), r = 2)
         for (r, mode_r), (s, mode_s) in mode_pairs:
             volume = self.spec.mode_volume_integrator.mode_volume_integral((mode_r, mode_r, mode_s, mode_s))
 
@@ -212,9 +221,9 @@ class StimulatedRamanScatteringSimulation(RamanSimulation):
             if r != s:
                 mode_volume_ratios[s, r] = volume / self.mode_volumes[s]
 
-        return self.spec.material.raman_prefactor * double_inverse_detunings * mode_volume_ratios
+        return self.polarization_prefactor * double_inverse_detunings * mode_volume_ratios
 
-    def calculate_polarization(self, mode_amplitudes, time):
+    def calculate_polarization(self, mode_amplitudes: np.ndarray, time: float) -> np.ndarray:
         raman = np.einsum(
             'r,s,rs->r',
             mode_amplitudes,
@@ -225,20 +234,49 @@ class StimulatedRamanScatteringSimulation(RamanSimulation):
         return raman
 
 
-class FourWaveMixingSimulation(RamanSimulation):
-    def _calculate_polarization_sum_factors(self):
+class RamanSidebandSimulation(StimulatedRamanScatteringSimulation):
+    """A version of the SRS simulation that doesn't include the self-interaction, and only includes nearest-neighbour sideband interactions."""
+
+    def _calculate_polarization_sum_factors(self) -> np.ndarray:
         num_modes = len(self.spec.modes)
 
         logger.debug(f'Building two-mode inverse detuning array for {self}...')
         double_inverse_detunings = np.empty((num_modes, num_modes), dtype = np.complex128)
-        all_mode_pairs = list(itertools.product(enumerate(self.spec.modes), repeat = 2))
-        for (s, mode_s), (t, mode_t) in tqdm(all_mode_pairs):
+        for (r, mode_r), (s, mode_s) in itertools.product(enumerate(self.spec.modes), repeat = 2):
+            double_inverse_detunings[r, s] = self._double_inverse_detuning(mode_s.omega, mode_r.omega)
+
+        logger.debug(f'Building four-mode volume ratio array for {self}...')
+        mode_volume_ratios = np.empty((num_modes, num_modes), dtype = np.complex128)
+        mode_pairs = itertools.combinations_with_replacement(enumerate(self.spec.modes), r = 2)
+        for (r, mode_r), (s, mode_s) in mode_pairs:
+            if r == s or not (r == s + 1 or r == s - 1):
+                mode_volume_ratios[r, s] = 0
+                mode_volume_ratios[s, r] = 0
+                continue
+
+            volume = self.spec.mode_volume_integrator.mode_volume_integral((mode_r, mode_r, mode_s, mode_s))
+
+            mode_volume_ratios[r, s] = volume / self.mode_volumes[r]
+            if r != s:
+                mode_volume_ratios[s, r] = volume / self.mode_volumes[s]
+
+        return self.polarization_prefactor * double_inverse_detunings * mode_volume_ratios
+
+
+class FourWaveMixingSimulation(RamanSimulation):
+    def _calculate_polarization_sum_factors(self) -> np.ndarray:
+        num_modes = len(self.spec.modes)
+
+        logger.debug(f'Building two-mode inverse detuning array for {self}...')
+        double_inverse_detunings = np.empty((num_modes, num_modes), dtype = np.complex128)
+        all_mode_pairs = itertools.product(enumerate(self.spec.modes), repeat = 2)
+        for (s, mode_s), (t, mode_t) in all_mode_pairs:
             double_inverse_detunings[s, t] = self._double_inverse_detuning(mode_s.omega, mode_t.omega)
 
         logger.debug(f'Building four-mode volume ratio array for {self}...')
         mode_volume_ratios = np.empty((num_modes, num_modes, num_modes, num_modes), dtype = np.float64)
-        four_modes_combinations = list(itertools.combinations_with_replacement(enumerate(self.spec.modes), r = 4))
-        for (q, mode_q), (r, mode_r), (s, mode_s), (t, mode_t) in tqdm(four_modes_combinations):
+        four_modes_combinations = itertools.combinations_with_replacement(enumerate(self.spec.modes), r = 4)
+        for (q, mode_q), (r, mode_r), (s, mode_s), (t, mode_t) in four_modes_combinations:
             volume = self.spec.mode_volume_integrator.mode_volume_integral((mode_q, mode_r, mode_s, mode_t))
 
             for q_, r_, s_, t_ in itertools.permutations((q, r, s, t)):
@@ -255,14 +293,14 @@ class FourWaveMixingSimulation(RamanSimulation):
         )
         self.frequency_differences = omega_r + omega_t - omega_s - omega_q
 
-        return self.spec.material.raman_prefactor * np.einsum(
+        return self.polarization_prefactor * np.einsum(
             'st,qrst->qrst',
             double_inverse_detunings,
             mode_volume_ratios,
         )
 
     @functools.lru_cache(maxsize = 4)
-    def _calculate_phase_array(self, time):
+    def _calculate_phase_array(self, time: float) -> np.ndarray:
         """
         Caching helps some algorithms like RK4 which need to evaluate at the same time multiple times.
 
@@ -277,7 +315,7 @@ class FourWaveMixingSimulation(RamanSimulation):
         minus_omega_t = -time * self.mode_omegas
         return np.cos(minus_omega_t) + (1j * np.sin(minus_omega_t))
 
-    def calculate_polarization(self, mode_amplitudes, time):
+    def calculate_polarization(self, mode_amplitudes: np.ndarray, time: float) -> np.ndarray:
         phase = self._calculate_phase_array(time)
         fields = mode_amplitudes * phase
         return four_wave_polarization(
@@ -292,7 +330,7 @@ class RamanSpecification(si.Specification):
 
     def __init__(
         self,
-        name,
+        name: str,
         *,
         modes: Iterable[mode.Mode],
         mode_initial_amplitudes: Dict[mode.Mode, Union[int, float, complex]],
@@ -306,7 +344,7 @@ class RamanSpecification(si.Specification):
         evolution_algorithm: evolve.EvolutionAlgorithm = evolve.RungeKutta4(),
         mode_volume_integrator: volume.ModeVolumeIntegrator = None,
         store_mode_amplitudes_vs_time: bool = False,
-        cached_polarization_sum_factors = None,
+        cached_polarization_sum_factors: Optional[np.ndarray] = None,
         checkpoints: bool = False,
         checkpoint_every: datetime.timedelta = datetime.timedelta(hours = 1),
         checkpoint_dir: Optional[str] = None,
@@ -329,7 +367,9 @@ class RamanSpecification(si.Specification):
         if material is None:
             raise exceptions.MissingRamanMaterial('material cannot be None')
         self.material = material
+
         self.evolution_algorithm = evolution_algorithm
+
         if mode_volume_integrator is None:
             raise exceptions.MissingVolumeIntegrator('mode_volume_integrator cannot be None')
         self.mode_volume_integrator = mode_volume_integrator
@@ -406,6 +446,10 @@ class RamanSpecification(si.Specification):
 
 class StimulatedRamanScatteringSpecification(RamanSpecification):
     simulation_type = StimulatedRamanScatteringSimulation
+
+
+class RamanSidebandSpecification(StimulatedRamanScatteringSpecification):
+    simulation_type = RamanSidebandSimulation
 
 
 class FourWaveMixingSpecification(RamanSpecification):

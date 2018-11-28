@@ -49,7 +49,7 @@ if __name__ == '__main__':
                 index_of_refraction = 1.45,
                 mode_volume_inside_resonator = 1e-20,
             )
-            for q in range(10)
+            for q in range(3)
         ]
         print('Modes:')
         for mode in modes:
@@ -60,11 +60,7 @@ if __name__ == '__main__':
         pumps = {pump_mode: raman.pump.ConstantPump(pump_power)}
         print(f'Pump: {pump_mode}')
 
-        coupling_q = {}  # critical at pump
-        for idx, mode in enumerate(modes):
-            coupling_q[mode] = 1e8 * (0.9 ** idx)
-
-        spec = raman.StimulatedRamanScatteringSpecification(
+        spec = raman.RamanSidebandSpecification(
             name = f'sidebands__power={pump_power / u.uW:.6f}uW',
             material = material,
             mode_volume_integrator = mock.MockVolumeIntegrator(
@@ -73,7 +69,7 @@ if __name__ == '__main__':
             modes = modes,
             mode_initial_amplitudes = dict(zip(modes, itertools.repeat(0))),
             mode_intrinsic_quality_factors = dict(zip(modes, itertools.repeat(1e8))),
-            mode_coupling_quality_factors = coupling_q,
+            mode_coupling_quality_factors = dict(zip(modes, itertools.repeat(1e8))),
             mode_pumps = pumps,
             time_initial = 0 * u.usec,
             time_final = 1 * u.usec,
@@ -91,11 +87,9 @@ if __name__ == '__main__':
         )
 
         sim = spec.to_sim()
-
-        print(sim.spec.mode_intrinsic_quality_factors)
-        print(sim.spec.mode_coupling_quality_factors)
-        print(sim.spec.mode_total_quality_factors)
-
+        # print(sim.polarization_sum_factors)
+        # print(sim.polarization_prefactor)
+        #
         # sim.run(show_progress_bar = True)
         #
         # sim.plot.mode_magnitudes_vs_time(**PLOT_KWARGS)

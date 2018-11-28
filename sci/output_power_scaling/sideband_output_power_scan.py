@@ -35,12 +35,12 @@ def run(spec):
     with LOGMAN as logger:
         sim = si.utils.find_or_init_sim_from_spec(spec, search_dir = SIM_LIB)
 
-        if sim.status is not si.Status.FINISHED:
-            sim.run()
-            sim.save(target_dir = SIM_LIB)
+        # if sim.status is not si.Status.FINISHED:
+        #     sim.run()
+        #     sim.save(target_dir = SIM_LIB)
 
-        # sim = spec.to_sim()
-        # sim.run()
+        sim = spec.to_sim()
+        sim.run()
 
         # sim.plot.mode_magnitudes_vs_time(**PLOT_KWARGS)
 
@@ -55,18 +55,27 @@ def make_output_power_scan_plot(pump_powers, results):
     pump_to_sim = dict(zip(pump_powers, results))
     modes = results[0].spec.modes
 
-    y = [pump_powers]
-    labels = ['Pump Power']
-    line_kwargs = [dict(color = 'black')]
+    y = []
+    labels = []
+    line_kwargs = []
+    mode_energies = []
     for q, mode in enumerate(modes):
         output_power = np.array([
             sim.mode_output_powers(sim.mode_amplitudes)[q]
             for pump, sim in pump_to_sim.items()
         ])
+        mode_energy = np.array([
+            sim.mode_energies(sim.mode_amplitudes)[q]
+            for pump, sim in pump_to_sim.items()
+        ])
 
         y.append(output_power)
         labels.append(mode.tex)
-        line_kwargs.append(dict())
+        line_kwargs.append({})
+        mode_energies.append(mode_energy)
+
+    thresholds = calculate_thresholds(mode_energies, pump_powers)
+    thresholds = np.array(list(reversed(thresholds)))
 
     si.vis.xy_plot(
         f'sideband_output_power_scaling',
@@ -78,9 +87,10 @@ def make_output_power_scan_plot(pump_powers, results):
         x_label = 'Pump Power',
         y_unit = 'uW',
         y_label = 'Output Power',
+        vlines = thresholds,
         legend_on_right = True,
-        y_lower_limit = 0 * u.uW,
-        y_upper_limit = 35 * u.uW,
+        # y_lower_limit = 0 * u.uW,
+        # y_upper_limit = 35 * u.uW,
         **PLOT_KWARGS,
     )
 
@@ -102,24 +112,9 @@ def make_mode_energy_scan_plot(pump_powers, results):
         labels.append(mode.tex)
         line_kwargs.append(dict())
 
-    # print(y[-1])
-    # print(y[-2])
-    # print(y[-3])
-    # print(y[-1] / y[-3])
-
-    y.append(2 * y[-3])
-    labels.append('2x')
-    line_kwargs.append(dict(linestyle = '--', color = 'black'))
-
-    thresholds = []
-    for (q, mode), mode_energy in zip(enumerate(modes), y):
-        indices, = np.where(mode_energy > 2 * mode.photon_energy)
-        if len(indices) > 0:
-            print((mode.label, pump_powers[indices[0]]))
-            thresholds.append(pump_powers[indices[0]])
-
-    for t in thresholds:
-        print(t)
+    thresholds = calculate_thresholds(y, pump_powers)
+    orders = np.array(list(range(len(thresholds))))
+    thresholds = np.array(list(reversed(thresholds)))
 
     si.vis.xy_plot(
         f'sideband_mode_energy_scaling',
@@ -132,14 +127,11 @@ def make_mode_energy_scan_plot(pump_powers, results):
         y_unit = 'pJ',
         y_label = 'Mode Energy',
         vlines = thresholds,
-        y_lower_limit = 0 * u.pJ,
-        y_upper_limit = 1.2 * u.pJ,
+        # y_lower_limit = 0 * u.pJ,
+        # y_upper_limit = 1.2 * u.pJ,
         legend_on_right = True,
         **PLOT_KWARGS,
     )
-
-    orders = np.array(list(range(len(thresholds))))
-    thresholds = np.array(list(reversed(thresholds)))
 
     fit, _ = opt.curve_fit(
         lambda t, a, n: a * (t ** n),
@@ -148,7 +140,6 @@ def make_mode_energy_scan_plot(pump_powers, results):
         p0 = [1, 3],
     )
 
-    print(fit)
     dense_orders = np.linspace(orders[0], orders[-1], 1000)
     fitted_thresholds = fit[0] * (dense_orders ** fit[1])
 
@@ -173,10 +164,20 @@ def make_mode_energy_scan_plot(pump_powers, results):
     )
 
 
+def calculate_thresholds(mode_energies, pump_powers):
+    thresholds = []
+    for (q, mode), mode_energy in zip(enumerate(modes), mode_energies):
+        indices, = np.where(mode_energy > 2 * mode.photon_energy)
+        if len(indices) > 0:
+            thresholds.append(pump_powers[indices[0]])
+
+    return thresholds
+
+
 if __name__ == '__main__':
     with LOGMAN as logger:
-        pump_wavelength = 800 * u.nm
-        pump_powers = np.linspace(0, 1000, 100) * u.uW
+        pump_wavelength = 980 * u.nm
+        pump_powers = np.linspace(0, 600, 100) * u.uW
 
         ###
 
@@ -200,6 +201,13 @@ if __name__ == '__main__':
         pump_mode = find_pump_mode(modes, pump_omega)
         print(f'Pump: {pump_mode}')
 
+        coupling_q = {}  # critical at pump
+        for idx, mode in enumerate(modes):
+            coupling_q[mode] = 1e8 * (0.9 ** idx)
+
+        for k, v in coupling_q.items():
+            print(k, v)
+
         spec_kwargs = dict(
             material = material,
             mode_volume_integrator = mock.MockVolumeIntegrator(
@@ -208,7 +216,7 @@ if __name__ == '__main__':
             modes = modes,
             mode_initial_amplitudes = dict(zip(modes, itertools.repeat(0))),
             mode_intrinsic_quality_factors = dict(zip(modes, itertools.repeat(1e8))),
-            mode_coupling_quality_factors = dict(zip(modes, itertools.repeat(1e8))),
+            mode_coupling_quality_factors = coupling_q,
             time_initial = 0 * u.usec,
             time_final = 20 * u.usec,
             time_step = 1 * u.nsec,

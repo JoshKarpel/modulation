@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class ModeVolumeIntegrator(abc.ABC):
-    """An interface for calculating volume integrals over mode magnitudes."""
+    """An interface for calculating volume integrals over products of mode magnitudes."""
 
     @abc.abstractmethod
     def mode_volume_integral(self, modes: Tuple[Mode, ...]) -> float:
