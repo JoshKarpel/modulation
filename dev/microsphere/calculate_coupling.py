@@ -28,61 +28,76 @@ ANIM_KWARGS = dict(
 )
 
 
-def quality_factor_vs_separation(index, microsphere_radius, fiber_radius, wavelength):
-    separations = np.linspace(0, 1000, 1000) * u.nm
+def quality_factor_vs_separation(index, microsphere_radius, fiber_radii, wavelengths):
+    separations = np.linspace(0, 500, 1000) * u.nm
 
-    quality_factors = np.empty_like(separations)
-    for idx, sep in enumerate(separations):
-        quality_factors[idx] = microsphere.coupling_quality_factor_for_tapered_fiber(
+    quality_factors = []
+    labels = []
+    for i, (fiber_radius, wavelength) in enumerate(itertools.product(fiber_radii, wavelengths)):
+        q = microsphere.coupling_quality_factor_for_tapered_fiber(
             microsphere_index_of_refraction = index,
             fiber_index_of_refraction = index,
             microsphere_radius = microsphere_radius,
             fiber_taper_radius = fiber_radius,
             wavelength = wavelength,
-            separation = sep,
+            separation = separations,
             l = 0,
             m = 0,
         )
 
+        quality_factors.append(q)
+        labels.append(fr'$R_{{\mathrm{{fiber}}}} = {fiber_radius / u.um:.1f} \, \mathrm{{\mu m}}, \, \lambda = {int(wavelength / u.nm)} \, \mathrm{{nm}}$')
+
     si.vis.xy_plot(
         'quality_factor_vs_separation',
         separations,
-        quality_factors,
+        *quality_factors,
+        line_labels = labels,
         x_label = r'Fiber-Sphere Separation $s$',
         x_unit = 'nm',
         y_label = r'$Q_c$',
         y_log_axis = True,
-        hlines = [1.5e8],
+        hlines = [1e8],
+        vlines = [250 * u.nm, ],
+        font_size_legend = 10,
+        legend_on_right = True,
         **PLOT_KWARGS,
     )
 
 
-def quality_factor_vs_wavelength(index, microsphere_radius, fiber_radius, separation):
-    wavelengths = np.linspace(500, 2000, 1000) * u.nm
+def quality_factor_vs_wavelength(index, microsphere_radius, fiber_radii, separations):
+    wavelengths = np.linspace(800, 1600, 1000) * u.nm
 
-    quality_factors = np.empty_like(wavelengths)
-    for idx, wavelength in enumerate(wavelengths):
-        quality_factors[idx] = microsphere.coupling_quality_factor_for_tapered_fiber(
+    quality_factors = []
+    labels = []
+    for i, (fiber_radius, separation) in enumerate(itertools.product(fiber_radii, separations)):
+        q = microsphere.coupling_quality_factor_for_tapered_fiber(
             microsphere_index_of_refraction = index,
             fiber_index_of_refraction = index,
             microsphere_radius = microsphere_radius,
             fiber_taper_radius = fiber_radius,
-            wavelength = wavelength,
+            wavelength = wavelengths,
             separation = separation,
             l = 0,
             m = 0,
         )
 
+        quality_factors.append(q)
+        labels.append(fr'$R_{{\mathrm{{fiber}}}} = {fiber_radius / u.um:.1f} \, \mathrm{{\mu m}}, \, s = {separation / u.um:.3f} \, \mathrm{{\mu m}}$')
+
     si.vis.xy_plot(
         'quality_factor_vs_wavelength',
         wavelengths,
-        quality_factors,
+        *quality_factors,
+        line_labels = labels,
         x_label = r'Wavelength $\lambda$',
         x_unit = 'nm',
         y_label = r'$Q_c$',
         y_log_axis = True,
-        hlines = [1.5e8],
+        hlines = [1e8],
         vlines = [980 * u.nm],
+        font_size_legend = 10,
+        legend_on_right = True,
         **PLOT_KWARGS,
     )
 
@@ -91,7 +106,20 @@ if __name__ == '__main__':
     with LOGMAN as logger:
         index = refraction.ConstantIndex(1.45)
         microsphere_radius = 50 * u.um
-        fiber_radius = 1 * u.um
 
-        quality_factor_vs_separation(index, microsphere_radius, fiber_radius, 980 * u.nm)
-        quality_factor_vs_wavelength(index, microsphere_radius, fiber_radius, 300 * u.nm)
+        fiber_radii = [1 * u.um, ]
+        wavelengths = np.array([980, 1027, 1078, 1135, 1199, 1270, 1350, 1441, 1546, 1666]) * u.nm
+        separations = [250 * u.nm, ]
+
+        quality_factor_vs_separation(
+            index,
+            microsphere_radius,
+            fiber_radii = fiber_radii,
+            wavelengths = wavelengths,
+        )
+        quality_factor_vs_wavelength(
+            index,
+            microsphere_radius,
+            fiber_radii = fiber_radii,
+            separations = separations,
+        )

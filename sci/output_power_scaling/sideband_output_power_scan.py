@@ -10,7 +10,9 @@ import simulacra as si
 import simulacra.units as u
 
 from modulation import raman
+from modulation.refraction import ConstantIndex
 from modulation.resonator import mock
+from modulation.resonator.microsphere import coupling_quality_factor_for_tapered_fiber
 
 THIS_FILE = Path(__file__)
 OUT_DIR = THIS_FILE.parent / 'out' / THIS_FILE.stem
@@ -174,10 +176,33 @@ def calculate_thresholds(mode_energies, pump_powers):
     return thresholds
 
 
+def calculate_coupling_quality_factors(
+    modes,
+    microsphere_radius = 50 * u.um,
+    index_of_refraction = 1.45,
+    separation = 300 * u.nm,
+    fiber_taper_radius = 1 * u.um,
+):
+    return {
+        mode:
+            coupling_quality_factor_for_tapered_fiber(
+                microsphere_index_of_refraction = ConstantIndex(index_of_refraction),
+                fiber_index_of_refraction = ConstantIndex(index_of_refraction),
+                microsphere_radius = microsphere_radius,
+                fiber_taper_radius = fiber_taper_radius,
+                wavelength = u.c / (mode.omega / u.twopi),
+                separation = separation,
+                l = 0,
+                m = 0,
+            )
+        for mode in modes}
+
+
 if __name__ == '__main__':
+    np.set_printoptions(linewidth = 200)
     with LOGMAN as logger:
         pump_wavelength = 980 * u.nm
-        pump_powers = np.linspace(0, 600, 100) * u.uW
+        pump_powers = np.linspace(0, 60, 50) * u.uW
 
         ###
 
@@ -191,22 +216,19 @@ if __name__ == '__main__':
                 index_of_refraction = 1.45,
                 mode_volume_inside_resonator = 1e-20,
             )
-            for q in range(10)
+            for q in range(4)
         ]
         print('Modes:')
         for mode in modes:
             print(mode)
-        print()
 
         pump_mode = find_pump_mode(modes, pump_omega)
         print(f'Pump: {pump_mode}')
 
-        coupling_q = {}  # critical at pump
-        for idx, mode in enumerate(modes):
-            coupling_q[mode] = 1e8 * (0.9 ** idx)
+        coupling_q = calculate_coupling_quality_factors(modes)
 
         for k, v in coupling_q.items():
-            print(k, v)
+            print(k, f'{v:.3g}')
 
         spec_kwargs = dict(
             material = material,
@@ -215,10 +237,10 @@ if __name__ == '__main__':
             ),
             modes = modes,
             mode_initial_amplitudes = dict(zip(modes, itertools.repeat(0))),
-            mode_intrinsic_quality_factors = dict(zip(modes, itertools.repeat(1e8))),
+            mode_intrinsic_quality_factors = dict(zip(modes, itertools.repeat(coupling_q[pump_mode]))),
             mode_coupling_quality_factors = coupling_q,
             time_initial = 0 * u.usec,
-            time_final = 20 * u.usec,
+            time_final = 10 * u.usec,
             time_step = 1 * u.nsec,
             store_mode_amplitudes_vs_time = True,
         )
@@ -226,7 +248,7 @@ if __name__ == '__main__':
         specs = []
         for pump_power in pump_powers:
             pumps = {pump_mode: raman.pump.ConstantPump(pump_power)}
-            spec = raman.StimulatedRamanScatteringSpecification(
+            spec = raman.RamanSidebandSpecification(
                 name = f'sideband_output_power__power={pump_power / u.uW:.6f}uW',
                 mode_pumps = pumps,
                 **spec_kwargs,
@@ -237,3 +259,24 @@ if __name__ == '__main__':
 
         make_mode_energy_scan_plot(pump_powers, results)
         make_output_power_scan_plot(pump_powers, results)
+
+        spec = specs[-1]
+        sim = spec.to_sim()
+
+        print(sim.info())
+        sim.run(show_progress_bar = True)
+
+        G = np.real(sim.polarization_sum_factors / sim.mode_omegas)[0, 1]
+        print('G')
+        print(G)
+
+        print('Energy of q = 1 from 1/2GQ')
+        amp_squared = (1 / (2 * sim.spec.mode_total_quality_factors[1] * G))
+        predicted = sim.mode_energy_prefactor[1] * amp_squared
+        print(predicted / u.pJ)
+
+        print('Energy of q = 1 from Amplitudes')
+        actual = sim.mode_energies(sim.mode_amplitudes)[1]
+        print(actual / u.pJ)
+
+        print(.5 * (actual - predicted) / (actual + predicted))

@@ -87,10 +87,10 @@ if __name__ == '__main__':
         )
 
         sim = spec.to_sim()
-        # print(sim.polarization_sum_factors)
-        # print(sim.polarization_prefactor)
-        #
-        # sim.run(show_progress_bar = True)
-        #
-        # sim.plot.mode_magnitudes_vs_time(**PLOT_KWARGS)
-        # sim.plot.mode_energies_vs_time(**PLOT_KWARGS)
+        print(sim.polarization_sum_factors)
+        print(sim.polarization_prefactor)
+
+        sim.run(show_progress_bar = True)
+
+        sim.plot.mode_magnitudes_vs_time(**PLOT_KWARGS)
+        sim.plot.mode_energies_vs_time(**PLOT_KWARGS)
