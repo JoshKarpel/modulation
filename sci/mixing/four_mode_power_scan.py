@@ -37,13 +37,12 @@ def run(spec):
     with LOGMAN as logger:
         sim = si.utils.find_or_init_sim_from_spec(spec, search_dir = SIM_LIB)
 
-        # if sim.status is not si.Status.FINISHED:
-        #     sim.run()
-        #     sim.save(target_dir = SIM_LIB)
+        if sim.status is not si.Status.FINISHED:
+            sim.run()
+            sim.save(target_dir = SIM_LIB)
+            # sim.plot.mode_magnitudes_vs_time(**PLOT_KWARGS)
 
-        sim.run()
-
-        # sim.plot.mode_magnitudes_vs_time(**PLOT_KWARGS)
+        # sim.run()
 
         return sim
 
@@ -52,33 +51,64 @@ def find_mode(modes, omega: float):
     return sorted(modes, key = lambda m: abs(m.omega - omega))[0]
 
 
-def make_output_power_scan_plot(pump_powers, results):
+def make_mode_energy_scan_plot(pump_powers, results, mixing_power):
     pump_to_sim = dict(zip(pump_powers, results))
     modes = results[0].spec.modes
 
-    y = []
+    mode_energies = []
+    mode_output_powers = []
     labels = []
     line_kwargs = []
-    mode_energies = []
     for q, mode in enumerate(modes):
-        output_power = np.array([
-            sim.mode_output_powers(sim.mode_amplitudes)[q]
-            for pump, sim in pump_to_sim.items()
-        ])
+        averaging_index = int(100 * u.nsec / results[0].spec.time_step)
         mode_energy = np.array([
-            sim.mode_energies(sim.mode_amplitudes)[q]
+            np.mean(sim.mode_energies(sim.mode_amplitudes_vs_time)[-averaging_index:, q])
             for pump, sim in pump_to_sim.items()
         ])
 
-        y.append(output_power)
+        output_power = np.array([
+            np.mean(sim.mode_output_powers(sim.mode_amplitudes_vs_time)[-averaging_index:, q])
+            for pump, sim in pump_to_sim.items()
+        ])
+
+        mode_energies.append(mode_energy)
+        mode_output_powers.append(output_power)
         labels.append(mode.tex)
         line_kwargs.append(dict(alpha = 0.8))
-        mode_energies.append(mode_energy)
 
+    si.vis.xy_plot(
+        f'mixing_mode_energy_scaling',
+        pump_powers,
+        *mode_energies,
+        line_labels = labels,
+        line_kwargs = line_kwargs,
+        x_unit = 'uW',
+        x_label = 'Pump Power',
+        y_unit = 'pJ',
+        y_label = 'Mode Energy',
+        legend_on_right = True,
+        **PLOT_KWARGS,
+    )
+    si.vis.xy_plot(
+        f'mixing_mode_energy_scaling__log_y',
+        pump_powers,
+        *mode_energies,
+        line_labels = labels,
+        line_kwargs = line_kwargs,
+        x_unit = 'uW',
+        x_label = 'Pump Power',
+        y_unit = 'pJ',
+        y_label = 'Mode Energy',
+        legend_on_right = True,
+        y_log_axis = True,
+        y_lower_limit = 1e-8 * u.pJ,
+        y_upper_limit = 1e2 * u.pJ,
+        **PLOT_KWARGS,
+    )
     si.vis.xy_plot(
         f'mixing_output_power_scaling',
         pump_powers,
-        *y,
+        *mode_output_powers,
         line_labels = labels,
         line_kwargs = line_kwargs,
         x_unit = 'uW',
@@ -91,7 +121,7 @@ def make_output_power_scan_plot(pump_powers, results):
     si.vis.xy_plot(
         f'mixing_output_power_scaling__log_y',
         pump_powers,
-        *y,
+        *mode_output_powers,
         line_labels = labels,
         line_kwargs = line_kwargs,
         x_unit = 'uW',
@@ -100,56 +130,9 @@ def make_output_power_scan_plot(pump_powers, results):
         y_label = 'Output Power',
         legend_on_right = True,
         y_log_axis = True,
+        hlines = [mixing_power],
         y_lower_limit = 1e-3 * u.uW,
         y_upper_limit = 1e2 * u.uW,
-        **PLOT_KWARGS,
-    )
-
-
-def make_mode_energy_scan_plot(pump_powers, results):
-    pump_to_sim = dict(zip(pump_powers, results))
-    modes = results[0].spec.modes
-
-    y = []
-    labels = []
-    line_kwargs = []
-    for q, mode in enumerate(modes):
-        mode_energy = np.array([
-            sim.mode_energies(sim.mode_amplitudes)[q]
-            for pump, sim in pump_to_sim.items()
-        ])
-
-        y.append(mode_energy)
-        labels.append(mode.tex)
-        line_kwargs.append(dict(alpha = 0.8))
-
-    si.vis.xy_plot(
-        f'fwm_mode_energy_scaling',
-        pump_powers,
-        *y,
-        line_labels = labels,
-        line_kwargs = line_kwargs,
-        x_unit = 'uW',
-        x_label = 'Pump Power',
-        y_unit = 'pJ',
-        y_label = 'Mode Energy',
-        legend_on_right = True,
-        **PLOT_KWARGS,
-    )
-    si.vis.xy_plot(
-        f'fwm_mode_energy_scaling__log_y',
-        pump_powers,
-        *y,
-        line_labels = labels,
-        line_kwargs = line_kwargs,
-        x_unit = 'uW',
-        x_label = 'Pump Power',
-        y_unit = 'pJ',
-        y_label = 'Mode Energy',
-        legend_on_right = True,
-        y_log_axis = True,
-        y_lower_limit = 1e-6 * u.pJ,
-        y_upper_limit = 1e2 * u.pJ,
         **PLOT_KWARGS,
     )
 
@@ -171,7 +154,7 @@ if __name__ == '__main__':
         mixing_wavelength = 632 * u.nm
         mixing_power = 1 * u.uW
 
-        pump_powers = np.linspace(0, 1000, 20) * u.uW
+        pump_powers = np.linspace(0, 1000, 100 + 1) * u.uW
 
         ###
 
@@ -245,14 +228,13 @@ if __name__ == '__main__':
                     start_time = 200 * u.nsec,
                 ),
             }
-            spec = raman.RamanSidebandSpecification(
-                name = f'sideband_output_power__power={pump_power / u.uW:.6f}uW',
+            spec = raman.FourWaveMixingSpecification(
+                name = f'power={pump_power / u.uW:.6f}uW',
                 mode_pumps = pumps,
                 **spec_kwargs,
             )
             specs.append(spec)
 
-        results = si.utils.multi_map(run, specs, processes = 3)
+        results = si.utils.multi_map(run, specs, processes = 5)
 
-        make_mode_energy_scan_plot(pump_powers, results)
-        make_output_power_scan_plot(pump_powers, results)
+        make_mode_energy_scan_plot(pump_powers, results, mixing_power = mixing_power)
