@@ -47,21 +47,23 @@ class PolarComplexAmplitudeAxis(anim.AxisManager):
         self.redraw.append(self.amplitude_scatter)
 
         self.lines = []
-        for q, mode in enumerate(self.sim.spec.modes):
+        for q, (mode, color) in enumerate(zip(self.sim.spec.modes, colors)):
             line = plt.plot(
                 np.log10(np.abs(self.sim.mode_amplitudes_vs_time[:self.sim.time_index, q])),
                 np.angle(self.sim.mode_amplitudes_vs_time[:self.sim.time_index, q]),
+                color = color,
                 animated = True,
             )[0]
             self.lines.append(line)
             self.redraw.append(line)
 
         self.circles = []
-        for q, mode in enumerate(self.sim.spec.modes):
+        for q, (mode, color) in enumerate(zip(self.sim.spec.modes, colors)):
             circle = plt.plot(
                 self.theta,
                 np.log10(np.abs(self.sim.mode_amplitudes[q])) * np.ones_like(self.theta),
                 alpha = 0.5,
+                color = color,
                 animated = True,
             )[0]
             self.circles.append(circle)

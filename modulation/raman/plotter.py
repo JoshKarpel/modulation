@@ -283,3 +283,36 @@ class RamanSimulationPlotter:
             y_log_pad = y_log_pad,
             **kwargs,
         )
+
+    def mode_pump_powers_vs_time(
+        self,
+        time_unit = 'nsec',
+        power_unit = 'uW',
+        mode_filter = None,
+        mode_kwargs = None,
+        **kwargs,
+    ):
+        if mode_filter is None:
+            mode_filter = lambda sim, q, mode: True
+
+        if mode_kwargs is None:
+            mode_kwargs = lambda sim, q, mode: {}
+
+        mode_numbers = [q for mode, q in self.sim.mode_to_index.items() if mode_filter(self, q, mode)]
+
+        si.vis.xy_plot(
+            f'{self.sim.name}__mode_pump_powers_vs_time',
+            self.sim.times,
+            *[self.sim.spec.mode_pumps[q].power(self.sim.times) for q in mode_numbers],
+            line_labels = [
+                fr'${self.sim.spec.modes[q].tex}$'
+                for q in mode_numbers
+            ],
+            line_kwargs = [mode_kwargs(self, q, self.sim.spec.modes[q]) for q in mode_numbers],
+            x_unit = time_unit,
+            x_label = r'$t$',
+            y_unit = power_unit,
+            y_label = r'$P^{\mathrm{in}}_q$',
+            # legend_on_right = True,
+            **kwargs,
+        )
