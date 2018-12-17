@@ -51,8 +51,8 @@ def find_mode(modes, omega: float):
     return sorted(modes, key = lambda m: abs(m.omega - omega))[0]
 
 
-def make_mode_energy_scan_plot(pump_powers, results, mixing_power):
-    pump_to_sim = dict(zip(pump_powers, results))
+def make_mode_energy_scan_plot(mixing_powers, results):
+    pump_to_sim = dict(zip(mixing_powers, results))
     modes = results[0].spec.modes
 
     mode_energies = []
@@ -78,12 +78,12 @@ def make_mode_energy_scan_plot(pump_powers, results, mixing_power):
 
     si.vis.xy_plot(
         f'mixing_mode_energy_scaling',
-        pump_powers,
+        mixing_powers,
         *mode_energies,
         line_labels = labels,
         line_kwargs = line_kwargs,
         x_unit = 'uW',
-        x_label = 'Pump Power',
+        x_label = 'Mixing Power',
         y_unit = 'pJ',
         y_label = 'Mode Energy',
         legend_on_right = True,
@@ -91,12 +91,12 @@ def make_mode_energy_scan_plot(pump_powers, results, mixing_power):
     )
     si.vis.xy_plot(
         f'mixing_mode_energy_scaling__log_y',
-        pump_powers,
+        mixing_powers,
         *mode_energies,
         line_labels = labels,
         line_kwargs = line_kwargs,
         x_unit = 'uW',
-        x_label = 'Pump Power',
+        x_label = 'Mixing Power',
         y_unit = 'pJ',
         y_label = 'Mode Energy',
         legend_on_right = True,
@@ -107,12 +107,12 @@ def make_mode_energy_scan_plot(pump_powers, results, mixing_power):
     )
     si.vis.xy_plot(
         f'mixing_output_power_scaling',
-        pump_powers,
+        mixing_powers,
         *mode_output_powers,
         line_labels = labels,
         line_kwargs = line_kwargs,
         x_unit = 'uW',
-        x_label = 'Pump Power',
+        x_label = 'Mixing Power',
         y_unit = 'uW',
         y_label = 'Output Power',
         legend_on_right = True,
@@ -120,17 +120,16 @@ def make_mode_energy_scan_plot(pump_powers, results, mixing_power):
     )
     si.vis.xy_plot(
         f'mixing_output_power_scaling__log_y',
-        pump_powers,
+        mixing_powers,
         *mode_output_powers,
         line_labels = labels,
         line_kwargs = line_kwargs,
         x_unit = 'uW',
-        x_label = 'Pump Power',
+        x_label = 'Mixing Power',
         y_unit = 'uW',
         y_label = 'Output Power',
         legend_on_right = True,
         y_log_axis = True,
-        hlines = [mixing_power],
         y_lower_limit = 1e-3 * u.uW,
         y_upper_limit = 1e2 * u.uW,
         **PLOT_KWARGS,
@@ -152,9 +151,9 @@ if __name__ == '__main__':
     with LOGMAN as logger:
         pump_wavelength = 1064 * u.nm
         mixing_wavelength = 632 * u.nm
-        mixing_power = 1 * u.uW
 
-        pump_powers = np.linspace(0, 500, 25 + 1) * u.uW
+        pump_power = 100 * u.uW
+        mixing_powers = np.linspace(0, 500, 100) * u.uW
 
         ###
 
@@ -215,12 +214,12 @@ if __name__ == '__main__':
             mode_coupling_quality_factors = dict(zip(modes, itertools.repeat(1e8))),
             time_initial = 0 * u.nsec,
             time_final = 1 * u.usec,
-            time_step = .01 * u.nsec,
+            time_step = 10 * u.psec,
             store_mode_amplitudes_vs_time = True,
         )
 
         specs = []
-        for pump_power in pump_powers:
+        for mixing_power in mixing_powers:
             pumps = {
                 pump_mode: raman.pump.ConstantPump(pump_power),
                 mixing_mode: raman.pump.RectangularPump(
@@ -229,12 +228,12 @@ if __name__ == '__main__':
                 ),
             }
             spec = raman.FourWaveMixingSpecification(
-                name = f'power={pump_power / u.uW:.6f}uW',
+                name = f'power={mixing_power / u.uW:.6f}uW',
                 mode_pumps = pumps,
                 **spec_kwargs,
             )
             specs.append(spec)
 
-        results = si.utils.multi_map(run, specs, processes = 5)
+        results = si.utils.multi_map(run, specs, processes = 10)
 
-        make_mode_energy_scan_plot(pump_powers, results, mixing_power = mixing_power)
+        make_mode_energy_scan_plot(mixing_powers, results)

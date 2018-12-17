@@ -17,7 +17,7 @@ class RamanSimulationPlotter:
         y_log_pad = 10,
         mode_filter = None,
         mode_kwargs = None,
-        average_over = 1 * u.nsec,
+        average_over = None,
         **kwargs,
     ):
         if mode_filter is None:
@@ -33,7 +33,7 @@ class RamanSimulationPlotter:
 
         if average_over is not None:
             l = self.sim.mode_amplitudes_vs_time[:, 0].size
-            R = int(1 * u.nsec / self.sim.spec.time_step)
+            R = int(average_over / self.sim.spec.time_step)
             pad_size = int((np.ceil(l / R) * R) - l)
 
             x = np.append(x, np.zeros(pad_size) * np.NaN).reshape((-1, R)).mean(axis = 1)
@@ -68,7 +68,7 @@ class RamanSimulationPlotter:
         y_log_pad = 10,
         mode_filter = None,
         mode_kwargs = None,
-        average_over = 1 * u.nsec,
+        average_over = None,
         **kwargs,
     ):
         if mode_filter is None:
@@ -84,7 +84,7 @@ class RamanSimulationPlotter:
 
         if average_over is not None:
             l = self.sim.mode_amplitudes_vs_time[:, 0].size
-            R = int(1 * u.nsec / self.sim.spec.time_step)
+            R = int(average_over / self.sim.spec.time_step)
             pad_size = int((np.ceil(l / R) * R) - l)
 
             x = np.append(x, np.zeros(pad_size) * np.NaN).reshape((-1, R)).mean(axis = 1)
@@ -119,7 +119,7 @@ class RamanSimulationPlotter:
         y_log_pad = 10,
         mode_filter = None,
         mode_kwargs = None,
-        average_over = 1 * u.nsec,
+        average_over = None,
         **kwargs,
     ):
         if mode_filter is None:
@@ -135,7 +135,7 @@ class RamanSimulationPlotter:
 
         if average_over is not None:
             l = self.sim.mode_amplitudes_vs_time[:, 0].size
-            R = int(1 * u.nsec / self.sim.spec.time_step)
+            R = int(average_over / self.sim.spec.time_step)
             pad_size = int((np.ceil(l / R) * R) - l)
 
             x = np.append(x, np.zeros(pad_size) * np.NaN).reshape((-1, R)).mean(axis = 1)
@@ -208,7 +208,7 @@ class RamanSimulationPlotter:
         y_log_pad = 10,
         mode_filter = None,
         mode_kwargs = None,
-        average_over = 1 * u.nsec,
+        average_over = None,
         **kwargs,
     ):
         if mode_filter is None:
@@ -224,7 +224,7 @@ class RamanSimulationPlotter:
 
         if average_over is not None:
             l = self.sim.mode_amplitudes_vs_time[:, 0].size
-            R = int(1 * u.nsec / self.sim.spec.time_step)
+            R = int(average_over / self.sim.spec.time_step)
             pad_size = int((np.ceil(l / R) * R) - l)
 
             x = np.append(x, np.zeros(pad_size) * np.NaN).reshape((-1, R)).mean(axis = 1)

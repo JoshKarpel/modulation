@@ -62,7 +62,7 @@ class RamanSimulation(si.Simulation):
         times = np.linspace(
             self.spec.time_initial,
             self.spec.time_final,
-            int(total_time / self.spec.time_step) + 1,
+            int(total_time / self.spec.time_step),
         )
 
         return times
@@ -100,6 +100,10 @@ class RamanSimulation(si.Simulation):
     def mode_output_powers(self, mode_amplitudes):
         """Return the output power of each mode, based on the given ``mode_amplitudes``."""
         return self.mode_energies(mode_amplitudes) * self.mode_omegas / self.spec.mode_coupling_quality_factors
+
+    @property
+    def mode_magnitudes_vs_time(self):
+        return np.abs(self.mode_amplitudes_vs_time)
 
     def _two_photon_detuning(self, omega_x: float, omega_y: float) -> complex:
         return (omega_x - omega_y) - (self.spec.material.modulation_omega + (1j * self.spec.material.raman_linewidth))
@@ -207,25 +211,30 @@ class StimulatedRamanScatteringSimulation(RamanSimulation):
         num_modes = len(self.spec.modes)
 
         logger.debug(f'Building two-mode inverse detuning array for {self}...')
-        double_inverse_detunings = np.empty((num_modes, num_modes), dtype = np.complex128)
-        for (r, mode_r), (s, mode_s) in itertools.product(enumerate(self.spec.modes), repeat = 2):
-            double_inverse_detunings[r, s] = self._double_inverse_detuning(mode_s.omega, mode_r.omega)
+        double_inverse_detunings = np.zeros((num_modes, num_modes), dtype = np.complex128)
+        for (q, mode_q), (s, mode_s) in itertools.product(enumerate(self.spec.modes), repeat = 2):
+            double_inverse_detunings[q, s] = self._double_inverse_detuning(mode_s.omega, mode_q.omega)
 
         logger.debug(f'Building four-mode volume ratio array for {self}...')
-        mode_volume_ratios = np.empty((num_modes, num_modes), dtype = np.complex128)
+        mode_volume_ratios = np.zeros((num_modes, num_modes), dtype = np.complex128)
         mode_pairs = itertools.combinations_with_replacement(enumerate(self.spec.modes), r = 2)
-        for (r, mode_r), (s, mode_s) in mode_pairs:
-            volume = self.spec.mode_volume_integrator.mode_volume_integral((mode_r, mode_r, mode_s, mode_s))
+        for (q, mode_q), (s, mode_s) in mode_pairs:
+            volume = self.spec.mode_volume_integrator.mode_volume_integral((mode_q, mode_q, mode_s, mode_s))
 
-            mode_volume_ratios[r, s] = volume / self.mode_volumes[r]
-            if r != s:
-                mode_volume_ratios[s, r] = volume / self.mode_volumes[s]
+            mode_volume_ratios[q, s] = volume / self.mode_volumes[q]
+            if q != s:
+                mode_volume_ratios[s, q] = volume / self.mode_volumes[s]
 
-        return self.polarization_prefactor * double_inverse_detunings * mode_volume_ratios
+        return np.einsum(
+            'q,qs,qs->qs',
+            self.polarization_prefactor,
+            double_inverse_detunings,
+            mode_volume_ratios,
+        )
 
     def calculate_polarization(self, mode_amplitudes: np.ndarray, time: float) -> np.ndarray:
         raman = np.einsum(
-            'r,s,rs->r',
+            'q,s,qs->q',
             mode_amplitudes,
             np.abs(mode_amplitudes) ** 2,
             self.polarization_sum_factors,
@@ -268,9 +277,8 @@ class FourWaveMixingSimulation(RamanSimulation):
         num_modes = len(self.spec.modes)
 
         logger.debug(f'Building two-mode inverse detuning array for {self}...')
-        double_inverse_detunings = np.empty((num_modes, num_modes), dtype = np.complex128)
-        all_mode_pairs = itertools.product(enumerate(self.spec.modes), repeat = 2)
-        for (s, mode_s), (t, mode_t) in all_mode_pairs:
+        double_inverse_detunings = np.zeros((num_modes, num_modes), dtype = np.complex128)
+        for (s, mode_s), (t, mode_t) in itertools.product(enumerate(self.spec.modes), repeat = 2):
             double_inverse_detunings[s, t] = self._double_inverse_detuning(mode_s.omega, mode_t.omega)
 
         logger.debug(f'Building four-mode volume ratio array for {self}...')
@@ -282,24 +290,13 @@ class FourWaveMixingSimulation(RamanSimulation):
             for q_, r_, s_, t_ in itertools.permutations((q, r, s, t)):
                 mode_volume_ratios[q_, r_, s_, t_] = volume / self.mode_volumes[q]
 
-        logger.debug(f'Building four-mode frequency difference array for {self}...')
-        omega_q, omega_r, omega_s, omega_t = np.meshgrid(
-            self.mode_omegas,
-            self.mode_omegas,
-            self.mode_omegas,
-            self.mode_omegas,
-            indexing = 'ij',
-            sparse = True,
-        )
-        self.frequency_differences = omega_r + omega_t - omega_s - omega_q
-
-        return self.polarization_prefactor * np.einsum(
-            'st,qrst->qrst',
+        return np.einsum(
+            'q,st,qrst->qrst',
+            self.polarization_prefactor,
             double_inverse_detunings,
             mode_volume_ratios,
         )
 
-    @functools.lru_cache(maxsize = 4)
     def _calculate_phase_array(self, time: float) -> np.ndarray:
         """
         Caching helps some algorithms like RK4 which need to evaluate at the same time multiple times.
