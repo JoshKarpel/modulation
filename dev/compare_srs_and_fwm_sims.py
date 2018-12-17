@@ -110,46 +110,46 @@ if __name__ == '__main__':
         # srs.polarization_sum_factors = -srs.polarization_sum_factors.T
         # fwm.polarization_sum_factors = np.real(fwm.polarization_sum_factors)
 
-        srs.run(show_progress_bar = True)
-        srs.plot.mode_magnitudes_vs_time(
-            y_log_axis = False,
-            **PLOT_KWARGS,
-        )
-
-        fwm.run(show_progress_bar = True)
-        fwm.plot.mode_magnitudes_vs_time(
-            y_log_axis = False,
-            **PLOT_KWARGS,
-        )
-
-        si.vis.xy_plot(
-            'compare',
-            srs.times,
-            srs.mode_magnitudes_vs_time[:, 0],
-            srs.mode_magnitudes_vs_time[:, 1],
-            fwm.mode_magnitudes_vs_time[:, 0],
-            fwm.mode_magnitudes_vs_time[:, 1],
-            line_labels = [
-                'srs stokes',
-                'srs pump',
-                'fwm stokes',
-                'fwm pump',
-            ],
-            line_kwargs = [
-                None,
-                None,
-                {'linestyle': '--'},
-                {'linestyle': '--'},
-            ],
-            x_unit = 'nsec',
-            **PLOT_KWARGS,
-        )
-
-        print("SRS")
-        print(srs.polarization_sum_factors)
-
-        print("FWM")
-        print(fwm.polarization_sum_factors)
+        # srs.run(show_progress_bar = True)
+        # srs.plot.mode_magnitudes_vs_time(
+        #     y_log_axis = False,
+        #     **PLOT_KWARGS,
+        # )
+        #
+        # fwm.run(show_progress_bar = True)
+        # fwm.plot.mode_magnitudes_vs_time(
+        #     y_log_axis = False,
+        #     **PLOT_KWARGS,
+        # )
+        #
+        # si.vis.xy_plot(
+        #     'compare',
+        #     srs.times,
+        #     srs.mode_magnitudes_vs_time[:, 0],
+        #     srs.mode_magnitudes_vs_time[:, 1],
+        #     fwm.mode_magnitudes_vs_time[:, 0],
+        #     fwm.mode_magnitudes_vs_time[:, 1],
+        #     line_labels = [
+        #         'srs stokes',
+        #         'srs pump',
+        #         'fwm stokes',
+        #         'fwm pump',
+        #     ],
+        #     line_kwargs = [
+        #         None,
+        #         None,
+        #         {'linestyle': '--'},
+        #         {'linestyle': '--'},
+        #     ],
+        #     x_unit = 'nsec',
+        #     **PLOT_KWARGS,
+        # )
+        #
+        # print("SRS")
+        # print(srs.polarization_sum_factors)
+        #
+        # print("FWM")
+        # print(fwm.polarization_sum_factors)
 
         # print(srs.mode_omegas)
         # print(fwm.mode_omegas)
@@ -165,3 +165,22 @@ if __name__ == '__main__':
         # # print(srs.spec.modes[0])
         # # print(srs.spec.modes[1])
         # print(pump_mode)
+
+        f = np.linspace(-50, 50, 10_000) * u.THz
+        d = srs._double_inverse_detuning(u.twopi * f, 0)
+        l = 2e-13
+        si.vis.xy_plot(
+            'inv_det',
+            f,
+            np.imag(d),
+            np.where(np.imag(d) > 0, l / 2, 0),
+            np.where(np.imag(d) < 0, l / 2, 0),
+            x_unit = 'THz',
+            y_lower_limit = -l,
+            y_upper_limit = l,
+            vlines = [-material.modulation_omega / u.twopi, material.modulation_omega / u.twopi],
+            **PLOT_KWARGS,
+        )
+
+        print(srs._double_inverse_detuning(material.modulation_omega, 0))
+        print(srs._double_inverse_detuning(0, material.modulation_omega))

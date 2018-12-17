@@ -153,7 +153,7 @@ if __name__ == '__main__':
         mixing_wavelength = 632 * u.nm
 
         pump_power = 100 * u.uW
-        mixing_powers = np.linspace(0, 500, 100) * u.uW
+        mixing_powers = np.linspace(0, 300, 100) * u.uW
 
         ###
 

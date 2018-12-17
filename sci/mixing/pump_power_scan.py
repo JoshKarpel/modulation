@@ -154,7 +154,7 @@ if __name__ == '__main__':
         mixing_wavelength = 632 * u.nm
         mixing_power = 1 * u.uW
 
-        pump_powers = np.linspace(0, 500, 25 + 1) * u.uW
+        pump_powers = np.linspace(0, 500, 100) * u.uW
 
         ###
 
@@ -204,6 +204,8 @@ if __name__ == '__main__':
         print(f'Pump: {pump_mode}')
         print(f'Mixing: {mixing_mode}')
 
+        Q = dict(zip(modes, [1e8, 1e8, 1e5, 1e5]))
+
         spec_kwargs = dict(
             material = material,
             mode_volume_integrator = mock.MockVolumeIntegrator(
@@ -211,11 +213,11 @@ if __name__ == '__main__':
             ),
             modes = modes,
             mode_initial_amplitudes = dict(zip(modes, itertools.repeat(0))),
-            mode_intrinsic_quality_factors = dict(zip(modes, itertools.repeat(1e8))),
+            mode_intrinsic_quality_factors = Q,
             mode_coupling_quality_factors = dict(zip(modes, itertools.repeat(1e8))),
             time_initial = 0 * u.nsec,
             time_final = 1 * u.usec,
-            time_step = .01 * u.nsec,
+            time_step = 10 * u.psec,
             store_mode_amplitudes_vs_time = True,
         )
 
@@ -235,6 +237,6 @@ if __name__ == '__main__':
             )
             specs.append(spec)
 
-        results = si.utils.multi_map(run, specs, processes = 5)
+        results = si.utils.multi_map(run, specs, processes = 10)
 
         make_mode_energy_scan_plot(pump_powers, results, mixing_power = mixing_power)
