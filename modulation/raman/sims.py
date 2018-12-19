@@ -269,7 +269,12 @@ class RamanSidebandSimulation(StimulatedRamanScatteringSimulation):
             if r != s:
                 mode_volume_ratios[s, r] = volume / self.mode_volumes[s]
 
-        return self.polarization_prefactor * double_inverse_detunings * mode_volume_ratios
+        return np.einsum(
+            'q,qs,qs->qs',
+            self.polarization_prefactor,
+            double_inverse_detunings,
+            mode_volume_ratios,
+        )
 
 
 class FourWaveMixingSimulation(RamanSimulation):
