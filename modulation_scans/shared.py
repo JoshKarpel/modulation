@@ -1,4 +1,6 @@
 from pathlib import Path
+import random
+import sys
 
 import htmap
 
@@ -6,6 +8,24 @@ import simulacra as si
 import simulacra.units as u
 
 import modulation
+
+# CLI
+
+from halo import Halo
+from spinners import Spinners
+
+CLI_CONTEXT_SETTINGS = dict(help_option_names = ['-h', '--help'])
+
+SPINNERS = list(name for name in Spinners.__members__ if 'dots' in name)
+
+
+def make_spinner(*args, **kwargs):
+    return Halo(
+        *args,
+        spinner = random.choice(SPINNERS),
+        stream = sys.stderr,
+        **kwargs,
+    )
 
 
 # SHARED QUESTIONS

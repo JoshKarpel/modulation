@@ -35,7 +35,7 @@ setup(
         'console_scripts': [
             f'{x.stem}=modulation_scans.{x.stem}:main'
             for x in (THIS_DIR / 'modulation_scans').iterdir()
-            if x.stem.startswith('scan')
+            if x.stem.startswith(('scan', 'export'))
         ],
     },
     install_requires = [
@@ -43,6 +43,9 @@ setup(
         'scipy',
         'matplotlib',
         'cython',
+        'click>=7.0.0',
+        'halo',
         'simulacra',
+        'htmap',
     ],
 )
