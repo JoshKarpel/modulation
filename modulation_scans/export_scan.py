@@ -14,7 +14,7 @@ from . import shared
 
 @click.command(context_settings = shared.CLI_CONTEXT_SETTINGS)
 @click.argument('map_id')
-@click.option('outdir', default = None)
+@click.option('--outdir', default = None)
 def main(map_id, outdir):
     with shared.make_spinner('loading map...') as spinner:
         map = htmap.load(map_id)
