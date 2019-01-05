@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 THIS_DIR = Path(__file__).parent
 
@@ -25,20 +25,17 @@ setup(
         'Topic :: Scientific/Engineering :: Physics',
         'Topic :: Scientific/Engineering :: Visualization',
     ],
-    packages = [
-        'modulation',
-        'modulation.raman',
-        'modulation.refraction',
-        'modulation.resonator',
-        'scripts.scans',
-    ],
+    packages = find_packages(
+        include = ['modulation', 'scripts'],
+        exclude = ['dev', 'docker', 'sci', 'tests']
+    ),
     package_data = {
         '': ['*.pyx'],
     },
     entry_points = {
         'console_scripts': [
             f'{x.stem}=scripts.scans.{x.stem}:main'
-            for x in Path('scripts/scans/').iterdir()
+            for x in (THIS_DIR / 'scripts').iterdir()
             if x.stem.startswith('scan')
         ],
     },
