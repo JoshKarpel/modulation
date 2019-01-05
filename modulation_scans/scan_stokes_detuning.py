@@ -126,6 +126,8 @@ def main():
                 stokes_mode: stokes_coupling_q,
             },
             **base_spec_kwargs,
+            _pump_mode = pump_mode,
+            _stokes_mode = stokes_mode,
         )
 
         specs.append(spec)
