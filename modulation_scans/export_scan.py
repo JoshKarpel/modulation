@@ -1,10 +1,11 @@
+import simulacra as si  # somewhere there's ordering in these imports
+# import modulation     # will get nasty import error if not this first
+
 import pickle
 
 import click
 
 import htmap
-
-import modulation
 
 from . import shared
 
