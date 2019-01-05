@@ -3,6 +3,15 @@ import simulacra.units as u
 
 from .. import fmt
 
+MATERIAL_DATA = {
+    'silica': dict(
+        modulation_omega = u.twopi * 14 * u.THz,
+        raman_linewidth = 1 * u.THz,
+        coupling_prefactor = .75 * 1e-2 * ((u.atomic_electric_dipole_moment ** 2) / (500 * u.THz)),
+        number_density = 5e22 / (u.cm ** 3),
+    ),
+}
+
 
 class RamanMaterial:
     def __init__(
@@ -19,13 +28,8 @@ class RamanMaterial:
         self.number_density = number_density
 
     @classmethod
-    def silicon(cls):
-        return cls(
-            modulation_omega = u.twopi * 14 * u.THz,
-            raman_linewidth = 1 * u.THz,
-            coupling_prefactor = .75 * 1e-2 * ((u.atomic_electric_dipole_moment ** 2) / (500 * u.THz)),
-            number_density = 5e22 / (u.cm ** 3),
-        )
+    def silica(cls):
+        return cls(**MATERIAL_DATA['silica'])
 
     @property
     def modulation_frequency(self):

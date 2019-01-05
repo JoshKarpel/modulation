@@ -16,7 +16,7 @@ RUN conda install -y python=3.6 \
                      paramiko \
                      psutil \
                      tqdm \
-                     cloudpickle \
+                     cloudpickle=0.6.1 \
     && \
     conda update -y --all && \
     conda clean -y --all

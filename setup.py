@@ -1,7 +1,8 @@
-from setuptools import setup
-import os
+from pathlib import Path
 
-THIS_DIR = os.path.abspath(os.path.dirname(__file__))
+from setuptools import setup
+
+THIS_DIR = Path(__file__).parent
 
 setup(
     name = 'modulation',
@@ -9,7 +10,7 @@ setup(
     author = 'Josh Karpel',
     author_email = 'josh.karpel@gmail.com',
     description = 'A Python library for Raman generation calculations.',
-    long_description = open('README.md').read(),
+    long_description = Path('README.md').read_text(),
     long_description_content_type = "text/markdown",
     classifiers = [
         'Development Status :: 2 - Pre-Alpha',
@@ -26,9 +27,17 @@ setup(
     ],
     packages = [
         'modulation',
+        'scripts.scans',
     ],
     package_data = {
         '': ['*.pyx'],
+    },
+    entry_points = {
+        'console_scripts': [
+            f'{x.stem}=scripts.scans.{x.stem}:main'
+            for x in Path('scripts/scans/').iterdir()
+            if x.stem.startswith('scan')
+        ],
     },
     install_requires = [
         'numpy',

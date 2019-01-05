@@ -96,7 +96,7 @@ if __name__ == '__main__':
 
         ###
 
-        material = raman.material.RamanMaterial.silicon()
+        material = raman.material.RamanMaterial.silica()
         pump_omega = u.twopi * u.c / pump_wavelength
 
         modes = [

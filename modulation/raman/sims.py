@@ -335,7 +335,7 @@ class RamanSpecification(si.Specification):
         name: str,
         *,
         modes: Iterable[mode.Mode],
-        mode_initial_amplitudes: Dict[mode.Mode, Union[int, float, complex]],
+        mode_initial_amplitudes: Optional[Dict[mode.Mode, Union[int, float, complex]]] = None,
         mode_intrinsic_quality_factors: Dict[mode.Mode, Union[int, float]],
         mode_coupling_quality_factors: Dict[mode.Mode, Union[int, float]],
         mode_pumps: Dict[mode.Mode, pump.Pump],
@@ -354,6 +354,9 @@ class RamanSpecification(si.Specification):
         **kwargs,
     ):
         super().__init__(name, **kwargs)
+
+        if mode_initial_amplitudes is None:
+            mode_initial_amplitudes = {}
 
         self.modes = tuple(sorted(modes, key = lambda m: m.omega))
         self.mode_initial_amplitudes = np.array([mode_initial_amplitudes.get(mode, 0) for mode in self.modes], dtype = np.complex128)
@@ -413,7 +416,7 @@ class RamanSpecification(si.Specification):
                 working_in = self.checkpoint_dir
             else:
                 working_in = 'cwd'
-            info_checkpoint.header += f': every {self.checkpoint_every} time steps, working in {working_in}'
+            info_checkpoint.header += f': every {self.checkpoint_every}, working in {working_in}'
         else:
             info_checkpoint.header += ': disabled'
         info.add_info(info_checkpoint)
