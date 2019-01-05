@@ -128,6 +128,7 @@ def main():
             **base_spec_kwargs,
             _pump_mode = pump_mode,
             _stokes_mode = stokes_mode,
+            _detuning_omega = stokes_detuning,
         )
 
         specs.append(spec)
