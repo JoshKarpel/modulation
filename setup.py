@@ -27,6 +27,9 @@ setup(
     ],
     packages = [
         'modulation',
+        'modulation.raman',
+        'modulation.refraction',
+        'modulation.resonator',
         'scripts.scans',
     ],
     package_data = {
