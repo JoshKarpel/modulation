@@ -4,6 +4,8 @@ import click
 
 import htmap
 
+import modulation
+
 from . import shared
 
 
