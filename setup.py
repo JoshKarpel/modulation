@@ -33,8 +33,8 @@ setup(
     },
     entry_points = {
         'console_scripts': [
-            f'{x.stem}=scripts.scans.{x.stem}:main'
-            for x in (THIS_DIR / 'scripts').iterdir()
+            f'{x.stem}=modulation_scripts.scans.{x.stem}:main'
+            for x in (THIS_DIR / 'modulation_scripts').iterdir()
             if x.stem.startswith('scan')
         ],
     },
