@@ -83,7 +83,7 @@ def _run(spec):
 
 
 def _set_htmap_settings():
-    htmap.settings['DOCKER.IMAGE'] = f'maventree/raman:{si.cluster.ask_for_input("Docker image version?")}'
+    htmap.settings['DOCKER.IMAGE'] = f'maventree/modulation:{si.cluster.ask_for_input("Docker image version?")}'
 
 
 def _ask_about_map_options() -> (dict, dict):
@@ -92,8 +92,8 @@ def _ask_about_map_options() -> (dict, dict):
         'request_disk': si.cluster.ask_for_input("Disk?", default = '10GB'),
     }
     custom_opts = {
-        'wantflocking': si.cluster.ask_for_bool('Want flocking?', default = True),
-        'wantglidein': si.cluster.ask_for_bool('Want gliding?', default = True),
+        'wantflocking': str(si.cluster.ask_for_bool('Want flocking?', default = True)).lower(),
+        'wantglidein': str(si.cluster.ask_for_bool('Want gliding?', default = True)).lower(),
     }
 
     return opts, custom_opts
