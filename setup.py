@@ -26,7 +26,6 @@ setup(
         'Topic :: Scientific/Engineering :: Visualization',
     ],
     packages = find_packages(
-        include = ['modulation', 'scripts'],
         exclude = ['dev', 'docker', 'sci', 'tests']
     ),
     package_data = {
