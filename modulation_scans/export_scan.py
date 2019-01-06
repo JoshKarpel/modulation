@@ -22,6 +22,7 @@ def main(map_id, outdir):
 
     if outdir is None:
         outdir = Path.cwd()
+    outdir = Path(outdir)
 
     with shared.make_spinner(f'loading sims from {map_id}...') as spinner:
         sims = tuple(map)
