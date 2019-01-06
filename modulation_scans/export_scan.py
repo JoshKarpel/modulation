@@ -1,8 +1,9 @@
 import simulacra as si  # somewhere there's ordering in these imports
-# import modulation     # will get nasty import error if not this first
+import modulation  # will get nasty import error if not this first
 
 from pathlib import Path
 
+import gzip
 import pickle
 
 import click
@@ -29,7 +30,7 @@ def main(map_id, outdir):
         spinner.succeed(f'loaded sims from {map_id}')
 
     with shared.make_spinner(f'pickling sims from {map_id}...') as spinner:
-        with (outdir / f'{map_id}.sims').open(mode = 'wb') as f:
+        with gzip.open(outdir / f'{map_id}.sims', mode = 'wb') as f:
             pickle.dump(sims, f)
         spinner.succeed(f'pickled sims from {map_id}')
 

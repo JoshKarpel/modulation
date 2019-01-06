@@ -7,6 +7,7 @@ import numpy as np
 
 from pathlib import Path
 
+import gzip
 import pickle
 
 THIS_FILE = Path(__file__)
@@ -21,7 +22,7 @@ PLOT_KWARGS = dict(
 
 
 def load_sims(path):
-    with Path(path).open(mode = 'rb') as f:
+    with gzip.open(path, mode = 'rb') as f:
         return pickle.load(f)
 
 
@@ -60,6 +61,7 @@ if __name__ == '__main__':
         'stokes_detuning__800nm_pump',
         'stokes_detuning__1064nm_pump',
         'stokes_detuning__1555nm_pump',
+        'stokes_detuning__800nm_pump__fwm_.01ns',
     ]
 
     for scan in scans:
