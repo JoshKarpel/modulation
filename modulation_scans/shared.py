@@ -127,7 +127,7 @@ def create_map(map_id: str, specs) -> htmap.Map:
     _set_htmap_settings()
     opts, custom = _ask_about_map_options()
 
-    return _run.map(
+    map = _run.map(
         map_id,
         specs,
         map_options = htmap.MapOptions(
@@ -135,3 +135,7 @@ def create_map(map_id: str, specs) -> htmap.Map:
             custom_options = custom,
         ),
     )
+
+    print(f'Created map {map.map_id}')
+
+    return map

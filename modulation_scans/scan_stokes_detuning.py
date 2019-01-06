@@ -137,8 +137,6 @@ def main():
 
     map = shared.create_map(map_id, specs)
 
-    print(f'Created {map}')
-
 
 if __name__ == '__main__':
     main()
