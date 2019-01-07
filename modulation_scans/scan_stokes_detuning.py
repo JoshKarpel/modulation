@@ -87,8 +87,6 @@ def main():
             default = stokes_intrinsic_q,
             cast_to = float,
         )
-        stokes_intrinsic_tau = None
-        stokes_coupling_tau = None
     if fixed_q_or_t == 'T':
         pump_intrinsic_tau = u.nsec * si.cluster.ask_for_input(
             'Pump mode intrinsic timescale (in ns)?',
@@ -113,6 +111,8 @@ def main():
             default = stokes_intrinsic_tau,
             cast_to = float,
         )
+        stokes_intrinsic_q = None
+        stokes_coupling_q = None
 
     stokes_detunings = u.twopi * u.GHz * np.array(si.cluster.ask_for_eval(
         'Stokes mode detunings (in GHz)?',
