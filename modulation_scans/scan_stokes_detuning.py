@@ -95,7 +95,7 @@ def main():
         )
         pump_coupling_tau = u.nsec * si.cluster.ask_for_input(
             'Pump mode coupling timescale (in ns)?',
-            default = pump_intrinsic_tau,
+            default = pump_intrinsic_tau / u.nsec,
             cast_to = float,
         )
         pump_intrinsic_q = pump_mode.omega * pump_intrinsic_tau / 2
@@ -108,7 +108,7 @@ def main():
         )
         stokes_coupling_tau = u.nsec * si.cluster.ask_for_input(
             'Stokes mode coupling timescale (in ns)?',
-            default = stokes_intrinsic_tau,
+            default = stokes_intrinsic_tau / u.nsec,
             cast_to = float,
         )
         stokes_intrinsic_q = None
