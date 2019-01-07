@@ -28,27 +28,6 @@ def main():
     time_final = shared.ask_time_final()
     time_step = shared.ask_time_step()
 
-    pump_intrinsic_q = si.cluster.ask_for_input(
-        'Pump mode intrinsic quality factor?',
-        default = 1e8,
-        cast_to = float,
-    )
-    pump_coupling_q = si.cluster.ask_for_input(
-        'Pump mode coupling quality factor?',
-        default = pump_intrinsic_q,
-        cast_to = float,
-    )
-    stokes_intrinsic_q = si.cluster.ask_for_input(
-        'Stokes mode intrinsic quality factor?',
-        default = 1e8,
-        cast_to = float,
-    )
-    stokes_coupling_q = si.cluster.ask_for_input(
-        'Stokes mode coupling quality factor?',
-        default = stokes_intrinsic_q,
-        cast_to = float,
-    )
-
     pump_mode = modulation.resonator.mock.MockMode(
         label = 'Pump',
         omega = u.twopi * u.c / (u.nm * si.cluster.ask_for_input(
@@ -76,6 +55,64 @@ def main():
             cast_to = float,
         ),
     )
+
+    fixed_q_or_t = si.cluster.ask_for_choices(
+        'Fixed quality factors or timescales?',
+        choices = {
+            'Q': 'Q',
+            'T': 'T',
+        },
+        default = 'Q',
+    )
+    DEFAULT_Q = 1e8
+    STOKES_OMEGA = pump_mode.omega - material.modulation_omega
+    if fixed_q_or_t == 'Q':
+        pump_intrinsic_q = si.cluster.ask_for_input(
+            'Pump mode intrinsic quality factor?',
+            default = DEFAULT_Q,
+            cast_to = float,
+        )
+        pump_coupling_q = si.cluster.ask_for_input(
+            'Pump mode coupling quality factor?',
+            default = pump_intrinsic_q,
+            cast_to = float,
+        )
+        stokes_intrinsic_q = si.cluster.ask_for_input(
+            'Stokes mode intrinsic quality factor?',
+            default = DEFAULT_Q,
+            cast_to = float,
+        )
+        stokes_coupling_q = si.cluster.ask_for_input(
+            'Stokes mode coupling quality factor?',
+            default = stokes_intrinsic_q,
+            cast_to = float,
+        )
+        stokes_intrinsic_tau = None
+        stokes_coupling_tau = None
+    if fixed_q_or_t == 'T':
+        pump_intrinsic_tau = u.nsec * si.cluster.ask_for_input(
+            'Pump mode intrinsic timescale (in ns)?',
+            default = 2 * DEFAULT_Q / pump_mode.omega / u.nsec,
+            cast_to = float,
+        )
+        pump_coupling_tau = u.nsec * si.cluster.ask_for_input(
+            'Pump mode coupling timescale (in ns)?',
+            default = pump_intrinsic_tau,
+            cast_to = float,
+        )
+        pump_intrinsic_q = pump_mode.omega * pump_intrinsic_tau / 2
+        pump_coupling_q = pump_mode.omega * pump_coupling_tau / 2
+
+        stokes_intrinsic_tau = u.nsec * si.cluster.ask_for_input(
+            'Stokes mode intrinsic timescale (in ns)?',
+            default = 2 * DEFAULT_Q / STOKES_OMEGA / u.nsec,
+            cast_to = float,
+        )
+        stokes_coupling_tau = u.nsec * si.cluster.ask_for_input(
+            'Stokes mode coupling timescale (in ns)?',
+            default = stokes_intrinsic_tau,
+            cast_to = float,
+        )
 
     stokes_detunings = u.twopi * u.GHz * np.array(si.cluster.ask_for_eval(
         'Stokes mode detunings (in GHz)?',
@@ -108,7 +145,7 @@ def main():
     for stokes_detuning in stokes_detunings:
         stokes_mode = modulation.resonator.mock.MockMode(
             label = 'Stokes',
-            omega = pump_mode.omega - material.modulation_omega + stokes_detuning,
+            omega = STOKES_OMEGA + stokes_detuning,
             mode_volume_inside_resonator = stokes_mode_volume,
             mode_volume_outside_resonator = 0,
             index_of_refraction = index_of_refraction,
@@ -119,11 +156,11 @@ def main():
             modes = [pump_mode, stokes_mode],
             mode_intrinsic_quality_factors = {
                 pump_mode: pump_intrinsic_q,
-                stokes_mode: stokes_intrinsic_q,
+                stokes_mode: stokes_intrinsic_q or stokes_mode.omega * stokes_intrinsic_tau / 2,
             },
             mode_coupling_quality_factors = {
                 pump_mode: pump_coupling_q,
-                stokes_mode: stokes_coupling_q,
+                stokes_mode: stokes_coupling_q or stokes_mode.omega * stokes_coupling_tau / 2,
             },
             **base_spec_kwargs,
             _pump_mode = pump_mode,
