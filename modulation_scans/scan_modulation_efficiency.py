@@ -111,8 +111,13 @@ def main():
     )
 
     pump_powers = u.uW * si.cluster.ask_for_eval(
-        'Pump powers (in uW)?',
+        'Launched pump powers (in uW)?',
         default = 'np.linspace(0, 1000, 100)',
+    )
+    mixing_power = u.uW * si.cluster.ask_for_input(
+        'Launched mixing power (in uW)?',
+        default = 1,
+        cast_to = float,
     )
 
     store_mode_amplitudes_vs_time = si.cluster.ask_for_bool('Store mode amplitudes vs time?')
@@ -133,7 +138,10 @@ def main():
         spec = spec_type(
             f'pump_power={pump_power / u.uW:.6f}',
             modes = [pump_mode, stokes_mode, mixing_mode, modulated_mode],
-            mode_pumps = {pump_mode: modulation.raman.ConstantPump(power = pump_power)},
+            mode_pumps = {
+                pump_mode: modulation.raman.ConstantPump(power = pump_power),
+                mixing_mode: modulation.raman.ConstantPump(power = mixing_power),
+            },
             mode_intrinsic_quality_factors = {
                 pump_mode: pump_and_stokes_intrinsic_q,
                 stokes_mode: pump_and_stokes_intrinsic_q,
