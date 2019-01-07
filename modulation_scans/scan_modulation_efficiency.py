@@ -132,7 +132,8 @@ def main():
     for pump_power in pump_powers:
         spec = spec_type(
             f'pump_power={pump_power / u.uW:.6f}',
-            modes = [pump_mode, stokes_mode],
+            modes = [pump_mode, stokes_mode, mixing_mode, modulated_mode],
+            mode_pumps = {pump_mode: modulation.raman.ConstantPump(power = pump_power)},
             mode_intrinsic_quality_factors = {
                 pump_mode: pump_and_stokes_intrinsic_q,
                 stokes_mode: pump_and_stokes_intrinsic_q,
