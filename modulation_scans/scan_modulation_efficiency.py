@@ -131,6 +131,8 @@ def main():
 
     store_mode_amplitudes_vs_time = si.cluster.ask_for_bool('Store mode amplitudes vs time?')
 
+    lookback_time = shared.ask_lookback_time(time_step, num_modes = 4)
+
     ### CREATE SPECS
 
     base_spec_kwargs = dict(
@@ -140,6 +142,7 @@ def main():
         mode_volume_integrator = mode_volume_integrator,
         checkpoints = True,
         store_mode_amplitudes_vs_time = store_mode_amplitudes_vs_time,
+        lookback = modulation.raman.Lookback(lookback_time = lookback_time),
     )
 
     specs = []

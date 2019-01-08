@@ -80,6 +80,26 @@ def ask_time_step():
     )
 
 
+def ask_lookback_time(time_step, num_modes = None):
+    lookback_time = u.nsec * si.cluster.ask_for_input(
+        'Lookback time (in ns)?',
+        default = 100,
+        cast_to = float,
+    )
+
+    bytes_per_mode = lookback_time / time_step * 128
+
+    msg = f'Lookback will use {si.utils.bytes_to_str(bytes_per_mode)} per mode'
+    if num_modes is not None:
+        total_bytes = bytes_per_mode * num_modes
+
+        msg += f'x {num_modes} modes = {si.utils.bytes_to_str(total_bytes)}'
+
+    print(msg)
+
+    return lookback_time
+
+
 # MAP CREATION
 
 @htmap.mapped

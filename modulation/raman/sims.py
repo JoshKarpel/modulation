@@ -13,7 +13,7 @@ from tqdm import tqdm
 import simulacra as si
 import simulacra.units as u
 
-from . import mode, pump, evolve, volume, material, plotter, exceptions
+from . import mode, pump, evolve, volume, material, plotter, lookback, exceptions
 from .. import fmt
 from .cy import four_wave_polarization
 
@@ -23,6 +23,8 @@ logger = logging.getLogger(__name__)
 class RamanSimulation(si.Simulation):
     def __init__(self, spec):
         super().__init__(spec)
+
+        self.lookback = spec.lookback
 
         self.latest_checkpoint_time = datetime.datetime.utcnow()
 
@@ -160,6 +162,8 @@ class RamanSimulation(si.Simulation):
                 if self.spec.store_mode_amplitudes_vs_time:
                     self.mode_amplitudes_vs_time[self.time_index, :] = self.mode_amplitudes
 
+                self.lookback.add(self.times[self.time_index], self.mode_amplitudes.copy())
+
                 for animator in self.spec.animators:
                     if self.time_index == 0 or self.time_index == self.time_steps or self.time_index % animator.decimation == 0:
                         animator.send_frame_to_ffmpeg()
@@ -191,6 +195,9 @@ class RamanSimulation(si.Simulation):
                 animator.cleanup()
 
             self.spec.animators = ()
+
+        if self.spec.freeze_lookback:
+            self.lookback.freeze()
 
         self.status = si.Status.FINISHED
 
@@ -346,6 +353,8 @@ class RamanSpecification(si.Specification):
         evolution_algorithm: evolve.EvolutionAlgorithm = evolve.RungeKutta4(),
         mode_volume_integrator: volume.ModeVolumeIntegrator = None,
         store_mode_amplitudes_vs_time: bool = False,
+        lookback: lookback.Lookback = lookback.Lookback(),
+        freeze_lookback: bool = True,
         cached_polarization_sum_factors: Optional[np.ndarray] = None,
         checkpoints: bool = False,
         checkpoint_every: datetime.timedelta = datetime.timedelta(hours = 1),
@@ -380,6 +389,8 @@ class RamanSpecification(si.Specification):
         self.mode_volume_integrator = mode_volume_integrator
 
         self.store_mode_amplitudes_vs_time = store_mode_amplitudes_vs_time
+        self.lookback = lookback
+        self.freeze_lookback = freeze_lookback
 
         self.cached_polarization_sum_factors = cached_polarization_sum_factors
 
