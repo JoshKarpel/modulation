@@ -113,6 +113,7 @@ def _ask_about_map_options() -> (dict, dict):
         'when_to_transfer_output': 'ON_EXIT_OR_EVICT',
         'on_exit_hold': '(ExitCode =!= 0)',
         'periodic_release': '(JobStatus == 5) && (HoldReasonCode == 3) && (CurrentTime - EnteredCurrentStatus >= 300) && (NumJobCompletions <= 5)',
+        'requirements': '(Poolname != "BIOCHEM")',
     }
     custom_opts = {
         'wantflocking': str(si.cluster.ask_for_bool('Want flocking?', default = True)).lower(),
