@@ -89,11 +89,11 @@ def ask_lookback_time(time_step, num_modes = None):
 
     bytes_per_mode = lookback_time / time_step * 128
 
-    msg = f'Lookback will use {si.utils.bytes_to_str(bytes_per_mode)} per mode'
+    msg = f'Lookback will use ~{si.utils.bytes_to_str(bytes_per_mode)} per mode'
     if num_modes is not None:
         total_bytes = bytes_per_mode * num_modes
 
-        msg += f'x {num_modes} modes = {si.utils.bytes_to_str(total_bytes)}'
+        msg += f' x {num_modes} modes = ~{si.utils.bytes_to_str(total_bytes)}'
 
     print(msg)
 
