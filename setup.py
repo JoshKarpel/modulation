@@ -46,6 +46,5 @@ setup(
         'click>=7.0.0',
         'halo',
         'simulacra',
-        'htmap',
     ],
 )
