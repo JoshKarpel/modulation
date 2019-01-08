@@ -130,15 +130,13 @@ def _ask_about_map_options() -> (dict, dict):
     opts = {
         'request_memory': si.cluster.ask_for_input('Memory?', default = '128MB'),
         'request_disk': si.cluster.ask_for_input("Disk?", default = '10GB'),
-        'when_to_transfer_output': 'ON_EXIT_OR_EVICT',
-        'on_exit_hold': '(ExitCode =!= 0)',
-        'periodic_release': '(JobStatus == 5) && (HoldReasonCode == 3) && (CurrentTime - EnteredCurrentStatus >= 300) && (NumJobCompletions <= 5)',
+        # 'when_to_transfer_output': 'ON_EXIT_OR_EVICT',
         'requirements': '(Poolname != "BIOCHEM")',
     }
     custom_opts = {
         'wantflocking': str(si.cluster.ask_for_bool('Want flocking?', default = True)).lower(),
         'wantglidein': str(si.cluster.ask_for_bool('Want gliding?', default = True)).lower(),
-        'is_resumable': "true",
+        # 'is_resumable': "true",
     }
 
     return opts, custom_opts
