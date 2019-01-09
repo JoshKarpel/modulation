@@ -30,15 +30,18 @@ COLORS = ['#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e', '#e6ab02', '#a6
 
 
 def make_plot(name, sims):
+    s = sims[0].spec
     modes = (
-        sims[0].spec._pump_mode,
-        sims[0].spec._stokes_mode,
-        sims[0].spec._mixing_mode,
-        sims[0].spec._modulated_mode,
+        s._pump_mode,
+        s._stokes_mode,
+        s._mixing_mode,
+        s._modulated_mode,
     )
     idxs = [sims[0].mode_to_index[mode] for mode in modes]
+    scan_mode = s._scan_mode
+    fixed_mode = s._fixed_mode
 
-    pump_power = np.array([sim.spec._pump_power for sim in sims]) / u.twopi
+    scan_power = np.array([sim.spec._scan_power for sim in sims]) / u.twopi
 
     means = [sim.mode_energies(sim.lookback.mean) for sim in sims]
     mins = [sim.mode_energies(sim.lookback.min) for sim in sims]
@@ -66,14 +69,15 @@ def make_plot(name, sims):
 
     si.vis.xy_plot(
         name,
-        pump_power,
+        scan_power,
         *lines,
         # line_labels = [mode.label for mode in modes],
         line_kwargs = line_kwargs,
-        x_label = 'Launched Pump Power',
+        x_label = f'Launched {scan_mode.label} Power',
         y_label = 'Steady-State Mode Energy',
         x_unit = 'uW',
         y_unit = 'pJ',
+        title = rf'Modulation Efficiency for $ P_{{\mathrm{{{fixed_mode.label}}}}} = {s.pumps[fixed_mode].power / u.uW:.1f} \, \mathrm{{\muW}} $',
         y_log_axis = True,
         **PLOT_KWARGS,
     )
@@ -81,7 +85,6 @@ def make_plot(name, sims):
 
 if __name__ == '__main__':
     scans = [
-        'mod_eff_test.sims',
     ]
 
     for scan in scans:

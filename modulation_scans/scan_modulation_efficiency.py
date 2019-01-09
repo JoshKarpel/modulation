@@ -120,11 +120,11 @@ def main():
     )
 
     scan_powers = u.uW * si.cluster.ask_for_eval(
-        'Scan mode launched powers (in uW)?',
+        f'Scan mode ({scan_mode.label}) launched powers (in uW)?',
         default = 'np.linspace(0, 1000, 100)',
     )
     fixed_power = u.uW * si.cluster.ask_for_input(
-        'Fixed mode launched power (in uW)?',
+        f'Fixed mode ({fixed_mode.label}) launched power (in uW)?',
         default = 1,
         cast_to = float,
     )
@@ -171,7 +171,9 @@ def main():
             _stokes_mode = stokes_mode,
             _mixing_mode = mixing_mode,
             _modulated_mode = modulated_mode,
-            _pump_power = scan_power,
+            _scan_mode = scan_mode,
+            _fixed_mode = fixed_mode,
+            _scan_power = scan_power,
         )
 
         specs.append(spec)
