@@ -26,33 +26,50 @@ def load_sims(path):
         return pickle.load(f)
 
 
+COLORS = ['#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e', '#e6ab02', '#a6761d', '#666666']
+
+
 def make_plot(name, sims):
-    idx_pump = sims[0].mode_to_index[sims[0].spec._pump_mode]
-    idx_stokes = sims[0].mode_to_index[sims[0].spec._stokes_mode]
-    idx_mixing = sims[0].mode_to_index[sims[0].spec._mixing_mode]
-    idx_modulated = sims[0].mode_to_index[sims[0].spec._modulated_mode]
+    modes = (
+        sims[0].spec._pump_mode,
+        sims[0].spec._stokes_mode,
+        sims[0].spec._mixing_mode,
+        sims[0].spec._modulated_mode,
+    )
+    idxs = [sims[0].mode_to_index[mode] for mode in modes]
 
     pump_power = np.array([sim.spec._pump_power for sim in sims]) / u.twopi
 
-    mode_energies = [sim.mode_energies(sim.mode_amplitudes) for sim in sims]
-    pump_energies = np.array([energies[idx_pump] for energies in mode_energies])
-    stokes_energies = np.array([energies[idx_stokes] for energies in mode_energies])
-    mixing_energies = np.array([energies[idx_mixing] for energies in mode_energies])
-    modulated_energies = np.array([energies[idx_modulated] for energies in mode_energies])
+    means = [sim.mode_energies(sim.lookback.mean) for sim in sims]
+    mins = [sim.mode_energies(sim.lookback.min) for sim in sims]
+    maxs = [sim.mode_energies(sim.lookback.max) for sim in sims]
+
+    lines = []
+    line_kwargs = []
+    for idx, mode, color in zip(idxs, modes, COLORS):
+        lines.append(np.array([mean[idx] for mean in means]))
+        line_kwargs.append(dict(
+            color = color,
+        ))
+
+        lines.append(np.array([m[idx] for m in mins]))
+        line_kwargs.append(dict(
+            color = color,
+            linestyle = ':',
+        ))
+
+        lines.append(np.array([m[idx] for m in maxs]))
+        line_kwargs.append(dict(
+            color = color,
+            linestyle = '--',
+        ))
 
     si.vis.xy_plot(
         name,
         pump_power,
-        pump_energies,
-        stokes_energies,
-        mixing_energies,
-        modulated_energies,
-        line_labels = [
-            'Pump',
-            'Stokes',
-            'Mixing',
-            'Modulated',
-        ],
+        *lines,
+        # line_labels = [mode.label for mode in modes],
+        line_kwargs = line_kwargs,
         x_label = 'Launched Pump Power',
         y_label = 'Steady-State Mode Energy',
         x_unit = 'uW',
@@ -64,7 +81,7 @@ def make_plot(name, sims):
 
 if __name__ == '__main__':
     scans = [
-        'modulation_efficiency_qm=qmm=1e8.sims',
+        'mod_eff_test.sims',
     ]
 
     for scan in scans:
