@@ -95,7 +95,7 @@ def main():
         cast_to = float,
     )
     mixing_coupling_q = si.cluster.ask_for_input(
-        'Mixing modes coupling quality factor?',
+        'Mixing mode coupling quality factor?',
         default = mixing_intrinsic_q,
         cast_to = float,
     )

@@ -131,7 +131,7 @@ def _ask_about_map_options() -> (dict, dict):
         'request_memory': si.cluster.ask_for_input('Memory?', default = '250MB'),
         'request_disk': si.cluster.ask_for_input("Disk?", default = '500MB'),
         # 'when_to_transfer_output': 'ON_EXIT_OR_EVICT',
-        'requirements': '(Poolname =!= "BIOCHEM" && Poolname =!= "Discovery")',
+        'requirements': '(Poolname != "BIOCHEM" && Poolname != "Discovery")',
     }
     custom_opts = {
         'wantflocking': str(si.cluster.ask_for_bool('Want flocking?', default = True)).lower(),
