@@ -36,4 +36,6 @@ from .evolve import (
 from .volume import ModeVolumeIntegrator
 from .mode import Mode
 from .material import RamanMaterial
-from .lookback import Lookback
+from .lookback import (
+    Lookback,
+)

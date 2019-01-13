@@ -162,7 +162,8 @@ class RamanSimulation(si.Simulation):
                 if self.spec.store_mode_amplitudes_vs_time:
                     self.mode_amplitudes_vs_time[self.time_index, :] = self.mode_amplitudes
 
-                self.lookback.add(self.times[self.time_index], self.mode_amplitudes.copy())
+                if self.lookback is not None:
+                    self.lookback.add(times[self.time_index], self.mode_amplitudes)
 
                 for animator in self.spec.animators:
                     if self.time_index == 0 or self.time_index == self.time_steps or self.time_index % animator.decimation == 0:
@@ -196,7 +197,7 @@ class RamanSimulation(si.Simulation):
 
             self.spec.animators = ()
 
-        if self.spec.freeze_lookback:
+        if self.spec.lookback is not None and self.spec.freeze_lookback:
             self.lookback.freeze()
 
         self.status = si.Status.FINISHED
@@ -353,7 +354,7 @@ class RamanSpecification(si.Specification):
         evolution_algorithm: evolve.EvolutionAlgorithm = evolve.RungeKutta4(),
         mode_volume_integrator: volume.ModeVolumeIntegrator = None,
         store_mode_amplitudes_vs_time: bool = False,
-        lookback: lookback.Lookback = lookback.Lookback(),
+        lookback: Optional[lookback.Lookback] = None,
         freeze_lookback: bool = True,
         cached_polarization_sum_factors: Optional[np.ndarray] = None,
         checkpoints: bool = False,

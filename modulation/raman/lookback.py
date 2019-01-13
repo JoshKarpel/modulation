@@ -1,3 +1,5 @@
+import collections
+
 import numpy as np
 
 from . import sims
@@ -41,12 +43,15 @@ class Lookback:
         """
         self.lookback_time = lookback_time
 
-        self._entries = {}
+        self._entries = collections.deque()
 
-    def add(self, time, mode_amplitudes):
+    def add(self, time: float, mode_amplitudes: np.ndarray):
         """Add a new mode amplitude to the Lookback."""
-        self._entries[time] = mode_amplitudes
-        self._entries = {t: ma for t, ma in self._entries.items() if time - t <= self.lookback_time}
+        self._entries.append((time, mode_amplitudes.copy()))
+
+        earliest_time = time - self.lookback_time
+        while earliest_time > self._entries[0][0]:
+            self._entries.popleft()
 
     @property
     def _stacked(self) -> np.ndarray:
@@ -55,7 +60,7 @@ class Lookback:
         The first index corresponds to the times and the second to the mode.
         Summary statistics should operate on the first axis.
         """
-        return np.vstack(self._entries.values())
+        return np.vstack(e[1] for e in self._entries)
 
     @property
     def _stacked_magnitudes(self):
