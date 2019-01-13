@@ -142,7 +142,6 @@ class RamanSimulation(si.Simulation):
         """Generate a set of background **amplitudes** with randomized phases."""
         return self.mode_background_magnitudes * np.exp(1j * u.twopi * np.random.random(self.mode_amplitudes.shape))
 
-    @profile
     def run(self, show_progress_bar: bool = False) -> None:
         self.status = si.Status.RUNNING
 
