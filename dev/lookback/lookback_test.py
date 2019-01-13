@@ -38,7 +38,7 @@ if __name__ == '__main__':
         mode_volume_integrator = mock.MockVolumeIntegrator(volume_integral_result = 1e-25),
         material = raman.RamanMaterial.silica(),
         store_mode_amplitudes_vs_time = True,
-        lookback = raman.Lookback(lookback_time = t_final / 10),
+        # lookback = raman.Lookback(lookback_time = t_final / 10),
     )
 
     sim = spec.to_sim()

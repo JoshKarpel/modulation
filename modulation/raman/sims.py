@@ -28,8 +28,10 @@ class RamanSimulation(si.Simulation):
 
         self.latest_checkpoint_time = datetime.datetime.utcnow()
 
+        total_time = self.spec.time_final - self.spec.time_initial
         self.time_index = 0
-        self.time_steps = len(self.times)
+        self.time_steps = int(total_time / self.spec.time_step) + 1
+        self.real_time_step = total_time / (self.time_steps - 1)
 
         self.mode_omegas = np.array([m.omega for m in self.spec.modes])
         self.mode_amplitude_decay_rates = self.mode_omegas / (2 * self.spec.mode_total_quality_factors)
@@ -39,7 +41,7 @@ class RamanSimulation(si.Simulation):
         self.mode_to_index = {mode: idx for idx, mode in enumerate(self.spec.modes)}
 
         if self.spec.store_mode_amplitudes_vs_time:
-            self.mode_amplitudes_vs_time = np.empty((len(self.times), len(self.mode_amplitudes)), dtype = np.complex128)
+            self.mode_amplitudes_vs_time = np.empty((self.time_steps, len(self.mode_amplitudes)), dtype = np.complex128)
 
         self.mode_volumes_inside_resonator = np.array([m.mode_volume_inside_resonator for m in self.spec.modes])
         self.mode_volumes_outside_resonator = np.array([m.mode_volume_outside_resonator for m in self.spec.modes])
@@ -58,19 +60,19 @@ class RamanSimulation(si.Simulation):
 
         self.plot = plotter.RamanSimulationPlotter(self)
 
+    def time_at(self, time_index):
+        return self.spec.time_initial + (time_index * self.real_time_step)
+
+    def iter_times(self):
+        for time_index in range(self.time_steps):
+            yield self.time_at(time_index)
+
     @property
     def times(self) -> np.ndarray:
-        total_time = self.spec.time_final - self.spec.time_initial
-        times = np.linspace(
-            self.spec.time_initial,
-            self.spec.time_final,
-            int(total_time / self.spec.time_step),
-        )
-
-        return times
+        return np.array(list(self.iter_times()))
 
     @property
-    def time(self):
+    def current_time(self):
         return self.times[self.time_index]
 
     @property
@@ -140,6 +142,7 @@ class RamanSimulation(si.Simulation):
         """Generate a set of background **amplitudes** with randomized phases."""
         return self.mode_background_magnitudes * np.exp(1j * u.twopi * np.random.random(self.mode_amplitudes.shape))
 
+    @profile
     def run(self, show_progress_bar: bool = False) -> None:
         self.status = si.Status.RUNNING
 
@@ -150,7 +153,6 @@ class RamanSimulation(si.Simulation):
             if show_progress_bar:
                 pbar = tqdm(total = self.time_steps)
 
-            times = self.times
             while True:
                 # spontaneous raman
                 self.mode_amplitudes[:] = np.where(
@@ -163,15 +165,15 @@ class RamanSimulation(si.Simulation):
                     self.mode_amplitudes_vs_time[self.time_index, :] = self.mode_amplitudes
 
                 if self.lookback is not None:
-                    self.lookback.add(times[self.time_index], self.mode_amplitudes)
+                    self.lookback.add(self.time_at(self.time_index), self.mode_amplitudes)
 
                 for animator in self.spec.animators:
-                    if self.time_index == 0 or self.time_index == self.time_steps or self.time_index % animator.decimation == 0:
+                    if self.time_index == 0 or self.time_index + 1 == self.time_steps or self.time_index % animator.decimation == 0:
                         animator.send_frame_to_ffmpeg()
 
                 if show_progress_bar:
                     pbar.update(1)
-                if self.time_index == self.time_steps - 1:
+                if self.time_index + 1 == self.time_steps:
                     break
 
                 self.time_index += 1
@@ -180,8 +182,8 @@ class RamanSimulation(si.Simulation):
                 self.mode_amplitudes[:] = self.spec.evolution_algorithm.evolve(
                     sim = self,
                     mode_amplitudes = self.mode_amplitudes,
-                    time_initial = times[self.time_index - 1],
-                    time_final = times[self.time_index],
+                    time_initial = self.time_at(self.time_index - 1),
+                    time_final = self.time_at(self.time_index),
                 )
 
                 if self.spec.checkpoints:
@@ -206,12 +208,12 @@ class RamanSimulation(si.Simulation):
         self.status = si.Status.PAUSED
         self.save(target_dir = self.spec.checkpoint_dir)
         self.latest_checkpoint_time = now
-        logger.info(f'{self} checkpointed at time index {self.time_index} / {self.time_steps - 1} ({self.percent_completed:.2f}%)')
+        logger.info(f'{self} checkpointed at time step {self.time_index + 1} / {self.time_steps} ({self.percent_completed:.2f}%)')
         self.status = si.Status.RUNNING
 
     @property
     def percent_completed(self) -> float:
-        return 100 * self.time_index / (self.time_steps - 1)
+        return 100 * (self.time_index + 1) / self.time_steps
 
 
 class StimulatedRamanScatteringSimulation(RamanSimulation):

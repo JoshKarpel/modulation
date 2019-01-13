@@ -149,7 +149,7 @@ class SquareAnimator(anim.Animator):
 
     def _update_data(self):
         self.time_text.set_text(
-            fr'$t = {self.sim.time / self.time_text_unit:.1f} \, {self.time_text_unit_tex}$'
+            fr'$t = {self.sim.current_time / self.time_text_unit:.1f} \, {self.time_text_unit_tex}$'
         )
 
         super()._update_data()
