@@ -94,8 +94,7 @@ def make_plot(name, sims):
 
 if __name__ == '__main__':
     scans = [
-        'mod_eff_test_2.sims',
-        'mod_eff_test_3.sims',
+        'test_memory.sims',
     ]
 
     for scan in scans:

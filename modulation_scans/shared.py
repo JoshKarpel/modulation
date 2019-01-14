@@ -64,18 +64,18 @@ def ask_material():
     return modulation.raman.RamanMaterial(**modulation.raman.material.MATERIAL_DATA[choice])
 
 
-def ask_time_final():
+def ask_time_final(default = 1):
     return u.usec * si.cluster.ask_for_input(
         'Final time (in us)?',
-        default = 1,
+        default = default,
         cast_to = float,
     )
 
 
-def ask_time_step():
+def ask_time_step(default = 1):
     return u.nsec * si.cluster.ask_for_input(
         'Time step (in ns)?',
-        default = 1,
+        default = default,
         cast_to = float,
     )
 

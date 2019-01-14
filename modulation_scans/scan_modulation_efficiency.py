@@ -25,8 +25,8 @@ def main():
         cast_to = float,
     )
 
-    time_final = shared.ask_time_final()
-    time_step = shared.ask_time_step()
+    time_final = shared.ask_time_final(default = 100)
+    time_step = shared.ask_time_step(default = .001)
 
     mode_volume = si.cluster.ask_for_input(
         'Mode volume inside resonator?',
