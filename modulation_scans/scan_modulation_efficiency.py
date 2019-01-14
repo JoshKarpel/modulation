@@ -63,7 +63,7 @@ def main():
         label = 'Mixing',
         omega = u.twopi * u.c / (u.nm * si.cluster.ask_for_input(
             'Mixing mode wavelength (in nm)?',
-            default = 1064,
+            default = 632,
             cast_to = float,
         )),
         mode_volume_inside_resonator = mode_volume,
@@ -86,7 +86,7 @@ def main():
     )
     pump_and_stokes_coupling_q = si.cluster.ask_for_input(
         'Pump & Stokes modes coupling quality factor?',
-        default = pump_and_stokes_intrinsic_q,
+        default = DEFAULT_Q,
         cast_to = float,
     )
     mixing_intrinsic_q = si.cluster.ask_for_input(
@@ -96,17 +96,17 @@ def main():
     )
     mixing_coupling_q = si.cluster.ask_for_input(
         'Mixing mode coupling quality factor?',
-        default = mixing_intrinsic_q,
+        default = DEFAULT_Q,
         cast_to = float,
     )
     modulated_intrinsic_q = si.cluster.ask_for_input(
         'Modulated mode intrinsic quality factor?',
-        default = mixing_intrinsic_q,
+        default = DEFAULT_Q,
         cast_to = float,
     )
     modulated_coupling_q = si.cluster.ask_for_input(
         'Modulated mode coupling quality factor?',
-        default = modulated_intrinsic_q,
+        default = DEFAULT_Q,
         cast_to = float,
     )
 
@@ -121,7 +121,7 @@ def main():
 
     scan_powers = u.uW * si.cluster.ask_for_eval(
         f'Scan mode ({scan_mode.label}) launched powers (in uW)?',
-        default = 'np.linspace(0, 1000, 100)',
+        default = 'np.linspace(0, 5000, 200)',
     )
     fixed_power = u.uW * si.cluster.ask_for_input(
         f'Fixed mode ({fixed_mode.label}) launched power (in uW)?',
