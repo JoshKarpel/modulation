@@ -20,6 +20,8 @@ RUN conda install -y python=3.6 \
     conda update -y --all && \
     conda clean -y --all
 
+ARG CACHEBUST=1
+
 # my packages
 RUN pip install git+https://github.com/JoshKarpel/simulacra.git && \
     pip install git+https://github.com/JoshKarpel/modulation.git
