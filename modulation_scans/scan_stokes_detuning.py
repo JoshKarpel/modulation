@@ -139,7 +139,7 @@ def main():
         material = material,
         mode_pumps = {pump_mode: pump},
         mode_volume_integrator = mode_volume_integrator,
-        checkpoints = True,
+        checkpoints = False,
         store_mode_amplitudes_vs_time = store_mode_amplitudes_vs_time,
         lookback = modulation.raman.Lookback(lookback_time = lookback_time),
     )

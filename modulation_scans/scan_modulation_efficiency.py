@@ -140,7 +140,7 @@ def main():
         time_step = time_step,
         material = material,
         mode_volume_integrator = mode_volume_integrator,
-        checkpoints = True,
+        checkpoints = False,
         store_mode_amplitudes_vs_time = store_mode_amplitudes_vs_time,
         lookback = modulation.raman.Lookback(lookback_time = lookback_time),
     )
@@ -148,7 +148,7 @@ def main():
     specs = []
     for scan_power in scan_powers:
         spec = spec_type(
-            f'pump_power={scan_power / u.uW:.6f}',
+            f'pump_power={scan_power / u.uW:.6f}uW',
             modes = [pump_mode, stokes_mode, mixing_mode, modulated_mode],
             mode_pumps = {
                 scan_mode: modulation.raman.ConstantPump(power = scan_power),

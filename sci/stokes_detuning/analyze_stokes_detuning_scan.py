@@ -58,6 +58,10 @@ def make_plot(name, sims):
 if __name__ == '__main__':
     scans = [
         'stokes_detuning__800nm_pump__fwm_.01ns_2.sims',
+        'stokes_detuning__800nm_pump__fixed_quality.sims',
+        'stokes_detuning__800nm_pump__fixed_timescale.sims',
+        'stokes_detuning__1064nm_pump__fixed_quality.sims',
+        'stokes_detuning__1064nm_pump__fixed_timescale.sims',
     ]
 
     for scan in scans:
