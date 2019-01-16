@@ -139,6 +139,7 @@ def main():
         time_final = time_final,
         time_step = time_step,
         material = material,
+        mode_initial_amplitudes = {stokes_mode: 1},
         mode_volume_integrator = mode_volume_integrator,
         checkpoints = False,
         store_mode_amplitudes_vs_time = store_mode_amplitudes_vs_time,

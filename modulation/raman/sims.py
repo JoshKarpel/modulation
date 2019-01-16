@@ -101,6 +101,9 @@ class RamanSimulation(si.Simulation):
         """Return the energy of each mode, based on the given ``mode_amplitudes``."""
         return self.mode_energy_prefactor * (np.abs(mode_amplitudes) ** 2)
 
+    def mode_photon_numbers(self, mode_amplitudes):
+        return self.mode_energies(mode_amplitudes) / self.mode_photon_energy
+
     def mode_output_powers(self, mode_amplitudes):
         """Return the output power of each mode, based on the given ``mode_amplitudes``."""
         return self.mode_energies(mode_amplitudes) * self.mode_omegas / self.spec.mode_coupling_quality_factors
@@ -153,13 +156,6 @@ class RamanSimulation(si.Simulation):
                 pbar = tqdm(total = self.time_steps)
 
             while True:
-                # spontaneous raman
-                self.mode_amplitudes[:] = np.where(
-                    np.abs(self.mode_amplitudes) >= self.mode_background_magnitudes,
-                    self.mode_amplitudes,
-                    self.generate_background_amplitudes(),
-                )
-
                 if self.spec.store_mode_amplitudes_vs_time:
                     self.mode_amplitudes_vs_time[self.time_index, :] = self.mode_amplitudes
 

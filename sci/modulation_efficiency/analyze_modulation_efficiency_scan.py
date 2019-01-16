@@ -69,32 +69,38 @@ def make_plot(name, sims):
         y_label = 'Steady-State Mode Energy',
         x_unit = 'uW',
         y_unit = 'pJ',
-        title = rf'Modulation Efficiency for $ P_{{\mathrm{{{fixed_mode.label}}}}} = {s.mode_pumps[idxs_by_mode[fixed_mode]]._power / u.uW:.1f} \, \mathrm{{\mu W}} $',
+        title = rf'Mode Energies for $ P_{{\mathrm{{{fixed_mode.label}}}}} = {s.mode_pumps[idxs_by_mode[fixed_mode]]._power / u.uW:.1f} \, \mathrm{{\mu W}} $',
+        x_log_axis = scan_powers[0] != 0,
         y_log_axis = True,
-        legend_on_right = True,
-        save = False,
-        close = False,
+        y_lower_limit = 1e-8 * u.pJ,
+        y_upper_limit = 1e6 * u.pJ,
+        x_lower_limit = 1e-1 * u.uW,
+        x_upper_limit = 1e5 * u.uW,
+        # save = False,
+        # close = False,
         **PLOT_KWARGS,
     )
 
-    ax = figman.fig.gca()
-    for (lower, upper), color in zip(fills, COLORS):
-        ax.fill_between(
-            scan_powers / u.uW,
-            lower / u.pJ,
-            upper / u.pJ,
-            facecolor = color,
-            alpha = 0.5,
-            linewidth = 0,
-        )
+    # ax = figman.fig.gca()
+    # for (lower, upper), color in zip(fills, COLORS):
+    #     ax.fill_between(
+    #         scan_powers / u.uW,
+    #         lower / u.pJ,
+    #         upper / u.pJ,
+    #         facecolor = color,
+    #         alpha = 0.5,
+    #         linewidth = 0,
+    #     )
 
-    figman.save()
-    figman.cleanup()
+    # figman.save()
+    # figman.cleanup()
 
 
 if __name__ == '__main__':
     scans = [
-        'test_memory.sims',
+        f'modeff__scan_pump__Q=1e{n}__mixing={m}.sims'
+        for n in [4, 5, 6]
+        for m in ['0', '1uW']
     ]
 
     for scan in scans:
