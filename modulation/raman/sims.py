@@ -1,6 +1,7 @@
+from typing import Iterable, Dict, Union, Optional, Generator, Tuple, Callable
 import logging
-from typing import Iterable, Dict, Union, Optional, Generator, Tuple
 
+from pathlib import Path
 import functools
 import itertools
 import datetime
@@ -145,7 +146,7 @@ class RamanSimulation(si.Simulation):
         """Generate a set of background **amplitudes** with randomized phases."""
         return self.mode_background_magnitudes * np.exp(1j * u.twopi * np.random.random(self.mode_amplitudes.shape))
 
-    def run(self, show_progress_bar: bool = False) -> None:
+    def run(self, show_progress_bar: bool = False, checkpoint_callback: Callable[[Path], None] = None) -> None:
         self.status = si.Status.RUNNING
 
         try:
@@ -184,7 +185,7 @@ class RamanSimulation(si.Simulation):
                 if self.spec.checkpoints:
                     now = datetime.datetime.utcnow()
                     if (now - self.latest_checkpoint_time) > self.spec.checkpoint_every:
-                        self.do_checkpoint(now)
+                        self.do_checkpoint(now, checkpoint_callback)
 
             if show_progress_bar:
                 pbar.close()
@@ -199,9 +200,10 @@ class RamanSimulation(si.Simulation):
 
         self.status = si.Status.FINISHED
 
-    def do_checkpoint(self, now: datetime.datetime) -> None:
+    def do_checkpoint(self, now: datetime.datetime, callback: Callable[[Path], None]) -> None:
         self.status = si.Status.PAUSED
-        self.save(target_dir = self.spec.checkpoint_dir)
+        path = self.save(target_dir = self.spec.checkpoint_dir)
+        callback(path)
         self.latest_checkpoint_time = now
         logger.info(f'{self} checkpointed at time step {self.time_index + 1} / {self.time_steps} ({self.percent_completed:.2f}%)')
         self.status = si.Status.RUNNING

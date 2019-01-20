@@ -115,7 +115,7 @@ def _run(spec):
 
     print(sim.info())
 
-    sim.run()
+    sim.run(checkpoint_callback = htmap.checkpoint)
 
     print(sim.info())
 
@@ -130,13 +130,11 @@ def _ask_about_map_options() -> (dict, dict):
     opts = {
         'request_memory': si.cluster.ask_for_input('Memory?', default = '250MB'),
         'request_disk': si.cluster.ask_for_input("Disk?", default = '500MB'),
-        # 'when_to_transfer_output': 'ON_EXIT_OR_EVICT',
-        'requirements': '(Poolname != "BIOCHEM")',
     }
     custom_opts = {
         'wantflocking': str(si.cluster.ask_for_bool('Want flocking?', default = True)).lower(),
         'wantglidein': str(si.cluster.ask_for_bool('Want gliding?', default = True)).lower(),
-        # 'is_resumable': "true",
+        'is_resumable': "true",
     }
 
     return opts, custom_opts

@@ -141,7 +141,7 @@ def main():
         material = material,
         mode_initial_amplitudes = {stokes_mode: 1},
         mode_volume_integrator = mode_volume_integrator,
-        checkpoints = False,
+        checkpoints = True,
         store_mode_amplitudes_vs_time = store_mode_amplitudes_vs_time,
         lookback = modulation.raman.Lookback(lookback_time = lookback_time),
     )
