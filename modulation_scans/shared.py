@@ -153,6 +153,6 @@ def create_map(tag: str, specs) -> htmap.Map:
         tag = tag,
     )
 
-    print(f'Created map {map.map_id}')
+    print(f'Created map {map.tag}')
 
     return map
