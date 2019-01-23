@@ -16,7 +16,7 @@ from . import shared
 def main():
     ### QUESTIONS
 
-    map_id = shared.ask_map_id()
+    map_id = shared.ask_for_tag()
     spec_type = shared.ask_spec_type()
     material = shared.ask_material()
     index_of_refraction = si.cluster.ask_for_input(

@@ -23,7 +23,8 @@ RUN conda install -y python=3.6 \
 ARG CACHEBUST=1
 
 # my packages
-RUN pip install git+https://github.com/JoshKarpel/simulacra.git && \
+RUN pip install git+https://github.com/JoshKarpel/htmap.git@dockery-map-management && \
+    pip install git+https://github.com/JoshKarpel/simulacra.git && \
     pip install git+https://github.com/JoshKarpel/modulation.git
 
 # pre-compile cython code via pyximport

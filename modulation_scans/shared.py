@@ -30,8 +30,8 @@ def make_spinner(*args, **kwargs):
 
 # SHARED QUESTIONS
 
-def ask_map_id():
-    return si.cluster.ask_for_input('Map ID?')
+def ask_for_tag():
+    return si.cluster.ask_for_input('Map Tag?', default = None)
 
 
 def ask_spec_type():
@@ -140,17 +140,17 @@ def _ask_about_map_options() -> (dict, dict):
     return opts, custom_opts
 
 
-def create_map(map_id: str, specs) -> htmap.Map:
+def create_map(tag: str, specs) -> htmap.Map:
     _set_htmap_settings()
     opts, custom = _ask_about_map_options()
 
     map = _run.map(
-        map_id,
         specs,
         map_options = htmap.MapOptions(
             **opts,
             custom_options = custom,
         ),
+        tag = tag,
     )
 
     print(f'Created map {map.map_id}')

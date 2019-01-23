@@ -16,7 +16,7 @@ from . import shared
 def main():
     ### QUESTIONS
 
-    map_id = shared.ask_map_id()
+    tag = shared.ask_for_tag()
     spec_type = modulation.raman.FourWaveMixingSpecification
     material = shared.ask_material()
     index_of_refraction = si.cluster.ask_for_input(
@@ -181,7 +181,7 @@ def main():
 
     ### CREATE MAP
 
-    map = shared.create_map(map_id, specs)
+    map = shared.create_map(tag, specs)
 
 
 if __name__ == '__main__':
