@@ -61,7 +61,7 @@ def ask_material():
             number_density = si.cluster.ask_for_eval('Number Density?'),
         )
 
-    return modulation.raman.RamanMaterial(**modulation.raman.material.MATERIAL_DATA[choice])
+    return modulation.raman.RamanMaterial.from_database(choice)
 
 
 def ask_time_final(default = 1):

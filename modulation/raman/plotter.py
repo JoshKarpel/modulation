@@ -161,7 +161,7 @@ class RamanSimulationPlotter:
             **kwargs,
         )
 
-    def stackmode_energies_vs_time(
+    def stack_mode_energies_vs_time(
         self,
         time_unit = 'nsec',
         energy_unit = 'pJ',
@@ -249,7 +249,7 @@ class RamanSimulationPlotter:
             **kwargs,
         )
 
-    def stackmode_photon_counts_vs_time(
+    def stack_mode_photon_counts_vs_time(
         self,
         time_unit = 'nsec',
         y_pad = .05,
@@ -303,7 +303,7 @@ class RamanSimulationPlotter:
         si.vis.xy_plot(
             f'{self.sim.name}__mode_pump_powers_vs_time',
             self.sim.times,
-            *[self.sim.spec.mode_pumps[q].power(self.sim.times) for q in mode_numbers],
+            *[self.sim.spec.mode_pumps[q].get_power(self.sim.times) for q in mode_numbers],
             line_labels = [
                 fr'${self.sim.spec.modes[q].tex}$'
                 for q in mode_numbers

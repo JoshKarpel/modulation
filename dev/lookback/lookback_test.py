@@ -36,7 +36,7 @@ if __name__ == '__main__':
         mode_intrinsic_quality_factors = {mode: 1e8},
         mode_pumps = {mode: raman.pump.ConstantPump(100 * u.uW)},
         mode_volume_integrator = mock.MockVolumeIntegrator(volume_integral_result = 1e-25),
-        material = raman.RamanMaterial.silica(),
+        material = raman.RamanMaterial.from_database('silica'),
         store_mode_amplitudes_vs_time = True,
         # lookback = raman.Lookback(lookback_time = t_final / 10),
     )

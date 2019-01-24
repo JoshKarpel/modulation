@@ -50,7 +50,7 @@ class ForwardEuler(EvolutionAlgorithm):
 class RungeKutta4(EvolutionAlgorithm):
     """
     Calculate the mode amplitudes at the next time step using the fourth-order Runge-Kutta algorithm.
-    This method has much better accuracy and stability than forward Euler.
+    This algorithm has much better accuracy and stability than forward Euler.
     """
 
     def evolve(

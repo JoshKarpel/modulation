@@ -132,7 +132,7 @@ class RamanSimulation(si.Simulation):
 
     @functools.lru_cache(maxsize = 4)
     def calculate_pumps(self, time: float) -> np.ndarray:
-        return self.pump_prefactor * np.sqrt([pump.power(time) for pump in self.spec.mode_pumps], dtype = np.float64)
+        return self.pump_prefactor * np.sqrt([pump.get_power(time) for pump in self.spec.mode_pumps], dtype = np.float64)
 
     @abc.abstractmethod
     def _calculate_polarization_sum_factors(self) -> np.ndarray:

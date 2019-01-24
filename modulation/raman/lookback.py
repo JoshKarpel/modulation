@@ -2,8 +2,7 @@ import collections
 
 import numpy as np
 
-from . import sims
-
+from . import exceptions
 
 class freezeable_property():
     def __init__(self, func):
@@ -27,7 +26,6 @@ class Lookback:
         'max',
         'min',
         'std',
-        'ptp',
     ]
 
     def __init__(
@@ -47,6 +45,9 @@ class Lookback:
 
     def add(self, time: float, mode_amplitudes: np.ndarray):
         """Add a new mode amplitude to the Lookback."""
+        if self._entries is None:
+            raise exceptions.LookbackIsFrozen('this lookback is frozen; no more measurements can be added to it')
+
         self._entries.append((time, mode_amplitudes.copy()))
 
         earliest_time = time - self.lookback_time
@@ -68,25 +69,26 @@ class Lookback:
 
     @freezeable_property
     def mean(self) -> np.ndarray:
+        """The average magnitude of each mode over the lookback time."""
         return np.mean(self._stacked_magnitudes, axis = 0)
 
     @freezeable_property
     def max(self) -> np.ndarray:
+        """The maximum magnitude of each mode over the lookback time."""
         return np.max(self._stacked_magnitudes, axis = 0)
 
     @freezeable_property
     def min(self) -> np.ndarray:
+        """The minimum magnitude of each mode over the lookback time."""
         return np.min(self._stacked_magnitudes, axis = 0)
 
     @freezeable_property
     def std(self) -> np.ndarray:
+        """The standard deviation of the magnitude of each mode over the lookback time."""
         return np.std(self._stacked_magnitudes, axis = 0)
 
-    @freezeable_property
-    def ptp(self):
-        return np.ptp(self._stacked_magnitudes, axis = 0)
-
     def freeze(self):
+        """Lock the statistical measurements to their current values and clear internal storage."""
         for stat in self.STATS:
             self.__dict__[stat] = getattr(self, stat)
 

@@ -159,7 +159,7 @@ if __name__ == '__main__':
 
         ###
 
-        material = raman.material.RamanMaterial.silica()
+        material = raman.material.RamanMaterial.from_database('silica')
         pump_omega = u.twopi * u.c / pump_wavelength
         mixing_omega = u.twopi * u.c / mixing_wavelength
 

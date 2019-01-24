@@ -8,3 +8,7 @@ class MissingVolumeIntegrator(RamanException):
 
 class MissingRamanMaterial(RamanException):
     pass
+
+
+class LookbackIsFrozen(RamanException):
+    pass

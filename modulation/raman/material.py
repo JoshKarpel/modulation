@@ -14,6 +14,8 @@ MATERIAL_DATA = {
 
 
 class RamanMaterial:
+    """A class that represents a Raman-active material."""
+
     def __init__(
         self,
         *,
@@ -28,8 +30,8 @@ class RamanMaterial:
         self.number_density = number_density
 
     @classmethod
-    def silica(cls):
-        return cls(**MATERIAL_DATA['silica'])
+    def from_database(cls, material: str):
+        return cls(**MATERIAL_DATA[material])
 
     @property
     def modulation_frequency(self):
