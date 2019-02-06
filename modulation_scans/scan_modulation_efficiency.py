@@ -114,7 +114,7 @@ def main():
         si.cluster.Parameter(
             '_pump_power',
             u.uW * si.cluster.ask_for_eval(
-                f'Pump mode ({pump_mode.label}) launched power (in uW)?',
+                f'Pump mode ({pump_mode}) launched power (in uW)?',
                 default = 'np.linspace(0, 5000, 100)',
             ),
             expandable = True,
@@ -124,9 +124,8 @@ def main():
         si.cluster.Parameter(
             '_mixing_power',
             u.uW * si.cluster.ask_for_eval(
-                f'Mixing mode ({mixing_mode.label}) launched power (in uW)?',
+                f'Mixing mode ({mixing_mode}) launched power (in uW)?',
                 default = '[1]',
-                cast_to = float,
             ),
             expandable = True,
         )
