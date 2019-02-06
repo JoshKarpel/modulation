@@ -150,8 +150,8 @@ def main():
 
     specs = []
     for params in si.cluster.expand_parameters(parameters):
-        pump_power = params['_scan_power']
-        mixing_power = params['_fixed_power']
+        pump_power = params['_pump_power']
+        mixing_power = params['_mixing_power']
 
         spec = spec_type(
             f'pump_power={pump_power / u.uW:.6f}uW',
