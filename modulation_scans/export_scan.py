@@ -14,7 +14,7 @@ from . import shared
 
 
 @click.command(context_settings = shared.CLI_CONTEXT_SETTINGS)
-@click.argument('map_id')
+@click.argument('tag')
 @click.option('--outdir', default = None)
 def main(tag, outdir):
     with shared.make_spinner(f'loading map {tag}...') as spinner:
