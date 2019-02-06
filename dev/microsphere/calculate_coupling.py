@@ -9,7 +9,7 @@ import simulacra as si
 import simulacra.units as u
 
 from modulation import refraction
-from modulation.resonator import microsphere
+from modulation.resonators import microspheres
 
 THIS_FILE = Path(__file__)
 OUT_DIR = THIS_FILE.parent / 'out' / THIS_FILE.stem
@@ -34,7 +34,7 @@ def quality_factor_vs_separation(index, microsphere_radius, fiber_radii, wavelen
     quality_factors = []
     labels = []
     for i, (fiber_radius, wavelength) in enumerate(itertools.product(fiber_radii, wavelengths)):
-        q = microsphere.coupling_quality_factor_for_tapered_fiber(
+        q = microspheres.coupling_quality_factor_for_tapered_fiber(
             microsphere_index_of_refraction = index,
             fiber_index_of_refraction = index,
             microsphere_radius = microsphere_radius,
@@ -71,7 +71,7 @@ def quality_factor_vs_wavelength(index, microsphere_radius, fiber_radii, separat
     quality_factors = []
     labels = []
     for i, (fiber_radius, separation) in enumerate(itertools.product(fiber_radii, separations)):
-        q = microsphere.coupling_quality_factor_for_tapered_fiber(
+        q = microspheres.coupling_quality_factor_for_tapered_fiber(
             microsphere_index_of_refraction = index,
             fiber_index_of_refraction = index,
             microsphere_radius = microsphere_radius,

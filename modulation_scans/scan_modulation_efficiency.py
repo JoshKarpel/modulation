@@ -33,7 +33,7 @@ def main():
         default = 1e-20,
         cast_to = float,
     )
-    mode_volume_integrator = modulation.resonator.mock.MockVolumeIntegrator(
+    mode_volume_integrator = modulation.resonators.mock.MockVolumeIntegrator(
         volume_integral_result = si.cluster.ask_for_input(
             'Four-mode overlap integral result?',
             default = 1e-25,
@@ -41,7 +41,7 @@ def main():
         ),
     )
 
-    pump_mode = modulation.resonator.mock.MockMode(
+    pump_mode = modulation.resonators.mock.MockMode(
         label = 'Pump',
         omega = u.twopi * u.c / (u.nm * si.cluster.ask_for_input(
             'Pump mode wavelength (in nm)?',
@@ -52,14 +52,14 @@ def main():
         mode_volume_outside_resonator = 0,
         index_of_refraction = index_of_refraction,
     )
-    stokes_mode = modulation.resonator.mock.MockMode(
+    stokes_mode = modulation.resonators.mock.MockMode(
         label = 'Stokes',
         omega = pump_mode.omega - material.modulation_omega,
         mode_volume_inside_resonator = mode_volume,
         mode_volume_outside_resonator = 0,
         index_of_refraction = index_of_refraction,
     )
-    mixing_mode = modulation.resonator.mock.MockMode(
+    mixing_mode = modulation.resonators.mock.MockMode(
         label = 'Mixing',
         omega = u.twopi * u.c / (u.nm * si.cluster.ask_for_input(
             'Mixing mode wavelength (in nm)?',
@@ -70,7 +70,7 @@ def main():
         mode_volume_outside_resonator = 0,
         index_of_refraction = index_of_refraction,
     )
-    modulated_mode = modulation.resonator.mock.MockMode(
+    modulated_mode = modulation.resonators.mock.MockMode(
         label = 'Modulated',
         omega = mixing_mode.omega + material.modulation_omega,
         mode_volume_inside_resonator = mode_volume,

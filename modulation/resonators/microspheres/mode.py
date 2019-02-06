@@ -1,16 +1,20 @@
 import logging
 
 import numpy as np
+import scipy.special as spc
+
 import simulacra as si
-from scipy import special as spc
 from simulacra import units as u
 
 from . import vsh
 
-from modulation.refraction import index
 from modulation.raman import Mode
 
 logger = logging.getLogger(__name__)
+
+
+def find_mode_with_closest_wavelength(modes, wavelength):
+    return sorted(modes, key = lambda m: abs(m.wavelength - wavelength))[0]
 
 
 class MicrosphereModePolarization(si.utils.StrEnum):
@@ -18,9 +22,6 @@ class MicrosphereModePolarization(si.utils.StrEnum):
 
     TRANSVERSE_ELECTRIC = 'TE'
     TRANSVERSE_MAGNETIC = 'TM'
-
-    def __str__(self):
-        return self.value
 
 
 class MicrosphereMode(Mode):
@@ -30,9 +31,7 @@ class MicrosphereMode(Mode):
         l: int,
         m: int,
         radial_mode_number: int,
-        index_of_refraction: index.IndexOfRefraction,
-        microsphere_radius: float,
-        amplitude: float = 1 * u.V / u.m,
+        microsphere,
         polarization: MicrosphereModePolarization = MicrosphereModePolarization.TRANSVERSE_ELECTRIC,
     ):
         self.l = l
@@ -40,11 +39,7 @@ class MicrosphereMode(Mode):
 
         self.wavelength = wavelength
         self.radial_mode_number = radial_mode_number
-        self._index_of_refraction = index_of_refraction
-        self.microsphere_radius = microsphere_radius
-
-        self.amplitude = amplitude
-
+        self.microsphere = microsphere
         self.polarization = polarization
 
     @classmethod
@@ -52,23 +47,18 @@ class MicrosphereMode(Mode):
         cls,
         mode_location,
         m: int,
-        index_of_refraction: index.IndexOfRefraction,
-        microsphere_radius: float,
-        amplitude: float = 1 * u.V / u.m,
     ):
         return cls(
+            wavelength = mode_location.wavelength,
             l = mode_location.l,
             m = m,
-            wavelength = mode_location.wavelength,
             radial_mode_number = mode_location.radial_mode_number,
+            microsphere = mode_location.microsphere,
             polarization = mode_location.polarization,
-            index_of_refraction = index_of_refraction,
-            microsphere_radius = microsphere_radius,
-            amplitude = amplitude,
         )
 
-    def __repr__(self):
-        return f'{self.__class__.__name__}(λ = {u.uround(self.wavelength, u.nm)} nm, ℓ = {self.l}, m = {self.m}, radial_mode_number = {self.radial_mode_number}, polarization = {self.polarization})'
+    def __str__(self):
+        return f'{self.__class__.__name__}(λ = {self.wavelength / u.nm:.3f} nm, f = {self.frequency / u.THz:.3f} THz, l = {self.l}, m = {self.m}, radial_mode_number = {self.radial_mode_number}, polarization = {self.polarization})'
 
     @property
     def tex(self):
@@ -86,7 +76,7 @@ class MicrosphereMode(Mode):
     @property
     def index_of_refraction(self):
         """The index of refraction at the mode's free-space wavelength."""
-        return self._index_of_refraction(self.wavelength)
+        return self.microsphere.index_of_refraction(self.wavelength)
 
     @property
     def k_inside(self):
@@ -98,9 +88,9 @@ class MicrosphereMode(Mode):
 
     @property
     def mode_volume_inside_resonator(self):
-        pre = (self.microsphere_radius ** 3) / 2
+        pre = (self.microsphere.radius ** 3) / 2
 
-        kr = self.k_inside * self.microsphere_radius
+        kr = self.k_inside * self.microsphere.radius
         bessels = (spc.spherical_jn(self.l, kr) ** 2) - (spc.spherical_jn(self.l - 1, kr) * spc.spherical_jn(self.l + 1, kr))
 
         result = pre * bessels
@@ -109,12 +99,12 @@ class MicrosphereMode(Mode):
 
     @property
     def mode_volume_outside_resonator(self):
-        L = 10 * self.microsphere_radius
+        L = 10 * self.microsphere.radius
         kl = self.k_outside * L
-        kr = self.k_outside * self.microsphere_radius
+        kr = self.k_outside * self.microsphere.radius
 
         l_term = ((L ** 3) / 2) * ((spc.spherical_yn(self.l, kl) ** 2) - (spc.spherical_yn(self.l - 1, kl) * spc.spherical_yn(self.l + 1, kl)))
-        r_term = ((self.microsphere_radius ** 3) / 2) * ((spc.spherical_yn(self.l, kr) ** 2) - (spc.spherical_yn(self.l - 1, kr) * spc.spherical_yn(self.l + 1, kr)))
+        r_term = ((self.microsphere.radius ** 3) / 2) * ((spc.spherical_yn(self.l, kr) ** 2) - (spc.spherical_yn(self.l - 1, kr) * spc.spherical_yn(self.l + 1, kr)))
 
         result = (self.inside_outside_amplitude_ratio ** 2) * (l_term - r_term)
 
@@ -127,7 +117,7 @@ class MicrosphereMode(Mode):
     @property
     def inside_outside_amplitude_ratio(self):
         """outside = inside * inside_outside_amplitude_ratio"""
-        bessel_ratio = spc.spherical_jn(self.l, self.k_inside * self.microsphere_radius) / spc.spherical_yn(self.l, self.k_outside * self.microsphere_radius)
+        bessel_ratio = spc.spherical_jn(self.l, self.k_inside * self.microsphere.radius) / spc.spherical_yn(self.l, self.k_outside * self.microsphere.radius)
         if self.polarization is MicrosphereModePolarization.TRANSVERSE_ELECTRIC:
             return bessel_ratio
         elif self.polarization is MicrosphereModePolarization.TRANSVERSE_MAGNETIC:
@@ -212,7 +202,7 @@ class MicrosphereMode(Mode):
         inside = self.evaluate_electric_field_mode_shape_inside(r, theta, phi)
         outside = self.evaluate_electric_field_mode_shape_inside(r, theta, phi)
         return np.where(
-            r[..., np.newaxis] <= self.microsphere_radius,
+            r[..., np.newaxis] <= self.microsphere.radius,
             inside,
             outside,
         )

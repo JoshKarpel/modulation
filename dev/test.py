@@ -3,7 +3,7 @@ import time
 import simulacra.units as u
 
 from modulation import raman, refraction
-from modulation.resonator import microsphere, mock
+from modulation.resonators import microspheres, mock
 
 mode = mock.MockMode(
     label = rf'q=0',
@@ -26,4 +26,4 @@ spec = raman.StimulatedRamanScatteringSpecification(
 
 sim = spec.to_sim()
 
-sim.run(show_progress_bar = True)
+sim.run(progress_bar = True)

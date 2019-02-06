@@ -18,7 +18,7 @@ import simulacra as si
 import simulacra.units as u
 
 from modulation import raman
-from modulation.resonator import mock
+from modulation.resonators import mock
 
 config = {  # setup matplotlib to use latex for output
     "text.usetex": True,  # use LaTeX to write all text
@@ -137,6 +137,6 @@ if __name__ == '__main__':
 
             sim = spec.to_sim()
 
-            sim.run(show_progress_bar = True)
+            sim.run(progress_bar = True)
 
             make_plot(sim)

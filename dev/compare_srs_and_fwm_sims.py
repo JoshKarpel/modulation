@@ -9,7 +9,7 @@ import simulacra as si
 import simulacra.units as u
 
 from modulation import raman
-from modulation.resonator import mock
+from modulation.resonators import mock
 
 THIS_FILE = Path(__file__)
 OUT_DIR = THIS_FILE.parent / 'out' / THIS_FILE.stem
@@ -110,13 +110,13 @@ if __name__ == '__main__':
         # srs.polarization_sum_factors = -srs.polarization_sum_factors.T
         # fwm.polarization_sum_factors = np.real(fwm.polarization_sum_factors)
 
-        srs.run(show_progress_bar = True)
+        srs.run(progress_bar = True)
         srs.plot.mode_magnitudes_vs_time(
             y_log_axis = False,
             **PLOT_KWARGS,
         )
 
-        fwm.run(show_progress_bar = True)
+        fwm.run(progress_bar = True)
         fwm.plot.mode_magnitudes_vs_time(
             y_log_axis = False,
             **PLOT_KWARGS,

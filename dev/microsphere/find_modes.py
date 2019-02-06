@@ -1,9 +1,9 @@
 import simulacra.units as u
 
 from modulation import refraction
-from modulation.resonator import microsphere
+from modulation.resonators import microspheres
 
-ms = microsphere.Microsphere(
+ms = microspheres.Microsphere(
     radius = 50 * u.um,
     index_of_refraction = refraction.ConstantIndex(1.45),
 )
@@ -14,10 +14,10 @@ print(ms.info())
 print()
 
 wavelength_bounds = [
-    microsphere.WavelengthBound(799 * u.nm, 801 * u.nm),
+    microspheres.WavelengthBound(799 * u.nm, 801 * u.nm),
 ]
 
-modes = microsphere.find_modes(
+modes = microspheres.find_mode_locations(
     wavelength_bounds = wavelength_bounds,
     microsphere = ms,
 )

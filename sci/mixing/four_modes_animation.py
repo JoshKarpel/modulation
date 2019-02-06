@@ -9,7 +9,7 @@ import simulacra as si
 import simulacra.units as u
 
 from modulation import raman
-from modulation.resonator import mock
+from modulation.resonators import mock
 
 THIS_FILE = Path(__file__)
 OUT_DIR = THIS_FILE.parent / 'out' / THIS_FILE.stem
@@ -131,7 +131,7 @@ if __name__ == '__main__':
             y_log_axis = True,
         )
 
-        sim.run(show_progress_bar = True)
+        sim.run(progress_bar = True)
 
         sim.plot.mode_magnitudes_vs_time(**PLOT_KWARGS)
         sim.plot.mode_energies_vs_time(**PLOT_KWARGS)

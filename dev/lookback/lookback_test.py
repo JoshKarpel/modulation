@@ -4,7 +4,7 @@ import simulacra as si
 import simulacra.units as u
 
 from modulation import raman, refraction
-from modulation.resonator import microsphere, mock
+from modulation.resonators import microspheres, mock
 
 THIS_FILE = Path(__file__)
 OUT_DIR = THIS_FILE.parent / 'out' / THIS_FILE.stem
@@ -43,7 +43,7 @@ if __name__ == '__main__':
 
     sim = spec.to_sim()
 
-    sim.run(show_progress_bar = True)
+    sim.run(progress_bar = True)
     print(sim.running_time)
 
     # sim.plot.mode_magnitudes_vs_time(**PLOT_KWARGS)

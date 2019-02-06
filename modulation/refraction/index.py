@@ -101,6 +101,11 @@ class SellmeierIndex(IndexOfRefraction):
         return str(self)
 
 
+silica = (
+    np.array([0.6961663, 0.4079426, 0.8974794]),
+    (np.array([0.0684043, 0.1162414, 9.896161]) ** 2) * (u.um ** 2),
+)
+
 SELLMEIER_COEFFICIENTS = {
     'BK7': (
         np.array([1.03961212, 0.231792344, 1.01046945]),
@@ -122,8 +127,6 @@ SELLMEIER_COEFFICIENTS = {
         np.array([0.443749998, 0.444930066, 0.150133991, 8.85319946]),
         np.array([0.00178027854, 0.00788536061, 0.0124119491, 2752.28175]) * (u.um ** 2),
     ),
-    'SiO2': (
-        np.array([0.6961663, 0.4079426, 0.8974794]),
-        (np.array([0.0684043, 0.1162414, 9.896161]) ** 2) * (u.um ** 2),
-    )
+    'SiO2': silica,
+    'silica': silica,
 }

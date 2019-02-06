@@ -9,7 +9,7 @@ import simulacra as si
 import simulacra.units as u
 
 from modulation import raman
-from modulation.resonator import mock
+from modulation.resonators import mock
 
 THIS_FILE = Path(__file__)
 OUT_DIR = THIS_FILE.parent / 'out' / THIS_FILE.stem

@@ -13,8 +13,6 @@ class RamanSimulationPlotter:
         time_unit = 'nsec',
         magnitude_unit = 'V_per_m',
         y_log_axis = True,
-        y_pad = .05,
-        y_log_pad = 10,
         mode_filter = None,
         mode_kwargs = None,
         average_over = None,
@@ -53,8 +51,6 @@ class RamanSimulationPlotter:
             y_unit = magnitude_unit,
             y_label = r'$\left| \mathcal{E}_q(t) \right|$',
             y_log_axis = y_log_axis,
-            y_pad = y_pad,
-            y_log_pad = y_log_pad,
             legend_on_right = True,
             **kwargs,
         )

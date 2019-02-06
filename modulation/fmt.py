@@ -40,5 +40,5 @@ POWER_UNITS = (
 
 
 def quantity(quantity, units: tuple):
-    """Format a single quantity for multiple units, as in :class:`simulacra.Info` fields."""
-    return ' | '.join(f'{quantity / v:.4g} {s}' for v, s in units)
+    """Format a single quantity for multiple units, mainly for use in :class:`simulacra.Info` fields."""
+    return ' | '.join(f'{quantity / v:.3f} {s}' for v, s in units)

@@ -11,8 +11,8 @@ import simulacra.units as u
 
 from modulation import raman
 from modulation.refraction import ConstantIndex
-from modulation.resonator import mock
-from modulation.resonator.microsphere import coupling_quality_factor_for_tapered_fiber
+from modulation.resonators import mock
+from modulation.resonators.microspheres import coupling_quality_factor_for_tapered_fiber
 
 THIS_FILE = Path(__file__)
 OUT_DIR = THIS_FILE.parent / 'out' / THIS_FILE.stem
@@ -264,7 +264,7 @@ if __name__ == '__main__':
         sim = spec.to_sim()
 
         print(sim.info())
-        sim.run(show_progress_bar = True)
+        sim.run(progress_bar = True)
 
         G = np.real(sim.polarization_sum_factors / sim.mode_omegas)[0, 1]
         print('G')

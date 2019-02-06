@@ -28,7 +28,7 @@ def main():
     time_final = shared.ask_time_final()
     time_step = shared.ask_time_step()
 
-    pump_mode = modulation.resonator.mock.MockMode(
+    pump_mode = modulation.resonators.mock.MockMode(
         label = 'Pump',
         omega = u.twopi * u.c / (u.nm * si.cluster.ask_for_input(
             'Pump mode wavelength (in nm)?',
@@ -48,7 +48,7 @@ def main():
         default = pump_mode.mode_volume_inside_resonator,
         cast_to = float,
     )
-    mode_volume_integrator = modulation.resonator.mock.MockVolumeIntegrator(
+    mode_volume_integrator = modulation.resonators.mock.MockVolumeIntegrator(
         volume_integral_result = si.cluster.ask_for_input(
             'Four-mode overlap integral result?',
             default = 1e-25,
@@ -146,7 +146,7 @@ def main():
 
     specs = []
     for stokes_detuning in stokes_detunings:
-        stokes_mode = modulation.resonator.mock.MockMode(
+        stokes_mode = modulation.resonators.mock.MockMode(
             label = 'Stokes',
             omega = STOKES_OMEGA + stokes_detuning,
             mode_volume_inside_resonator = stokes_mode_volume,

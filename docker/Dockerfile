@@ -7,7 +7,7 @@ RUN apt-get -y update && \
     rm -rf /var/lib/apt/lists/*
 
 # install python dependencies
-RUN conda install -y python=3.6 \
+RUN conda install -y python=3.7 \
                      numpy \
                      scipy \
                      matplotlib \
@@ -23,9 +23,10 @@ RUN conda install -y python=3.6 \
 ARG CACHEBUST=1
 
 # my packages
-RUN pip install git+https://github.com/JoshKarpel/htmap.git@dockery-map-management && \
-    pip install git+https://github.com/JoshKarpel/simulacra.git && \
-    pip install git+https://github.com/JoshKarpel/modulation.git
+RUN pip install htcondor==8.8.2b1 \
+                git+https://github.com/JoshKarpel/htmap.git \
+                git+https://github.com/JoshKarpel/simulacra.git \
+                git+https://github.com/JoshKarpel/modulation.git
 
 # pre-compile cython code via pyximport
 RUN python3 -c "import modulation"

@@ -11,8 +11,8 @@ import simulacra.units as u
 
 from modulation import raman
 from modulation.refraction import ConstantIndex
-from modulation.resonator import mock
-from modulation.resonator.microsphere import coupling_quality_factor_for_tapered_fiber
+from modulation.resonators import mock
+from modulation.resonators.microspheres import coupling_quality_factor_for_tapered_fiber
 
 THIS_FILE = Path(__file__)
 OUT_DIR = THIS_FILE.parent / 'out' / THIS_FILE.stem

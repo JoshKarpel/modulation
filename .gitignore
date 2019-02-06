@@ -105,3 +105,14 @@ venv.bak/
 
 .idea/
 modulation/raman/.pyxbld/
+
+*.pdf
+*.png
+*.jobs
+*.job
+*.sim
+*.sims
+*.lprof
+covreport/
+.vscode/
+out/*

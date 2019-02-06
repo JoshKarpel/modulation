@@ -3,9 +3,9 @@ import pytest
 import simulacra.units as u
 
 from modulation import refraction
-from modulation.resonator import microsphere
+from modulation.resonators import microspheres
 
-ms = microsphere.Microsphere(
+ms = microspheres.Microsphere(
     radius = 50 * u.um,
     index_of_refraction = refraction.ConstantIndex(1.45),
 )
@@ -14,7 +14,7 @@ ms = microsphere.Microsphere(
 def test_empty_bounds_gives_no_modes():
     wavelength_bounds = []
 
-    modes = microsphere.find_modes(
+    modes = microspheres.find_mode_locations(
         wavelength_bounds = wavelength_bounds,
         microsphere = ms,
     )
@@ -24,10 +24,10 @@ def test_empty_bounds_gives_no_modes():
 
 def test_for_regressions_in_number_of_modes():
     wavelength_bounds = [
-        microsphere.WavelengthBound(799 * u.nm, 801 * u.nm),
+        microspheres.WavelengthBound(799 * u.nm, 801 * u.nm),
     ]
 
-    modes = microsphere.find_modes(
+    modes = microspheres.find_mode_locations(
         wavelength_bounds = wavelength_bounds,
         microsphere = ms,
     )

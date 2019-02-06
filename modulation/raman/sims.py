@@ -146,14 +146,18 @@ class RamanSimulation(si.Simulation):
         """Generate a set of background **amplitudes** with randomized phases."""
         return self.mode_background_magnitudes * np.exp(1j * u.twopi * np.random.random(self.mode_amplitudes.shape))
 
-    def run(self, show_progress_bar: bool = False, checkpoint_callback: Callable[[Path], None] = None) -> None:
+    def run(
+        self,
+        progress_bar: bool = False,
+        checkpoint_callback: Callable[[Path], None] = None,
+    ) -> None:
         self.status = si.Status.RUNNING
 
         try:
             for animator in self.spec.animators:
                 animator.initialize(self)
 
-            if show_progress_bar:
+            if progress_bar:
                 pbar = tqdm(total = self.time_steps)
 
             while True:
@@ -167,7 +171,7 @@ class RamanSimulation(si.Simulation):
                     if self.time_index == 0 or self.time_index + 1 == self.time_steps or self.time_index % animator.decimation == 0:
                         animator.send_frame_to_ffmpeg()
 
-                if show_progress_bar:
+                if progress_bar:
                     pbar.update(1)
                 if self.time_index + 1 == self.time_steps:
                     break
@@ -187,7 +191,7 @@ class RamanSimulation(si.Simulation):
                     if (now - self.latest_checkpoint_time) > self.spec.checkpoint_every:
                         self.do_checkpoint(now, checkpoint_callback)
 
-            if show_progress_bar:
+            if progress_bar:
                 pbar.close()
         finally:
             for animator in self.spec.animators:
@@ -225,7 +229,7 @@ class StimulatedRamanScatteringSimulation(RamanSimulation):
         logger.debug(f'Building four-mode volume ratio array for {self}...')
         mode_volume_ratios = np.zeros((num_modes, num_modes), dtype = np.complex128)
         mode_pairs = itertools.combinations_with_replacement(enumerate(self.spec.modes), r = 2)
-        for (q, mode_q), (s, mode_s) in mode_pairs:
+        for (q, mode_q), (s, mode_s) in tqdm(list(mode_pairs)):
             volume = self.spec.mode_volume_integrator.mode_volume_integral((mode_q, mode_q, mode_s, mode_s))
 
             mode_volume_ratios[q, s] = volume / self.mode_volumes[q]

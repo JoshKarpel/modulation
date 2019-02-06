@@ -3,7 +3,7 @@ import time
 import simulacra.units as u
 
 from modulation import raman, refraction
-from modulation.resonator import microsphere, mock
+from modulation.resonators import microspheres, mock
 
 mode = mock.MockMode(
     label = rf'q=0',
