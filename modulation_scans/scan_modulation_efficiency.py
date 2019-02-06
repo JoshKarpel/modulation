@@ -97,33 +97,17 @@ def main():
             expandable = True,
         ),
         si.cluster.Parameter(
-            'mixing_intrinsic_q',
+            'mixing_and_modulated_intrinsic_q',
             si.cluster.ask_for_eval(
-                'Mixing intrinsic quality factor?',
+                'Mixing & Modulated intrinsic quality factor?',
                 default = f'[{DEFAULT_Q:.4g}]',
             ),
             expandable = True,
         ),
         si.cluster.Parameter(
-            'mixing_coupling_q',
+            'mixing_and_modulated_coupling_q',
             si.cluster.ask_for_eval(
-                'Mixing coupling quality factor?',
-                default = f'[{DEFAULT_Q:.4g}]',
-            ),
-            expandable = True,
-        ),
-        si.cluster.Parameter(
-            'modulated_intrinsic_q',
-            si.cluster.ask_for_eval(
-                'Modulated intrinsic quality factor?',
-                default = f'[{DEFAULT_Q:.4g}]',
-            ),
-            expandable = True,
-        ),
-        si.cluster.Parameter(
-            'modulated_coupling_q',
-            si.cluster.ask_for_eval(
-                'Modulated coupling quality factor?',
+                'Mixing & Modulated coupling quality factor?',
                 default = f'[{DEFAULT_Q:.4g}]',
             ),
             expandable = True,
@@ -172,10 +156,8 @@ def main():
     for params in si.cluster.expand_parameters(parameters):
         pump_and_stokes_intrinsic_q = params['pump_and_stokes_intrinsic_q']
         pump_and_stokes_coupling_q = params['pump_and_stokes_coupling_q']
-        mixing_intrinsic_q = params['mixing_intrinsic_q']
-        mixing_coupling_q = params['mixing_coupling_q']
-        modulated_intrinsic_q = params['modulated_intrinsic_q']
-        modulated_coupling_q = params['modulated_coupling_q']
+        mixing_and_modulated_intrinsic_q = params['mixing_and_modulated_intrinsic_q']
+        mixing_and_modulated_coupling_q = params['mixing_and_modulated_coupling_q']
         pump_power = params['pump_power']
         mixing_power = params['mixing_power']
 
@@ -186,17 +168,17 @@ def main():
                 pump_mode: modulation.raman.ConstantPump(power = pump_power),
                 mixing_mode: modulation.raman.ConstantPump(power = mixing_power),
             },
-            mode_coupling_quality_factors = {
-                pump_mode: pump_and_stokes_coupling_q,
-                stokes_mode: pump_and_stokes_coupling_q,
-                mixing_mode: mixing_coupling_q,
-                modulated_mode: modulated_coupling_q,
-            },
             mode_intrinsic_quality_factors = {
                 pump_mode: pump_and_stokes_intrinsic_q,
                 stokes_mode: pump_and_stokes_intrinsic_q,
-                mixing_mode: mixing_intrinsic_q,
-                modulated_mode: modulated_intrinsic_q,
+                mixing_mode: mixing_and_modulated_intrinsic_q,
+                modulated_mode: mixing_and_modulated_intrinsic_q,
+            },
+            mode_coupling_quality_factors = {
+                pump_mode: pump_and_stokes_coupling_q,
+                stokes_mode: pump_and_stokes_coupling_q,
+                mixing_mode: mixing_and_modulated_coupling_q,
+                modulated_mode: mixing_and_modulated_coupling_q,
             },
             **base_spec_kwargs,
             _pump_mode = pump_mode,
