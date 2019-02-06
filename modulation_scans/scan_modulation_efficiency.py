@@ -110,20 +110,11 @@ def main():
         cast_to = float,
     )
 
-    scan_mode, fixed_mode = si.cluster.ask_for_choices(
-        'Which launched power is scanned?',
-        choices = {
-            'Pump': (pump_mode, mixing_mode),
-            'Mixing': (mixing_mode, pump_mode),
-        },
-        default = 'Pump',
-    )
-
     parameters.append(
         si.cluster.Parameter(
-            '_scan_power',
+            '_pump_power',
             u.uW * si.cluster.ask_for_eval(
-                f'Scan mode ({scan_mode.label}) launched power (in uW)?',
+                f'Pump mode ({pump_mode.label}) launched power (in uW)?',
                 default = 'np.linspace(0, 5000, 100)',
             ),
             expandable = True,
@@ -131,9 +122,9 @@ def main():
     )
     parameters.append(
         si.cluster.Parameter(
-            '_fixed_power',
+            '_mixing_power',
             u.uW * si.cluster.ask_for_eval(
-                f'Fixed mode ({fixed_mode.label}) launched power (in uW)?',
+                f'Mixing mode ({mixing_mode.label}) launched power (in uW)?',
                 default = '[1]',
                 cast_to = float,
             ),
@@ -160,15 +151,15 @@ def main():
 
     specs = []
     for params in si.cluster.expand_parameters(parameters):
-        scan_power = params['_scan_power']
-        fixed_power = params['_fixed_power']
+        pump_power = params['_scan_power']
+        mixing_power = params['_fixed_power']
 
         spec = spec_type(
-            f'pump_power={scan_power / u.uW:.6f}uW',
+            f'pump_power={pump_power / u.uW:.6f}uW',
             modes = [pump_mode, stokes_mode, mixing_mode, modulated_mode],
             mode_pumps = {
-                scan_mode: modulation.raman.ConstantPump(power = scan_power),
-                fixed_mode: modulation.raman.ConstantPump(power = fixed_power),
+                pump_mode: modulation.raman.ConstantPump(power = pump_power),
+                mixing_mode: modulation.raman.ConstantPump(power = mixing_power),
             },
             mode_intrinsic_quality_factors = {
                 pump_mode: pump_and_stokes_intrinsic_q,
@@ -187,9 +178,8 @@ def main():
             _stokes_mode = stokes_mode,
             _mixing_mode = mixing_mode,
             _modulated_mode = modulated_mode,
-            _scan_mode = scan_mode,
-            _fixed_mode = fixed_mode,
-            _scan_power = scan_power,
+            _pump_power = pump_power,
+            _mixing_power = mixing_power,
         )
 
         specs.append(spec)
