@@ -25,8 +25,8 @@ def main():
         cast_to = float,
     )
 
-    time_final = shared.ask_time_final(default = 100)
-    time_step = shared.ask_time_step(default = .001)
+    time_final = shared.ask_time_final(default = 10)
+    time_step = shared.ask_time_step(default = .01)
 
     mode_volume = si.cluster.ask_for_input(
         'Mode volume inside resonator?',
@@ -79,40 +79,60 @@ def main():
     )
 
     DEFAULT_Q = 1e8
-    pump_and_stokes_intrinsic_q = si.cluster.ask_for_input(
-        'Pump & Stokes modes intrinsic quality factor?',
-        default = DEFAULT_Q,
-        cast_to = float,
-    )
-    pump_and_stokes_coupling_q = si.cluster.ask_for_input(
-        'Pump & Stokes modes coupling quality factor?',
-        default = DEFAULT_Q,
-        cast_to = float,
-    )
-    mixing_intrinsic_q = si.cluster.ask_for_input(
-        'Mixing modes intrinsic quality factor?',
-        default = DEFAULT_Q,
-        cast_to = float,
-    )
-    mixing_coupling_q = si.cluster.ask_for_input(
-        'Mixing mode coupling quality factor?',
-        default = DEFAULT_Q,
-        cast_to = float,
-    )
-    modulated_intrinsic_q = si.cluster.ask_for_input(
-        'Modulated mode intrinsic quality factor?',
-        default = DEFAULT_Q,
-        cast_to = float,
-    )
-    modulated_coupling_q = si.cluster.ask_for_input(
-        'Modulated mode coupling quality factor?',
-        default = DEFAULT_Q,
-        cast_to = float,
-    )
+    parameters.extend([
+        si.cluster.Parameter(
+            'pump_and_stokes_intrinsic_q',
+            si.cluster.ask_for_eval(
+                'Pump & Stokes intrinsic quality factor?',
+                default = f'[{DEFAULT_Q:.4g}]',
+            ),
+            expandable = True,
+        ),
+        si.cluster.Parameter(
+            'pump_and_stokes_coupling_q',
+            si.cluster.ask_for_eval(
+                'Pump & Stokes coupling quality factor?',
+                default = f'[{DEFAULT_Q:.4g}]',
+            ),
+            expandable = True,
+        ),
+        si.cluster.Parameter(
+            'mixing_intrinsic_q',
+            si.cluster.ask_for_eval(
+                'Mixing intrinsic quality factor?',
+                default = f'[{DEFAULT_Q:.4g}]',
+            ),
+            expandable = True,
+        ),
+        si.cluster.Parameter(
+            'mixing_coupling_q',
+            si.cluster.ask_for_eval(
+                'Mixing coupling quality factor?',
+                default = f'[{DEFAULT_Q:.4g}]',
+            ),
+            expandable = True,
+        ),
+        si.cluster.Parameter(
+            'modulated_intrinsic_q',
+            si.cluster.ask_for_eval(
+                'Modulated intrinsic quality factor?',
+                default = f'[{DEFAULT_Q:.4g}]',
+            ),
+            expandable = True,
+        ),
+        si.cluster.Parameter(
+            'modulated_coupling_q',
+            si.cluster.ask_for_eval(
+                'Modulated coupling quality factor?',
+                default = f'[{DEFAULT_Q:.4g}]',
+            ),
+            expandable = True,
+        ),
+    ])
 
     parameters.append(
         si.cluster.Parameter(
-            '_pump_power',
+            'pump_power',
             u.uW * np.array(si.cluster.ask_for_eval(
                 f'Pump mode ({pump_mode}) launched power (in uW)?',
                 default = 'np.linspace(0, 5000, 100)',
@@ -122,7 +142,7 @@ def main():
     )
     parameters.append(
         si.cluster.Parameter(
-            '_mixing_power',
+            'mixing_power',
             u.uW * np.array(si.cluster.ask_for_eval(
                 f'Mixing mode ({mixing_mode}) launched power (in uW)?',
                 default = '[1]',
@@ -150,8 +170,14 @@ def main():
 
     specs = []
     for params in si.cluster.expand_parameters(parameters):
-        pump_power = params['_pump_power']
-        mixing_power = params['_mixing_power']
+        pump_and_stokes_intrinsic_q = params['pump_and_stokes_intrinsic_q']
+        pump_and_stokes_coupling_q = params['pump_and_stokes_coupling_q']
+        mixing_intrinsic_q = params['mixing_intrinsic_q']
+        mixing_coupling_q = params['mixing_coupling_q']
+        modulated_intrinsic_q = params['modulated_intrinsic_q']
+        modulated_coupling_q = params['modulated_coupling_q']
+        pump_power = params['pump_power']
+        mixing_power = params['mixing_power']
 
         spec = spec_type(
             f'pump_power={pump_power / u.uW:.6f}uW',
@@ -160,17 +186,17 @@ def main():
                 pump_mode: modulation.raman.ConstantPump(power = pump_power),
                 mixing_mode: modulation.raman.ConstantPump(power = mixing_power),
             },
-            mode_intrinsic_quality_factors = {
-                pump_mode: pump_and_stokes_intrinsic_q,
-                stokes_mode: pump_and_stokes_intrinsic_q,
-                mixing_mode: mixing_intrinsic_q,
-                modulated_mode: modulated_intrinsic_q,
-            },
             mode_coupling_quality_factors = {
                 pump_mode: pump_and_stokes_coupling_q,
                 stokes_mode: pump_and_stokes_coupling_q,
                 mixing_mode: mixing_coupling_q,
                 modulated_mode: modulated_coupling_q,
+            },
+            mode_intrinsic_quality_factors = {
+                pump_mode: pump_and_stokes_intrinsic_q,
+                stokes_mode: pump_and_stokes_intrinsic_q,
+                mixing_mode: mixing_intrinsic_q,
+                modulated_mode: modulated_intrinsic_q,
             },
             **base_spec_kwargs,
             _pump_mode = pump_mode,
