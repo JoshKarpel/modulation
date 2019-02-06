@@ -1,7 +1,4 @@
-"""
-Investigate the effect of detuning the Stokes modes from being exactly pump - modulation.
-Uses just two mock modes, a pump and a Stokes.
-"""
+import sys
 
 import numpy as np
 
@@ -14,9 +11,12 @@ from . import shared
 
 
 def main():
-    ### QUESTIONS
+    # QUESTIONS
 
     tag = shared.ask_for_tag()
+
+    parameters = []
+
     spec_type = modulation.raman.FourWaveMixingSpecification
     material = shared.ask_material()
     index_of_refraction = si.cluster.ask_for_input(
@@ -119,21 +119,33 @@ def main():
         default = 'Pump',
     )
 
-    scan_powers = u.uW * si.cluster.ask_for_eval(
-        f'Scan mode ({scan_mode.label}) launched powers (in uW)?',
-        default = 'np.linspace(0, 5000, 200)',
+    parameters.append(
+        si.cluster.Parameter(
+            '_scan_power',
+            u.uW * si.cluster.ask_for_eval(
+                f'Scan mode ({scan_mode.label}) launched power (in uW)?',
+                default = 'np.linspace(0, 5000, 100)',
+            ),
+            expandable = True,
+        )
     )
-    fixed_power = u.uW * si.cluster.ask_for_input(
-        f'Fixed mode ({fixed_mode.label}) launched power (in uW)?',
-        default = 1,
-        cast_to = float,
+    parameters.append(
+        si.cluster.Parameter(
+            '_fixed_power',
+            u.uW * si.cluster.ask_for_eval(
+                f'Fixed mode ({fixed_mode.label}) launched power (in uW)?',
+                default = '[1]',
+                cast_to = float,
+            ),
+            expandable = True,
+        )
     )
 
     store_mode_amplitudes_vs_time = si.cluster.ask_for_bool('Store mode amplitudes vs time?')
 
     lookback_time = shared.ask_lookback_time(time_step, num_modes = 4)
 
-    ### CREATE SPECS
+    # CREATE SPECS
 
     base_spec_kwargs = dict(
         time_final = time_final,
@@ -147,7 +159,10 @@ def main():
     )
 
     specs = []
-    for scan_power in scan_powers:
+    for params in si.cluster.expand_parameters(parameters):
+        scan_power = params['_scan_power']
+        fixed_power = params['_fixed_power']
+
         spec = spec_type(
             f'pump_power={scan_power / u.uW:.6f}uW',
             modes = [pump_mode, stokes_mode, mixing_mode, modulated_mode],
@@ -179,9 +194,11 @@ def main():
 
         specs.append(spec)
 
-    ### CREATE MAP
+    if not si.cluster.ask_for_bool(f'Launch a map with {len(specs)} simulations?'):
+        sys.exit(1)
 
-    map = shared.create_map(tag, specs)
+    # CREATE MAP
+    shared.create_map(tag, specs)
 
 
 if __name__ == '__main__':
