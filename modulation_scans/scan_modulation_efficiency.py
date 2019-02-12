@@ -153,7 +153,7 @@ def main():
     )
 
     specs = []
-    for params in si.cluster.expand_parameters(parameters):
+    for c, params in enumerate(si.cluster.expand_parameters(parameters)):
         pump_and_stokes_intrinsic_q = params['pump_and_stokes_intrinsic_q']
         pump_and_stokes_coupling_q = params['pump_and_stokes_coupling_q']
         mixing_and_modulated_intrinsic_q = params['mixing_and_modulated_intrinsic_q']
@@ -162,7 +162,7 @@ def main():
         mixing_power = params['mixing_power']
 
         spec = spec_type(
-            f'pump_power={pump_power / u.uW:.6f}uW',
+            str(c),
             modes = [pump_mode, stokes_mode, mixing_mode, modulated_mode],
             mode_pumps = {
                 pump_mode: modulation.raman.ConstantPump(power = pump_power),
@@ -187,6 +187,10 @@ def main():
             _modulated_mode = modulated_mode,
             _pump_power = pump_power,
             _mixing_power = mixing_power,
+            _pump_and_stokes_intrinsic_q = pump_and_stokes_intrinsic_q,
+            _pump_and_stokes_coupling_q = pump_and_stokes_coupling_q,
+            _mixing_and_modulated_intrinsic_q = mixing_and_modulated_intrinsic_q,
+            _mixing_and_modulated_coupling_q = mixing_and_modulated_coupling_q,
         )
 
         specs.append(spec)

@@ -1,1 +1,6 @@
-from . import raman, refraction, resonators
+from . import (
+    raman,
+    refraction,
+    analysis,
+    resonators,
+)
