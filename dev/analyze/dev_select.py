@@ -102,11 +102,12 @@ def more_test():
         )
 
 
-COLORS = ['#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e', '#e6ab02']
+COLORS = ['#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e', '#e6ab02', ]
+STYLES = ['-', '--', ':', ]
 
 
 def all_in_one():
-    ps = analysis.ParameterScan.from_file(Path(__file__).parent / 'scan_pump_power_by_mmm_q_and_mixing_power.sims')
+    ps = analysis.ParameterScan.from_file(Path(__file__).parent / 'scan_pump_power_by_mmm_q_and_mixing_power_with_ref.sims')
 
     pump_powers = sorted(ps.parameter_set('_pump_power'))
     mixing_powers = sorted(ps.parameter_set('_mixing_power'))
@@ -120,7 +121,7 @@ def all_in_one():
     modes = (pump_mode, stokes_mode, mixing_mode, modulated_mode)
     mti = ps.sims[0].mode_to_index
 
-    with si.vis.FigureManager('test', **PLOT_KWARGS) as fm:
+    with si.vis.FigureManager('modulation_efficiency_matrix', **PLOT_KWARGS) as fm:
         fig = fm.fig
         axes = [[None for _ in range(3)] for _ in range(3)]
         for row, col in itertools.product(range(3), repeat = 2):
@@ -131,15 +132,17 @@ def all_in_one():
             )
             axes[row][col] = ax
 
-            ax.set_xlim(0, 5)
-            ax.set_ylim(1e-4, 1)
+            ax.set_xlim(1e-4, 1e2)
+            ax.set_xscale('log')
+
+            ax.set_ylim(1e-10, 1)
             ax.set_yscale('log')
 
-            ax.set_yticks([1e-4, 1e-3, 1e-2, 1e-1, 1e0])
-            ax.set_yticklabels(['$10^{-4}$', '$10^{-3}$', '$10^{-2}$', '$10^{-1}$', '$1$'])
+            ax.set_yticks([1e-8, 1e-6, 1e-4, 1e-2, 1])
+            ax.set_yticklabels(['$10^{-8}$', '$10^{-6}$', '$10^{-4}$', '$10^{-2}$', '$1$'])
 
-            ax.set_xticks([0, 2.5, 5])
-            ax.set_xticklabels(["0", "2.5", "5"])
+            ax.set_xticks([1e-2, 1, 1e2])
+            ax.set_xticklabels(["$10^{-2}$", "$1$", "$10^2$"])
 
             ax.grid(True)
             ax.tick_params(
@@ -155,49 +158,58 @@ def all_in_one():
             )
 
         fig.subplots_adjust(
-            wspace = .1,
-            hspace = .15,
+            wspace = .02,
+            hspace = .035,
         )
 
-        bigax = fig.add_subplot(111, frameon = False)
-        bigax.tick_params(labelcolor = 'none', top = False, bottom = False, left = False, right = False)
-        bigax.set_xlabel(
-            r'Pump Power ($\mathrm{{\mu W}}$)',
-            labelpad = 17,
-            fontsize = 12,
-        )
-        bigax.set_ylabel(
-            r'Modulation Efficiency',
-            labelpad = 22,
-            fontsize = 12,
-        )
+        mp_to_color = dict(zip(mixing_powers[1:], COLORS))
+        mp_to_syle = dict(zip(mixing_powers[1:], STYLES))
 
-        mp_to_color = dict(zip(mixing_powers, COLORS))
-
-        for mp in mixing_powers:
-            sims_by_mixing_power = {
-                (qi, qc): ps.select(
-                    _mixing_power = mp,
+        zero_mixing_power_sims = {
+            (qi, qc): sorted(
+                ps.select(
+                    _mixing_power = mixing_powers[0],
                     _mixing_and_modulated_intrinsic_q = qi,
                     _mixing_and_modulated_coupling_q = qc,
+                ),
+                key = lambda sim: sim.spec._pump_power,
+            )
+            for qi in intrinsic_quality_factors
+            for qc in coupling_quality_factors
+        }
+        for mp in mixing_powers[1:]:
+            sims_by_mixing_power = {
+                (qi, qc): sorted(
+                    ps.select(
+                        _mixing_power = mp,
+                        _mixing_and_modulated_intrinsic_q = qi,
+                        _mixing_and_modulated_coupling_q = qc,
+                    ),
+                    key = lambda sim: sim.spec._pump_power,
                 )
                 for qi in intrinsic_quality_factors
                 for qc in coupling_quality_factors
             }
 
             for idx, ((intrinsic_q, coupling_q), sims) in enumerate(tqdm(sims_by_mixing_power.items())):
+                zero = zero_mixing_power_sims[(intrinsic_q, coupling_q)]
+
                 row, col = divmod(idx, 3)
                 ax = axes[row][col]
 
                 x = np.array([s.spec._pump_power for s in sims])
-                y = np.array([s.mode_output_powers(s.lookback.mean)[mti[modulated_mode]] / mp for s in sims])
+                y = np.array([
+                    (s.mode_output_powers(s.lookback.mean)[mti[modulated_mode]] - z.mode_output_powers(z.lookback.mean)[mti[modulated_mode]]) / mp
+                    for s, z in zip(sims, zero)
+                ])
 
                 ax.plot(
                     x / u.mW,
                     y,
                     color = mp_to_color[mp],
-                    label = rf'$P_m = {mp / u.uW:.0f} \, \mathrm{{\mu W}}$',
+                    linestyle = mp_to_syle[mp],
                     linewidth = 1.5,
+                    label = rf'$P_m = {mp / u.uW:.0f} \, \mathrm{{\mu W}}$',
                 )
 
                 if col == 0:
@@ -211,10 +223,33 @@ def all_in_one():
                         fontsize = 9,
                     )
 
-        axes[0][2].legend(
-            loc = 'upper right',
-            fontsize = 6,
-            markerscale = 0.5,
+        bigax = fig.add_subplot(111, frameon = False)
+        bigax.tick_params(labelcolor = 'none', top = False, bottom = False, left = False, right = False)
+        bigax.set_xlabel(
+            r'Pump Power ($\mathrm{{mW}}$)',
+            labelpad = 17,
+            fontsize = 12,
+        )
+        bigax.set_ylabel(
+            r'Modulation Efficiency',
+            labelpad = 22,
+            fontsize = 12,
+        )
+
+        axes[2][0].set_xticks([1e-4, 1e-2, 1, 1e2])
+        axes[2][0].set_xticklabels(["$10^{-4}$", "$10^{-2}$", "$1$", "$10^2$"])
+
+        axes[2][0].set_yticks([1e-10, 1e-8, 1e-6, 1e-4, 1e-2, 1])
+        axes[2][0].set_yticklabels(['$10^{-10}$', '$10^{-8}$', '$10^{-6}$', '$10^{-4}$', '$10^{-2}$', '$1$'])
+
+        axes[0][1].legend(
+            bbox_to_anchor = (0, 1.12, 1, .1),
+            loc = 'center',
+            ncol = 3,
+            borderaxespad = 0.,
+            fontsize = 8,
+            frameon = False,
+            handletextpad = .5,
         )
 
 

@@ -45,11 +45,11 @@ if __name__ == "__main__":
     max_radial_mode_number = 5
     material = raman.RamanMaterial.from_name("silica")
     pump_wavelength = 800 * u.nm
-    pump_power = 1 * u.mW
+    pump_power = 2.5 * u.mW
     pump_start_time = 1 * u.usec
     time_final = 10 * u.usec
-    time_step = 1 * u.nsec
-    stokes_orders = 5
+    time_step = 10 * u.psec
+    stokes_orders = 3
     antistokes_orders = 0
     intrinsic_q = 1e8
     coupling_q = 1e8
@@ -111,6 +111,15 @@ if __name__ == "__main__":
     print(sim.info())
 
     sim.plot.mode_magnitudes_vs_time(
-        y_lower_limit = 1e7 * u.V_per_m,
+        y_lower_limit = 1e5 * u.V_per_m,
+        y_upper_limit = 1e10 * u.V_per_m,
+        average_over = 10 * u.nsec,
+        **PLOT_KWARGS,
+    )
+    sim.plot.mode_energies_vs_time(
+        y_lower_limit = 1e-7 * u.pJ,
+        y_upper_limit = 1e2 * u.pJ,
+        average_over = 10 * u.nsec,
+        y_log_pad = 1,
         **PLOT_KWARGS,
     )
