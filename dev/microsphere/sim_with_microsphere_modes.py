@@ -1,3 +1,4 @@
+import itertools
 import logging
 from pathlib import Path
 
@@ -40,17 +41,36 @@ def find_modes(wavelength_bounds, microsphere, max_radial_mode_number):
     return modes
 
 
-if __name__ == "__main__":
+linestyles = [
+    '-',
+    '-.',
+    '--',
+    ':',
+]
+
+
+def mode_kwargs(sim, q, mode, pump_mode, wavelength_bounds):
+    base = {'alpha': 0.8}
+
+    if mode is pump_mode:
+        return {'color': 'black', **base}
+
+    i = 0
+    for bound in wavelength_bounds:
+        if mode.wavelength in bound:
+            return {'linestyle': linestyles[i], **base}
+        i += 1
+
+
+def run(postfix, pump_power, time_step):
     R = 50 * u.um
     max_radial_mode_number = 5
     material = raman.RamanMaterial.from_name("silica")
     pump_wavelength = 800 * u.nm
-    pump_power = 2.5 * u.mW
     pump_start_time = 1 * u.usec
     time_final = 10 * u.usec
-    time_step = 10 * u.psec
     stokes_orders = 3
-    antistokes_orders = 0
+    antistokes_orders = 0  # you won't see any amplitude on these unless you have fwm
     intrinsic_q = 1e8
     coupling_q = 1e8
 
@@ -62,9 +82,9 @@ if __name__ == "__main__":
         bandwidth_frequency = .2 * material.raman_linewidth,
     )
 
-    for b in wavelength_bounds:
-        print(b)
-    print()
+    # for b in wavelength_bounds:
+    #     print(b)
+    # print()
 
     microsphere = microspheres.Microsphere(
         radius = R,
@@ -77,26 +97,28 @@ if __name__ == "__main__":
         max_radial_mode_number = max_radial_mode_number,
     )
 
-    for m in modes:
-        print(m)
+    # for m in modes:
+    #     print(m)
 
-    print(f'found {len(modes)} modes')
+    # print(f'found {len(modes)} modes')
 
     pump_mode = microspheres.find_mode_with_closest_wavelength(modes, pump_wavelength)
-    print(f'pump mode is {pump_mode}')
+    # print(f'pump mode is {pump_mode}')
 
     spec = raman.StimulatedRamanScatteringSpecification(
-        'test',
+        f'pump={pump_power / u.mW:.3f}mW_dt={time_step / u.psec:.3f}ps__{postfix}',
         material = material,
         modes = modes,
         mode_volume_integrator = microspheres.FixedGridSimpsonMicrosphereVolumeIntegrator(
             microsphere = microsphere
         ),
         mode_initial_amplitudes = {m: 1 for m in modes},  # very important!
-        mode_pumps = {pump_mode: raman.RectangularPump(
-            start_time = pump_start_time,
-            power = pump_power,
-        )},
+        mode_pumps = {
+            pump_mode: raman.RectangularPump(
+                start_time = pump_start_time,
+                power = pump_power,
+            ),
+        },
         mode_intrinsic_quality_factors = {m: intrinsic_q for m in modes},
         mode_coupling_quality_factors = {m: coupling_q for m in modes},
         time_final = time_final,
@@ -105,21 +127,33 @@ if __name__ == "__main__":
     )
 
     sim = spec.to_sim()
-    print(sim.info())
+    # print(sim.info())
 
     sim.run(progress_bar = True)
     print(sim.info())
 
-    sim.plot.mode_magnitudes_vs_time(
-        y_lower_limit = 1e5 * u.V_per_m,
-        y_upper_limit = 1e10 * u.V_per_m,
-        average_over = 10 * u.nsec,
-        **PLOT_KWARGS,
-    )
+    # sim.plot.mode_magnitudes_vs_time(
+    #     y_lower_limit = 1e5 * u.V_per_m,
+    #     y_upper_limit = 1e10 * u.V_per_m,
+    #     average_over = 10 * u.nsec,
+    #     mode_kwargs = lambda sim, q, mode: mode_kwargs(sim, q, mode, pump_mode, wavelength_bounds),
+    #     **PLOT_KWARGS,
+    # )
     sim.plot.mode_energies_vs_time(
-        y_lower_limit = 1e-7 * u.pJ,
-        y_upper_limit = 1e2 * u.pJ,
+        y_lower_limit = 1e-5 * u.pJ,
+        y_upper_limit = 2e1 * u.pJ,
         average_over = 10 * u.nsec,
         y_log_pad = 1,
+        mode_kwargs = lambda sim, q, mode: mode_kwargs(sim, q, mode, pump_mode, wavelength_bounds),
+        font_size_legend = 8,
         **PLOT_KWARGS,
     )
+
+
+if __name__ == "__main__":
+    postfix = 'OLD_MODEL'
+    powers = np.array([1, 2, 4]) * u.mW
+    time_steps = np.array([100, 10, 5]) * u.psec
+
+    for power, time_step in itertools.product(powers, time_steps):
+        run(postfix, power, time_step)
