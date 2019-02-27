@@ -57,7 +57,7 @@ if __name__ == '__main__':
         print()
 
         pump_mode = find_pump_mode(modes, pump_omega)
-        pumps = {pump_mode: raman.pump.ConstantPump(pump_power)}
+        pumps = {pump_mode: raman.pump.ConstantMonochromaticPump(pump_power)}
         print(f'Pump: {pump_mode}')
 
         coupling_q = {}  # critical at pump

@@ -119,7 +119,7 @@ def main():
         default = 'np.linspace(-100, 100, 200)',
     ))
 
-    pump = modulation.raman.pump.ConstantPump(
+    pump = modulation.raman.pump.ConstantMonochromaticPump(
         power = u.uW * si.cluster.ask_for_input(
             'Pump power (in uW)?',
             default = 100,

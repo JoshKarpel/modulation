@@ -24,9 +24,9 @@ from .anim import (
     PolarComplexAmplitudeAxis,
 )
 from .pump import (
-    Pump,
-    ConstantPump,
-    RectangularPump,
+    MonochromaticPump,
+    ConstantMonochromaticPump,
+    RectangularMonochromaticPump,
 )
 from .evolve import (
     EvolutionAlgorithm,

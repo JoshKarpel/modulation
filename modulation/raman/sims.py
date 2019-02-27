@@ -1,4 +1,4 @@
-from typing import Iterable, Dict, Union, Optional, Generator, Tuple, Callable
+from typing import Iterable, Dict, Union, Optional, Generator, Tuple, Callable, List
 import logging
 
 from pathlib import Path
@@ -6,6 +6,7 @@ import functools
 import itertools
 import datetime
 import abc
+import sys
 
 import numpy as np
 
@@ -132,7 +133,19 @@ class RamanSimulation(si.Simulation):
 
     @functools.lru_cache(maxsize = 4)
     def calculate_pumps(self, time: float) -> np.ndarray:
-        return self.pump_prefactor * np.sqrt([pump.get_power(time) for pump in self.spec.mode_pumps], dtype = np.float64)
+        # sum_of_pumps = np.zeros_like(self.pump_prefactor, dtype = np.complex128)
+        # for pump in self.spec.pumps:
+        #     # explicitly expand the implicit cosine in the pump
+        #     # and subtract frequencies before multiplying for less float error,
+        #     # only include negative-frequency part b/c of slowly-varying phase
+        #     sum_of_pumps += .5 * np.exp(1j * (self.mode_omegas - pump.omega) * time) * np.sqrt(pump.get_power(time))
+
+        sum_of_pumps = sum(
+            .5 * np.exp(1j * (self.mode_omegas - pump.omega) * time) * np.sqrt(pump.get_power(time))
+            for pump in self.spec.pumps
+        )
+
+        return self.pump_prefactor * sum_of_pumps
 
     @abc.abstractmethod
     def _calculate_polarization_sum_factors(self) -> np.ndarray:
@@ -229,7 +242,9 @@ class StimulatedRamanScatteringSimulation(RamanSimulation):
         logger.debug(f'Building four-mode volume ratio array for {self}...')
         mode_volume_ratios = np.zeros((num_modes, num_modes), dtype = np.complex128)
         mode_pairs = itertools.combinations_with_replacement(enumerate(self.spec.modes), r = 2)
-        for (q, mode_q), (s, mode_s) in tqdm(list(mode_pairs)):
+        if is_interactive_session():
+            mode_pairs = tqdm(list(mode_pairs))
+        for (q, mode_q), (s, mode_s) in mode_pairs:
             volume = self.spec.mode_volume_integrator.mode_volume_integral((mode_q, mode_q, mode_s, mode_s))
 
             mode_volume_ratios[q, s] = volume / self.mode_volumes[q]
@@ -262,12 +277,17 @@ class RamanSidebandSimulation(StimulatedRamanScatteringSimulation):
 
         logger.debug(f'Building two-mode inverse detuning array for {self}...')
         double_inverse_detunings = np.empty((num_modes, num_modes), dtype = np.complex128)
-        for (r, mode_r), (s, mode_s) in itertools.product(enumerate(self.spec.modes), repeat = 2):
+        mode_pairs = itertools.product(enumerate(self.spec.modes), repeat = 2)
+        if is_interactive_session():
+            mode_pairs = tqdm(list(mode_pairs))
+        for (r, mode_r), (s, mode_s) in mode_pairs:
             double_inverse_detunings[r, s] = self._double_inverse_detuning(mode_s.omega, mode_r.omega)
 
         logger.debug(f'Building four-mode volume ratio array for {self}...')
         mode_volume_ratios = np.empty((num_modes, num_modes), dtype = np.complex128)
         mode_pairs = itertools.combinations_with_replacement(enumerate(self.spec.modes), r = 2)
+        if is_interactive_session():
+            mode_pairs = list(tqdm(mode_pairs))
         for (r, mode_r), (s, mode_s) in mode_pairs:
             if r == s or not (r == s + 1 or r == s - 1):
                 mode_volume_ratios[r, s] = 0
@@ -294,12 +314,17 @@ class FourWaveMixingSimulation(RamanSimulation):
 
         logger.debug(f'Building two-mode inverse detuning array for {self}...')
         double_inverse_detunings = np.zeros((num_modes, num_modes), dtype = np.complex128)
-        for (s, mode_s), (t, mode_t) in itertools.product(enumerate(self.spec.modes), repeat = 2):
+        pairs = itertools.product(enumerate(self.spec.modes), repeat = 2)
+        if is_interactive_session() or True:
+            pairs = tqdm(list(pairs))
+        for (s, mode_s), (t, mode_t) in pairs:
             double_inverse_detunings[s, t] = self._double_inverse_detuning(mode_s.omega, mode_t.omega)
 
         logger.debug(f'Building four-mode volume ratio array for {self}...')
         mode_volume_ratios = np.empty((num_modes, num_modes, num_modes, num_modes), dtype = np.float64)
         four_modes_combinations = itertools.combinations_with_replacement(enumerate(self.spec.modes), r = 4)
+        if is_interactive_session() or True:
+            four_modes_combinations = tqdm(list(four_modes_combinations))
         for (q, mode_q), (r, mode_r), (s, mode_s), (t, mode_t) in four_modes_combinations:
             volume = self.spec.mode_volume_integrator.mode_volume_integral((mode_q, mode_r, mode_s, mode_t))
 
@@ -349,7 +374,7 @@ class RamanSpecification(si.Specification):
         mode_initial_amplitudes: Optional[Dict[mode.Mode, Union[int, float, complex]]] = None,
         mode_intrinsic_quality_factors: Dict[mode.Mode, Union[int, float]],
         mode_coupling_quality_factors: Dict[mode.Mode, Union[int, float]],
-        mode_pumps: Dict[mode.Mode, pump.Pump],
+        pumps: List[pump.MonochromaticPump],
         time_initial: float = 0 * u.nsec,
         time_final: float = 100 * u.nsec,
         time_step: float = 1 * u.nsec,
@@ -376,7 +401,7 @@ class RamanSpecification(si.Specification):
         self.mode_intrinsic_quality_factors = np.array([mode_intrinsic_quality_factors[mode] for mode in self.modes], dtype = np.float64)
         self.mode_coupling_quality_factors = np.array([mode_coupling_quality_factors[mode] for mode in self.modes], dtype = np.float64)
         self.mode_total_quality_factors = (self.mode_intrinsic_quality_factors * self.mode_coupling_quality_factors) / (self.mode_intrinsic_quality_factors + self.mode_coupling_quality_factors)
-        self.mode_pumps = [mode_pumps.get(mode, pump.ConstantPump(power = 0)) for mode in self.modes]
+        self.pumps = pumps
 
         self.time_initial = time_initial
         self.time_final = time_final
@@ -408,6 +433,11 @@ class RamanSpecification(si.Specification):
         info = super().info()
 
         info.add_info(self.material.info())
+
+        info_pumps = si.Info(header = 'Pumps')
+        for pump in self.pumps:
+            info_pumps.add_info(pump.info())
+        info.add_info(info_pumps)
 
         info_modes = si.Info(header = 'Modes')
         if len(self.modes) > 0:
@@ -452,7 +482,6 @@ class RamanSpecification(si.Specification):
             self.mode_intrinsic_quality_factors,
             self.mode_coupling_quality_factors,
             self.mode_total_quality_factors,
-            self.mode_pumps,
         ):
             mode_info = mode.info()
             mode_info.add_field('Intrinsic Quality Factor', f'{q_intrinsic:.4g}')
@@ -474,3 +503,11 @@ class RamanSidebandSpecification(StimulatedRamanScatteringSpecification):
 
 class FourWaveMixingSpecification(RamanSpecification):
     simulation_type = FourWaveMixingSimulation
+
+
+def is_interactive_session():
+    import __main__ as main
+    return any((
+        bool(getattr(sys, 'ps1', sys.flags.interactive)),  # console sessions
+        not hasattr(main, '__file__'),  # jupyter-like notebooks
+    ))

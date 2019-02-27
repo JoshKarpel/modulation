@@ -113,17 +113,19 @@ def run(postfix, pump_power, time_step):
             microsphere = microsphere
         ),
         mode_initial_amplitudes = {m: 1 for m in modes},  # very important!
-        mode_pumps = {
-            pump_mode: raman.RectangularPump(
+        pumps = [
+            raman.RectangularMonochromaticPump(
                 start_time = pump_start_time,
+                frequency = pump_mode.frequency,
                 power = pump_power,
             ),
-        },
+        ],
         mode_intrinsic_quality_factors = {m: intrinsic_q for m in modes},
         mode_coupling_quality_factors = {m: coupling_q for m in modes},
         time_final = time_final,
         time_step = time_step,
         store_mode_amplitudes_vs_time = True,
+        _pump_mode = pump_mode,
     )
 
     sim = spec.to_sim()
@@ -151,9 +153,9 @@ def run(postfix, pump_power, time_step):
 
 
 if __name__ == "__main__":
-    postfix = 'OLD_MODEL'
+    postfix = 'OFF_RESONANT'
     powers = np.array([1, 2, 4]) * u.mW
-    time_steps = np.array([100, 10, 5]) * u.psec
+    time_steps = np.array([100, 10, 1]) * u.psec
 
     for power, time_step in itertools.product(powers, time_steps):
         run(postfix, power, time_step)

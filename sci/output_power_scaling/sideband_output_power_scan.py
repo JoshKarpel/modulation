@@ -247,7 +247,7 @@ if __name__ == '__main__':
 
         specs = []
         for pump_power in pump_powers:
-            pumps = {pump_mode: raman.pump.ConstantPump(pump_power)}
+            pumps = {pump_mode: raman.pump.ConstantMonochromaticPump(pump_power)}
             spec = raman.RamanSidebandSpecification(
                 name = f'sideband_output_power__power={pump_power / u.uW:.6f}uW',
                 mode_pumps = pumps,

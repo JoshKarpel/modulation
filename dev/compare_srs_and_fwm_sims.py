@@ -65,7 +65,7 @@ if __name__ == '__main__':
 
         pump_mode = find_mode(modes, pump_omega)
         stokes_modes = modes[1]
-        pumps = {pump_mode: raman.pump.ConstantPump(pump_power)}
+        pumps = {pump_mode: raman.pump.ConstantMonochromaticPump(pump_power)}
 
         spec_kwargs = dict(
             material = material,

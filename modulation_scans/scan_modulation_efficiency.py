@@ -165,8 +165,8 @@ def main():
             str(c),
             modes = [pump_mode, stokes_mode, mixing_mode, modulated_mode],
             mode_pumps = {
-                pump_mode: modulation.raman.ConstantPump(power = pump_power),
-                mixing_mode: modulation.raman.ConstantPump(power = mixing_power),
+                pump_mode: modulation.raman.ConstantMonochromaticPump(power = pump_power),
+                mixing_mode: modulation.raman.ConstantMonochromaticPump(power = mixing_power),
             },
             mode_intrinsic_quality_factors = {
                 pump_mode: pump_and_stokes_intrinsic_q,

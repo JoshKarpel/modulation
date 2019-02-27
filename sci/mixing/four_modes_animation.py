@@ -85,8 +85,8 @@ if __name__ == '__main__':
         pump_mode = find_mode(modes, pump_omega)
         mixing_mode = find_mode(modes, mixing_omega)
         pumps = {
-            pump_mode: raman.pump.ConstantPump(pump_power),
-            mixing_mode: raman.pump.RectangularPump(
+            pump_mode: raman.pump.ConstantMonochromaticPump(pump_power),
+            mixing_mode: raman.pump.RectangularMonochromaticPump(
                 power = mixing_power,
                 start_time = 200 * u.nsec,
             ),

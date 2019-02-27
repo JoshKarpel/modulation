@@ -18,7 +18,7 @@ spec = raman.StimulatedRamanScatteringSpecification(
     mode_initial_amplitudes = {mode: 0},
     mode_coupling_quality_factors = {mode: 1e8},
     mode_intrinsic_quality_factors = {mode: 1e8},
-    mode_pumps = {mode: raman.pump.ConstantPump(100 * u.uW)},
+    mode_pumps = {mode: raman.pump.ConstantMonochromaticPump(100 * u.uW)},
     mode_volume_integrator = mock.MockVolumeIntegrator(volume_integral_result = 1e-25),
     material = raman.RamanMaterial.from_database('silica'),
     store_mode_amplitudes_vs_time = True,

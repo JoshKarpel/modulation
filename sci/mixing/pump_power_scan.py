@@ -224,8 +224,8 @@ if __name__ == '__main__':
         specs = []
         for pump_power in pump_powers:
             pumps = {
-                pump_mode: raman.pump.ConstantPump(pump_power),
-                mixing_mode: raman.pump.RectangularPump(
+                pump_mode: raman.pump.ConstantMonochromaticPump(pump_power),
+                mixing_mode: raman.pump.RectangularMonochromaticPump(
                     power = mixing_power,
                     start_time = 200 * u.nsec,
                 ),
