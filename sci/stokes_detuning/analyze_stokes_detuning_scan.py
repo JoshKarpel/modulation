@@ -11,18 +11,14 @@ import gzip
 import pickle
 
 THIS_FILE = Path(__file__)
-OUT_DIR = THIS_FILE.parent / 'out' / THIS_FILE.stem
-SIM_LIB = OUT_DIR / 'SIMLIB'
+OUT_DIR = THIS_FILE.parent / "out" / THIS_FILE.stem
+SIM_LIB = OUT_DIR / "SIMLIB"
 
-PLOT_KWARGS = dict(
-    target_dir = OUT_DIR,
-    img_format = 'png',
-    fig_dpi_scale = 6,
-)
+PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 
 
 def load_sims(path):
-    with gzip.open(path, mode = 'rb') as f:
+    with gzip.open(path, mode="rb") as f:
         return pickle.load(f)
 
 
@@ -41,29 +37,26 @@ def make_plot(name, sims):
         detunings,
         pump_energies,
         stokes_energies,
-        line_labels = [
-            'Pump',
-            'Stokes',
-        ],
-        x_label = 'Stokes Mode Detuning',
-        y_label = 'Steady-State Mode Energy',
-        x_unit = 'GHz',
-        y_unit = 'pJ',
-        y_lower_limit = 0,
-        y_pad = 0.05,
+        line_labels=["Pump", "Stokes"],
+        x_label="Stokes Mode Detuning",
+        y_label="Steady-State Mode Energy",
+        x_unit="GHz",
+        y_unit="pJ",
+        y_lower_limit=0,
+        y_pad=0.05,
         **PLOT_KWARGS,
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     scans = [
-        'stokes_detuning__800nm_pump__fwm_.01ns_2.sims',
-        'stokes_detuning__800nm_pump__fixed_quality.sims',
-        'stokes_detuning__800nm_pump__fixed_timescale.sims',
-        'stokes_detuning__1064nm_pump__fixed_quality.sims',
-        'stokes_detuning__1064nm_pump__fixed_timescale.sims',
+        "stokes_detuning__800nm_pump__fwm_.01ns_2.sims",
+        "stokes_detuning__800nm_pump__fixed_quality.sims",
+        "stokes_detuning__800nm_pump__fixed_timescale.sims",
+        "stokes_detuning__1064nm_pump__fixed_quality.sims",
+        "stokes_detuning__1064nm_pump__fixed_timescale.sims",
     ]
 
     for scan in scans:
-        sims = load_sims(Path(__file__).parent / 'data' / scan)
+        sims = load_sims(Path(__file__).parent / "data" / scan)
         make_plot(scan, sims)

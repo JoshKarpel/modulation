@@ -12,22 +12,16 @@ from modulation import raman
 from modulation.resonators import mock
 
 THIS_FILE = Path(__file__)
-OUT_DIR = THIS_FILE.parent / 'out' / THIS_FILE.stem
-SIM_LIB = OUT_DIR / 'SIMLIB'
+OUT_DIR = THIS_FILE.parent / "out" / THIS_FILE.stem
+SIM_LIB = OUT_DIR / "SIMLIB"
 
-LOGMAN = si.utils.LogManager('simulacra', 'modulation', stdout_level = logging.INFO)
+LOGMAN = si.utils.LogManager("simulacra", "modulation", stdout_level=logging.INFO)
 
-PLOT_KWARGS = dict(
-    target_dir = OUT_DIR,
-    img_format = 'png',
-    fig_dpi_scale = 6,
-)
+PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 
-ANIM_KWARGS = dict(
-    target_dir = OUT_DIR,
-)
+ANIM_KWARGS = dict(target_dir=OUT_DIR)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     with LOGMAN as logger:
         q = np.geomspace(1e2, 1e10, 10000)
         q_i = 1e6
@@ -35,10 +29,4 @@ if __name__ == '__main__':
         r = q / q_i
         t = ((1 - r) / (1 + r)) ** 2
 
-        si.vis.xy_plot(
-            'transmission',
-            r,
-            t,
-            x_log_axis = True,
-            **PLOT_KWARGS,
-        )
+        si.vis.xy_plot("transmission", r, t, x_log_axis=True, **PLOT_KWARGS)

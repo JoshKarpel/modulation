@@ -14,86 +14,74 @@ import modulation
 from halo import Halo
 from spinners import Spinners
 
-CLI_CONTEXT_SETTINGS = dict(help_option_names = ['-h', '--help'])
+CLI_CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
-SPINNERS = list(name for name in Spinners.__members__ if 'dots' in name)
+SPINNERS = list(name for name in Spinners.__members__ if "dots" in name)
 
 
 def make_spinner(*args, **kwargs):
-    return Halo(
-        *args,
-        spinner = random.choice(SPINNERS),
-        stream = sys.stderr,
-        **kwargs,
-    )
+    return Halo(*args, spinner=random.choice(SPINNERS), stream=sys.stderr, **kwargs)
 
 
 # SHARED QUESTIONS
 
+
 def ask_for_tag():
-    return si.cluster.ask_for_input('Map Tag?', default = None)
+    return si.cluster.ask_for_input("Map Tag?", default=None)
 
 
 def ask_spec_type():
     return si.cluster.ask_for_choices(
-        'SRS or FWM?',
-        choices = {
-            'SRS': modulation.raman.StimulatedRamanScatteringSpecification,
-            'FWM': modulation.raman.FourWaveMixingSpecification,
+        "SRS or FWM?",
+        choices={
+            "SRS": modulation.raman.StimulatedRamanScatteringSpecification,
+            "FWM": modulation.raman.FourWaveMixingSpecification,
         },
     )
 
 
 def ask_material():
     choices = {k: k for k in modulation.raman.material.MATERIAL_DATA.keys()}
-    choices['CUSTOM'] = 'CUSTOM'
+    choices["CUSTOM"] = "CUSTOM"
     choice = si.cluster.ask_for_choices(
-        'What Raman material to use?',
-        choices = choices,
-        default = 'silica',
+        "What Raman material to use?", choices=choices, default="silica"
     )
 
-    if choice == 'CUSTOM':
+    if choice == "CUSTOM":
         return modulation.raman.RamanMaterial(
-            modulation_omega = si.cluster.ask_for_eval('Modulation Omega?'),
-            coupling_prefactor = si.cluster.ask_for_eval('Coupling Prefactor?'),
-            raman_linewidth = si.cluster.ask_for_eval('Raman Linewidth?'),
-            number_density = si.cluster.ask_for_eval('Number Density?'),
+            modulation_omega=si.cluster.ask_for_eval("Modulation Omega?"),
+            coupling_prefactor=si.cluster.ask_for_eval("Coupling Prefactor?"),
+            raman_linewidth=si.cluster.ask_for_eval("Raman Linewidth?"),
+            number_density=si.cluster.ask_for_eval("Number Density?"),
         )
 
     return modulation.raman.RamanMaterial.from_name(choice)
 
 
-def ask_time_final(default = 1):
+def ask_time_final(default=1):
     return u.usec * si.cluster.ask_for_input(
-        'Final time (in us)?',
-        default = default,
-        cast_to = float,
+        "Final time (in us)?", default=default, cast_to=float
     )
 
 
-def ask_time_step(default = 1):
+def ask_time_step(default=1):
     return u.nsec * si.cluster.ask_for_input(
-        'Time step (in ns)?',
-        default = default,
-        cast_to = float,
+        "Time step (in ns)?", default=default, cast_to=float
     )
 
 
-def ask_lookback_time(time_step, num_modes = None):
+def ask_lookback_time(time_step, num_modes=None):
     lookback_time = u.nsec * si.cluster.ask_for_input(
-        'Lookback time (in ns)?',
-        default = 100,
-        cast_to = float,
+        "Lookback time (in ns)?", default=100, cast_to=float
     )
 
     bytes_per_mode = lookback_time / time_step * 128
 
-    msg = f'Lookback will use ~{si.utils.bytes_to_str(bytes_per_mode)} per mode'
+    msg = f"Lookback will use ~{si.utils.bytes_to_str(bytes_per_mode)} per mode"
     if num_modes is not None:
         total_bytes = bytes_per_mode * num_modes
 
-        msg += f' x {num_modes} modes = ~{si.utils.bytes_to_str(total_bytes)}'
+        msg += f" x {num_modes} modes = ~{si.utils.bytes_to_str(total_bytes)}"
 
     print(msg)
 
@@ -102,20 +90,21 @@ def ask_lookback_time(time_step, num_modes = None):
 
 # MAP CREATION
 
+
 @htmap.mapped
 def _run(spec):
-    sim_path = Path.cwd() / f'{spec.file_name}.sim'
+    sim_path = Path.cwd() / f"{spec.file_name}.sim"
 
     try:
         sim = si.Simulation.load(str(sim_path))
-        print(f'Recovered checkpoint from {sim_path}')
+        print(f"Recovered checkpoint from {sim_path}")
     except (FileNotFoundError, EOFError):
         sim = spec.to_sim()
-        print('No checkpoint found')
+        print("No checkpoint found")
 
     print(sim.info())
 
-    sim.run(checkpoint_callback = htmap.checkpoint)
+    sim.run(checkpoint_callback=htmap.checkpoint)
 
     print(sim.info())
 
@@ -123,18 +112,24 @@ def _run(spec):
 
 
 def _set_htmap_settings():
-    htmap.settings['DOCKER.IMAGE'] = f'maventree/modulation:{si.cluster.ask_for_input("Docker image version?")}'
+    htmap.settings[
+        "DOCKER.IMAGE"
+    ] = f'maventree/modulation:{si.cluster.ask_for_input("Docker image version?")}'
 
 
 def _ask_about_map_options() -> (dict, dict):
     opts = {
-        'request_memory': si.cluster.ask_for_input('Memory?', default = '250MB'),
-        'request_disk': si.cluster.ask_for_input("Disk?", default = '500MB'),
+        "request_memory": si.cluster.ask_for_input("Memory?", default="250MB"),
+        "request_disk": si.cluster.ask_for_input("Disk?", default="500MB"),
     }
     custom_opts = {
-        'wantflocking': str(si.cluster.ask_for_bool('Want flocking?', default = True)).lower(),
-        'wantglidein': str(si.cluster.ask_for_bool('Want gliding?', default = True)).lower(),
-        'is_resumable': "true",
+        "wantflocking": str(
+            si.cluster.ask_for_bool("Want flocking?", default=True)
+        ).lower(),
+        "wantglidein": str(
+            si.cluster.ask_for_bool("Want gliding?", default=True)
+        ).lower(),
+        "is_resumable": "true",
     }
 
     return opts, custom_opts
@@ -145,14 +140,9 @@ def create_map(tag: str, specs) -> htmap.Map:
     opts, custom = _ask_about_map_options()
 
     map = _run.map(
-        specs,
-        map_options = htmap.MapOptions(
-            **opts,
-            custom_options = custom,
-        ),
-        tag = tag,
+        specs, map_options=htmap.MapOptions(**opts, custom_options=custom), tag=tag
     )
 
-    print(f'Created map {map.tag}')
+    print(f"Created map {map.tag}")
 
     return map

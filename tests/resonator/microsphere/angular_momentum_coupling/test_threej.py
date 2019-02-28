@@ -7,20 +7,12 @@ from .conftest import EXPLICIT_THREEJ
 from whisper import threej, racah
 
 
-@pytest.mark.parametrize(
-    'lm, target',
-    EXPLICIT_THREEJ
-)
+@pytest.mark.parametrize("lm, target", EXPLICIT_THREEJ)
 def test_explicit_threej(lm, target):
     # print('lm', lm)
     result = threej.threej(*lm)
     # print('result', result)
-    assert np.isclose(
-        result,
-        target,
-        rtol = 1e-12,
-        atol = 1e-15,
-    )
+    assert np.isclose(result, target, rtol=1e-12, atol=1e-15)
 
 
 def valid_lm_builder(l_min, l_max):
@@ -48,10 +40,7 @@ def any_lm_builder(l_max):
     )
 
 
-@pytest.mark.parametrize(
-    'lm',
-    valid_lm_builder(0, 8),
-)
+@pytest.mark.parametrize("lm", valid_lm_builder(0, 8))
 def test_small_threej_against_threej_via_racah_valid_integers(lm):
     """This test only makes sense for small enough l,m that the Racah formula can evaluate it!"""
     # print('lm', lm)
@@ -59,18 +48,10 @@ def test_small_threej_against_threej_via_racah_valid_integers(lm):
     # print('result', result)
     expected = racah.threej_via_racah(*lm)
     # print('expected', expected)
-    assert np.isclose(
-        result,
-        expected,
-        rtol = 1e-12,
-        atol = 1e-15,
-    )
+    assert np.isclose(result, expected, rtol=1e-12, atol=1e-15)
 
 
-@pytest.mark.parametrize(
-    'lm',
-    any_lm_builder(4),
-)
+@pytest.mark.parametrize("lm", any_lm_builder(4))
 def test_small_threej_against_threej_via_racah_any_integers(lm):
     """This test only makes sense for small enough l,m that the Racah formula can evaluate it!"""
     # print('lm', lm)
@@ -78,9 +59,4 @@ def test_small_threej_against_threej_via_racah_any_integers(lm):
     # print('result', result)
     expected = racah.threej_via_racah(*lm)
     # print('expected', expected)
-    assert np.isclose(
-        result,
-        expected,
-        rtol = 1e-12,
-        atol = 1e-15,
-    )
+    assert np.isclose(result, expected, rtol=1e-12, atol=1e-15)

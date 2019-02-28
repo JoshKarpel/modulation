@@ -32,11 +32,15 @@ class MicrosphereVolumeIntegrator(ModeVolumeIntegrator):
         raise NotImplementedError
 
     def integrand(self, modes, r, theta, phi):
-        return functools.reduce(operator.mul, (self.mode_magnitude_inside(m, r, theta, phi) for m in modes))
+        return functools.reduce(
+            operator.mul, (self.mode_magnitude_inside(m, r, theta, phi) for m in modes)
+        )
 
     def mode_magnitude_inside(self, mode, r, theta, phi):
-        mode_shape_vector_field = mode.evaluate_electric_field_mode_shape_inside(r, theta, phi)
-        return np.sqrt(np.sum(np.abs(mode_shape_vector_field) ** 2, axis = -1))
+        mode_shape_vector_field = mode.evaluate_electric_field_mode_shape_inside(
+            r, theta, phi
+        )
+        return np.sqrt(np.sum(np.abs(mode_shape_vector_field) ** 2, axis=-1))
 
     def jacobian(self, r, theta):
         return (r ** 2) * np.sin(theta)
@@ -45,7 +49,7 @@ class MicrosphereVolumeIntegrator(ModeVolumeIntegrator):
         r = np.linspace(0, self.radius, 1000)[1:]
         theta = np.ones(1) * u.pi / 2
 
-        r_mesh, theta_mesh, phi_mesh = np.meshgrid(r, theta, self.phi, indexing = 'ij')
+        r_mesh, theta_mesh, phi_mesh = np.meshgrid(r, theta, self.phi, indexing="ij")
 
         integrand = self.integrand(modes, r_mesh, theta_mesh, phi_mesh)
         integrand_max = np.max(integrand)
@@ -58,15 +62,17 @@ class MicrosphereVolumeIntegrator(ModeVolumeIntegrator):
         return inner_limit
 
     def estimate_theta_bound(self, modes):
-        r = np.ones(1) * .95 * self.radius
+        r = np.ones(1) * 0.95 * self.radius
         theta = np.linspace(0, u.pi, 1000)[1:-1]  # avoid poles
 
-        r_mesh, theta_mesh, phi_mesh = np.meshgrid(r, theta, self.phi, indexing = 'ij')
+        r_mesh, theta_mesh, phi_mesh = np.meshgrid(r, theta, self.phi, indexing="ij")
 
         integrand = self.integrand(modes, r_mesh, theta_mesh, phi_mesh)
         integrand_max = np.max(integrand)
 
-        index_of_threshold_theta = np.argmax(integrand > (integrand_max * self.threshold))
+        index_of_threshold_theta = np.argmax(
+            integrand > (integrand_max * self.threshold)
+        )
         threshold_theta = theta[index_of_threshold_theta]
 
         limit = max(0, self.pad * threshold_theta)
@@ -75,7 +81,7 @@ class MicrosphereVolumeIntegrator(ModeVolumeIntegrator):
 
 
 class RiemannSumMicrosphereVolumeIntegrator(MicrosphereVolumeIntegrator):
-    def __init__(self, r_points = 500, theta_points = 200, **kwargs):
+    def __init__(self, r_points=500, theta_points=200, **kwargs):
         super().__init__(**kwargs)
 
         self.r_points = r_points
@@ -85,13 +91,19 @@ class RiemannSumMicrosphereVolumeIntegrator(MicrosphereVolumeIntegrator):
         r_lower_bound = self.estimate_r_lower_bound(modes)
         theta_bound = self.estimate_theta_bound(modes)
 
-        r = np.linspace(r_lower_bound, self.radius, self.r_points + 1)[1:]  # in case lower bound is zero
-        theta = np.linspace(theta_bound, u.pi - theta_bound, self.theta_points + 2)[1:-1]  # in case bound is zero
+        r = np.linspace(r_lower_bound, self.radius, self.r_points + 1)[
+            1:
+        ]  # in case lower bound is zero
+        theta = np.linspace(theta_bound, u.pi - theta_bound, self.theta_points + 2)[
+            1:-1
+        ]  # in case bound is zero
 
         dr = np.abs(r[1] - r[0])
         dtheta = np.abs(theta[1] - theta[0])
 
-        r_mesh, theta_mesh, phi_mesh = np.meshgrid(r, theta, self.phi, indexing = 'ij', sparse = True)
+        r_mesh, theta_mesh, phi_mesh = np.meshgrid(
+            r, theta, self.phi, indexing="ij", sparse=True
+        )
 
         integrand = self.integrand(modes, r_mesh, theta_mesh, phi_mesh)
 
@@ -102,33 +114,33 @@ class RiemannSumMicrosphereVolumeIntegrator(MicrosphereVolumeIntegrator):
         return result
 
 
-class FlexibleGridSimpsonMicrosphereVolumeIntegrator(RiemannSumMicrosphereVolumeIntegrator):
-    def __init__(self, r_points = 501, theta_points = 201, **kwargs):
-        super().__init__(r_points = r_points, theta_points = theta_points, **kwargs)
+class FlexibleGridSimpsonMicrosphereVolumeIntegrator(
+    RiemannSumMicrosphereVolumeIntegrator
+):
+    def __init__(self, r_points=501, theta_points=201, **kwargs):
+        super().__init__(r_points=r_points, theta_points=theta_points, **kwargs)
 
     def mode_volume_integral(self, modes: Tuple[Mode, ...]) -> float:
         r_lower_bound = self.estimate_r_lower_bound(modes)
         theta_bound = self.estimate_theta_bound(modes)
 
-        r = np.linspace(r_lower_bound, self.radius, self.r_points + 1)[1:]  # in case lower bound is zero
-        theta = np.linspace(theta_bound, u.pi - theta_bound, self.theta_points + 2)[1: -1]  # in case bound is zero
+        r = np.linspace(r_lower_bound, self.radius, self.r_points + 1)[
+            1:
+        ]  # in case lower bound is zero
+        theta = np.linspace(theta_bound, u.pi - theta_bound, self.theta_points + 2)[
+            1:-1
+        ]  # in case bound is zero
 
         dr = np.abs(r[1] - r[0])
         dtheta = np.abs(theta[1] - theta[0])
 
-        r_mesh, theta_mesh, phi_mesh = np.meshgrid(r, theta, self.phi, indexing = 'ij')
+        r_mesh, theta_mesh, phi_mesh = np.meshgrid(r, theta, self.phi, indexing="ij")
 
         integrand = self.integrand(modes, r_mesh, theta_mesh, phi_mesh)
 
         jac = self.jacobian(r_mesh, theta_mesh)
 
-        integral = integ.simps(
-            y = integ.simps(
-                y = integrand * jac,
-                axis = 0,
-            ),
-            axis = 0,
-        )[0]
+        integral = integ.simps(y=integ.simps(y=integrand * jac, axis=0), axis=0)[0]
 
         result = integral * u.twopi * dr * dtheta
 
@@ -136,70 +148,66 @@ class FlexibleGridSimpsonMicrosphereVolumeIntegrator(RiemannSumMicrosphereVolume
 
 
 class RombergMicrosphereVolumeIntegrator(RiemannSumMicrosphereVolumeIntegrator):
-    def __init__(self, k_r = 9, k_theta = 8, **kwargs):
-        super().__init__(r_points = (2 ** k_r) + 1, theta_points = (2 ** k_theta) + 1, **kwargs)
+    def __init__(self, k_r=9, k_theta=8, **kwargs):
+        super().__init__(
+            r_points=(2 ** k_r) + 1, theta_points=(2 ** k_theta) + 1, **kwargs
+        )
 
     def mode_volume_integral(self, modes: Tuple[Mode, ...]) -> float:
         r_lower_bound = self.estimate_r_lower_bound(modes)
         theta_bound = self.estimate_theta_bound(modes)
 
-        r = np.linspace(r_lower_bound, self.radius, self.r_points + 1)[1:]  # in case lower bound is zero
-        theta = np.linspace(theta_bound, u.pi - theta_bound, self.theta_points + 2)[1:-1]  # in case bound is zero
+        r = np.linspace(r_lower_bound, self.radius, self.r_points + 1)[
+            1:
+        ]  # in case lower bound is zero
+        theta = np.linspace(theta_bound, u.pi - theta_bound, self.theta_points + 2)[
+            1:-1
+        ]  # in case bound is zero
 
         dr = np.abs(r[1] - r[0])
         dtheta = np.abs(theta[1] - theta[0])
 
-        r_mesh, theta_mesh, phi_mesh = np.meshgrid(r, theta, self.phi, indexing = 'ij')
+        r_mesh, theta_mesh, phi_mesh = np.meshgrid(r, theta, self.phi, indexing="ij")
 
         integrand = self.integrand(modes, r_mesh, theta_mesh, phi_mesh)
 
         jac = self.jacobian(r_mesh, theta_mesh)
 
-        integral = integ.romb(
-            y = integ.romb(
-                y = integrand * jac,
-                axis = 0,
-            ),
-            axis = 0,
-        )[0]
+        integral = integ.romb(y=integ.romb(y=integrand * jac, axis=0), axis=0)[0]
 
         result = integral * u.twopi * dr * dtheta
 
         return result
 
 
-class FixedGridSimpsonMicrosphereVolumeIntegrator(FlexibleGridSimpsonMicrosphereVolumeIntegrator):
+class FixedGridSimpsonMicrosphereVolumeIntegrator(
+    FlexibleGridSimpsonMicrosphereVolumeIntegrator
+):
     """
     A Simpson volume integrator that operates on a fixed grid.
     Because the grid is fixed, it and the mode magnitudes evaluated on it can be cached.
     """
 
-    def __init__(self, r_points = 2001, theta_points = 501, **kwargs):
-        super().__init__(r_points = r_points, theta_points = theta_points, **kwargs)
+    def __init__(self, r_points=2001, theta_points=501, **kwargs):
+        super().__init__(r_points=r_points, theta_points=theta_points, **kwargs)
 
-        r = np.linspace(.5 * self.radius, self.radius, self.r_points)
+        r = np.linspace(0.5 * self.radius, self.radius, self.r_points)
         theta = np.linspace(0, u.pi, self.theta_points + 2)[1:-1]
 
         self.r_mesh, self.theta_mesh, self.phi_mesh = np.meshgrid(
-            r,
-            theta,
-            self.phi,
-            indexing = 'ij',
-            sparse = True,
+            r, theta, self.phi, indexing="ij", sparse=True
         )
 
         dr = np.abs(r[1] - r[0])
         dtheta = np.abs(theta[1] - theta[0])
 
-        self.fixed_jacobian = self.jacobian(self.r_mesh, self.theta_mesh) * (u.twopi * dr * dtheta)
+        self.fixed_jacobian = self.jacobian(self.r_mesh, self.theta_mesh) * (
+            u.twopi * dr * dtheta
+        )
 
     def mode_volume_integral(self, modes: Tuple[Mode, ...]) -> float:
         integral = integ.simps(
-            y = integ.simps(
-                y = self.integrand(modes) * self.fixed_jacobian,
-                axis = 0,
-            ),
-            axis = 0,
+            y=integ.simps(y=self.integrand(modes) * self.fixed_jacobian, axis=0), axis=0
         )[0]
 
         result = integral
@@ -207,9 +215,13 @@ class FixedGridSimpsonMicrosphereVolumeIntegrator(FlexibleGridSimpsonMicrosphere
         return result
 
     def integrand(self, modes):
-        return functools.reduce(operator.mul, (self.mode_magnitude_inside(m) for m in modes))
+        return functools.reduce(
+            operator.mul, (self.mode_magnitude_inside(m) for m in modes)
+        )
 
-    @functools.lru_cache(maxsize = None)
+    @functools.lru_cache(maxsize=None)
     def mode_magnitude_inside(self, mode):
-        mode_shape_vector_field = mode.evaluate_electric_field_mode_shape_inside(self.r_mesh, self.theta_mesh, self.phi_mesh)
-        return np.sqrt(np.sum(np.abs(mode_shape_vector_field) ** 2, axis = -1))
+        mode_shape_vector_field = mode.evaluate_electric_field_mode_shape_inside(
+            self.r_mesh, self.theta_mesh, self.phi_mesh
+        )
+        return np.sqrt(np.sum(np.abs(mode_shape_vector_field) ** 2, axis=-1))

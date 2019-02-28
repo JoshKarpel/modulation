@@ -22,24 +22,19 @@ FloatOrArray = Union[float, np.ndarray]
 
 
 class Microsphere:
-    def __init__(
-        self,
-        *,
-        radius: float,
-        index_of_refraction: IndexOfRefraction,
-    ):
+    def __init__(self, *, radius: float, index_of_refraction: IndexOfRefraction):
         self.radius = radius
         self.index_of_refraction = index_of_refraction
 
     def __str__(self):
-        return f'{self.__class__.__name__}(radius = {self.radius / u.um:.4g} um, index_of_refraction = {self.index_of_refraction})'
+        return f"{self.__class__.__name__}(radius = {self.radius / u.um:.4g} um, index_of_refraction = {self.index_of_refraction})"
 
     def __repr__(self):
-        return f'{self.__class__.__name__}(radius = {self.radius}, index_of_refraction = {self.index_of_refraction})'
+        return f"{self.__class__.__name__}(radius = {self.radius}, index_of_refraction = {self.index_of_refraction})"
 
     def info(self) -> si.Info:
-        info = si.Info(header = self.__class__.__name__)
-        info.add_field('Radius', fmt.quantity(self.radius, fmt.LENGTH_UNITS))
+        info = si.Info(header=self.__class__.__name__)
+        info.add_field("Radius", fmt.quantity(self.radius, fmt.LENGTH_UNITS))
         info.add_info(self.index_of_refraction.info())
         return info
 
@@ -50,7 +45,7 @@ class MicrosphereModeLocation:
     l: int
     radial_mode_number: int
     microsphere: Microsphere
-    polarization: 'mode.MicrosphereModePolarization'
+    polarization: "mode.MicrosphereModePolarization"
 
     @property
     def frequency(self):
@@ -61,7 +56,7 @@ class MicrosphereModeLocation:
         return u.twopi * self.frequency
 
     def __str__(self):
-        return f'{self.__class__.__name__}(λ = {self.wavelength / u.nm:.6f} nm, l = {self.l}, n = {self.radial_mode_number}, polarization = {self.polarization})'
+        return f"{self.__class__.__name__}(λ = {self.wavelength / u.nm:.6f} nm, l = {self.l}, n = {self.radial_mode_number}, polarization = {self.polarization})"
 
 
 def wavelength_to_frequency(wavelength: FloatOrArray) -> FloatOrArray:
@@ -73,8 +68,7 @@ def frequency_to_wavelength(frequency: FloatOrArray) -> FloatOrArray:
 
 
 def shift_wavelength_by_frequency(
-    wavelength: FloatOrArray,
-    frequency_shift: float,
+    wavelength: FloatOrArray, frequency_shift: float
 ) -> FloatOrArray:
     frequency = u.c / wavelength
     shifted_frequency = frequency + frequency_shift
@@ -83,8 +77,7 @@ def shift_wavelength_by_frequency(
 
 
 def shift_wavelength_by_omega(
-    wavelength: FloatOrArray,
-    omega_shift: float,
+    wavelength: FloatOrArray, omega_shift: float
 ) -> FloatOrArray:
     frequency = u.c / wavelength
     shifted_frequency = frequency + (omega_shift / u.twopi)
@@ -92,7 +85,7 @@ def shift_wavelength_by_omega(
     return u.c / shifted_frequency
 
 
-@dataclass(order = True, frozen = True)
+@dataclass(order=True, frozen=True)
 class WavelengthBound:
     lower: float
     upper: float
@@ -101,15 +94,15 @@ class WavelengthBound:
         return self.lower <= item <= self.upper
 
     def __str__(self):
-        return f'{self.__class__.__name__}(lower = {self.lower / u.nm:.3f} nm | {wavelength_to_frequency(self.lower) / u.THz:.3f} THz, upper = {self.upper / u.nm:.3f} nm | {wavelength_to_frequency(self.upper) / u.THz:.3f} THz)'
+        return f"{self.__class__.__name__}(lower = {self.lower / u.nm:.3f} nm | {wavelength_to_frequency(self.lower) / u.THz:.3f} THz, upper = {self.upper / u.nm:.3f} nm | {wavelength_to_frequency(self.upper) / u.THz:.3f} THz)"
 
     @classmethod
-    def from_frequencies(cls, lower: float, upper: float) -> 'WavelengthBound':
+    def from_frequencies(cls, lower: float, upper: float) -> "WavelengthBound":
         wavelengths = frequency_to_wavelength(lower), frequency_to_wavelength(upper)
 
-        return cls(lower = min(wavelengths), upper = max(wavelengths))
+        return cls(lower=min(wavelengths), upper=max(wavelengths))
 
-    def is_disjoint(self, other: 'WavelengthBound'):
+    def is_disjoint(self, other: "WavelengthBound"):
         return self.lower > other.upper or self.upper < other.lower
 
 
@@ -137,10 +130,7 @@ def pairwise(iterable):
 
 
 def _merge_bounds_pair(a: WavelengthBound, b: WavelengthBound) -> WavelengthBound:
-    return WavelengthBound(
-        lower = min(a.lower, b.lower),
-        upper = max(a.upper, b.upper),
-    )
+    return WavelengthBound(lower=min(a.lower, b.lower), upper=max(a.upper, b.upper))
 
 
 def sideband_bounds(
@@ -163,15 +153,14 @@ def sideband_bounds(
     )
 
     bounds = [
-        WavelengthBound.from_frequencies(lower, upper)
-        for lower, upper in lower_upper
+        WavelengthBound.from_frequencies(lower, upper) for lower, upper in lower_upper
     ]
 
     return bounds
 
 
 class LBound:
-    __slots__ = ('min', 'max')
+    __slots__ = ("min", "max")
 
     def __init__(self, min: int, max: int):
         self.min = int(min)
@@ -181,22 +170,20 @@ class LBound:
         return self.min <= item <= self.max
 
     def __repr__(self):
-        return f'{self.__class__.__name__}(min = {self.min}, max = {self.max})'
+        return f"{self.__class__.__name__}(min = {self.min}, max = {self.max})"
 
     def __iter__(self) -> Iterable[int]:
         yield from range(self.min, self.max + 1)
 
 
 def TE_P(
-    wavelength: FloatOrArray,
-    index_of_refraction: IndexOfRefraction,
+    wavelength: FloatOrArray, index_of_refraction: IndexOfRefraction
 ) -> FloatOrArray:
     return index_of_refraction(wavelength)
 
 
 def TM_P(
-    wavelength: FloatOrArray,
-    index_of_refraction: IndexOfRefraction,
+    wavelength: FloatOrArray, index_of_refraction: IndexOfRefraction
 ) -> FloatOrArray:
     return 1 / index_of_refraction(wavelength)
 
@@ -212,7 +199,7 @@ def P(
     polarization: mode.MicrosphereModePolarization,
     index_of_refraction: IndexOfRefraction,
 ) -> FloatOrArray:
-    return P_SELECTOR[polarization](wavelength, index_of_refraction = index_of_refraction)
+    return P_SELECTOR[polarization](wavelength, index_of_refraction=index_of_refraction)
 
 
 def alpha(
@@ -221,7 +208,7 @@ def alpha(
     index_of_refraction: IndexOfRefraction,
 ) -> FloatOrArray:
     n = index_of_refraction(wavelength)
-    p = P(wavelength, polarization, index_of_refraction = index_of_refraction)
+    p = P(wavelength, polarization, index_of_refraction=index_of_refraction)
     return p / (n * np.sqrt((n ** 2) - 1))
 
 
@@ -259,9 +246,9 @@ def modal_equation(
 
     y = spc.yv(lm, k_0_R) / spc.yv(lp, k_0_R)
     p = P(
-        wavelength = wavelength,
-        polarization = polarization,
-        index_of_refraction = microsphere.index_of_refraction,
+        wavelength=wavelength,
+        polarization=polarization,
+        index_of_refraction=microsphere.index_of_refraction,
     )
     j = p * spc.jv(lm, k_R) / spc.jv(lp, k_R)
 
@@ -278,9 +265,9 @@ def _l_bounds_from_wavelength(
 ) -> LBound:
     n = microsphere.index_of_refraction(wavelength)
     p = P(
-        wavelength = wavelength,
-        polarization = polarization,
-        index_of_refraction = microsphere.index_of_refraction,
+        wavelength=wavelength,
+        polarization=polarization,
+        index_of_refraction=microsphere.index_of_refraction,
     )
     delta_P = wavelength * p / (u.twopi * n * np.sqrt((n ** 2) - 1))
     min = u.twopi * (microsphere.radius + delta_P) / wavelength
@@ -298,26 +285,23 @@ def l_bound_from_wavelength_bound(
     polarization: mode.MicrosphereModePolarization,
 ) -> LBound:
     bound_1 = _l_bounds_from_wavelength(
-        wavelength = wavelength_bound.lower,
-        microsphere = microsphere,
-        polarization = polarization,
+        wavelength=wavelength_bound.lower,
+        microsphere=microsphere,
+        polarization=polarization,
     )
     bound_2 = _l_bounds_from_wavelength(
-        wavelength = wavelength_bound.upper,
-        microsphere = microsphere,
-        polarization = polarization,
+        wavelength=wavelength_bound.upper,
+        microsphere=microsphere,
+        polarization=polarization,
     )
 
-    return LBound(
-        min = min(bound_1.min, bound_2.min),
-        max = max(bound_1.max, bound_2.max),
-    )
+    return LBound(min=min(bound_1.min, bound_2.min), max=max(bound_1.max, bound_2.max))
 
 
 def find_mode_locations(
     wavelength_bounds: Iterable[WavelengthBound],
     microsphere: Microsphere,
-    max_radial_mode_number = 10,
+    max_radial_mode_number=10,
 ) -> List[MicrosphereModeLocation]:
     """
     Find the locations (free-space wavelengths and polarizations) of
@@ -329,9 +313,9 @@ def find_mode_locations(
     for polarization in mode.MicrosphereModePolarization:
         for wavelength_bound in wavelength_bounds:
             l_bound = l_bound_from_wavelength_bound(
-                wavelength_bound = wavelength_bound,
-                microsphere = microsphere,
-                polarization = polarization,
+                wavelength_bound=wavelength_bound,
+                microsphere=microsphere,
+                polarization=polarization,
             )
 
             for l in l_bound:
@@ -340,10 +324,15 @@ def find_mode_locations(
 
                 # these are the ones with the in-medium wavenumber (including
                 # index of refraction), so we need to do a little extra work
-                j_asymptotes, y_asymptotes = find_bessel_zeros(order = l, num_zeros = max_radial_mode_number)
+                j_asymptotes, y_asymptotes = find_bessel_zeros(
+                    order=l, num_zeros=max_radial_mode_number
+                )
                 wavelength_over_index = (u.twopi * microsphere.radius) / j_asymptotes
                 good_asymptotes = opt.root(
-                    lambda wavelength: (wavelength / microsphere.index_of_refraction(wavelength)) - wavelength_over_index,
+                    lambda wavelength: (
+                        wavelength / microsphere.index_of_refraction(wavelength)
+                    )
+                    - wavelength_over_index,
                     1000 * u.nm * np.ones_like(wavelength_over_index),
                 ).x
 
@@ -361,7 +350,7 @@ def find_mode_locations(
                     modal_equation,
                     good_asymptotes[0],
                     good_asymptotes[0] * 1.5,
-                    args = args,
+                    args=args,
                 )
                 roots.append(first_zero)
 
@@ -381,28 +370,23 @@ def find_mode_locations(
                     while not (modal_equation(lower, *args) > 0):
                         lower = (lower + bottom) / 2
 
-                    root: float = opt.brentq(
-                        modal_equation,
-                        lower,
-                        upper,
-                        args = args,
-                    )
+                    root: float = opt.brentq(modal_equation, lower, upper, args=args)
                     roots.append(root)
 
                 new_locations = (
                     MicrosphereModeLocation(
-                        wavelength = root,
-                        l = l,
-                        radial_mode_number = n,
-                        microsphere = microsphere,
-                        polarization = polarization,
+                        wavelength=root,
+                        l=l,
+                        radial_mode_number=n,
+                        microsphere=microsphere,
+                        polarization=polarization,
                     )
-                    for n, root in enumerate(roots, start = 1)
+                    for n, root in enumerate(roots, start=1)
                     if root in wavelength_bound
                 )
                 mode_locations.extend(new_locations)
 
-    return sorted(mode_locations, key = lambda x: x.wavelength)
+    return sorted(mode_locations, key=lambda x: x.wavelength)
 
 
 def _z_from_zeta(z, xi):
@@ -410,13 +394,12 @@ def _z_from_zeta(z, xi):
 
 
 def _jacobian_of_z_from_zeta(z, xi):
-    return np.diag(-(z / np.sqrt((z ** 2) - 1)) + 1 / (z ** 2 * np.sqrt(1 - (1 / z ** 2))))
+    return np.diag(
+        -(z / np.sqrt((z ** 2) - 1)) + 1 / (z ** 2 * np.sqrt(1 - (1 / z ** 2)))
+    )
 
 
-def find_bessel_zeros(
-    order: int,
-    num_zeros: int,
-) -> (np.ndarray, np.ndarray):
+def find_bessel_zeros(order: int, num_zeros: int) -> (np.ndarray, np.ndarray):
     """
     Find the zeros of high-order spherical Bessel functions
     using a uniformly-accurate asymptotic approximation.
@@ -449,12 +432,10 @@ def find_bessel_zeros(
     z = opt.root(
         _z_from_zeta,
         1.1 * np.ones_like(zeta),
-        args = (zeta,),
-        jac = _jacobian_of_z_from_zeta,
-        method = 'hybr',
-        options = dict(
-            col_deriv = True,
-        ),
+        args=(zeta,),
+        jac=_jacobian_of_z_from_zeta,
+        method="hybr",
+        options=dict(col_deriv=True),
     ).x
 
     h = (4 * zeta / (1 - (z ** 2))) ** (1 / 4)

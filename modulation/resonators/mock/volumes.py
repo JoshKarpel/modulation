@@ -26,6 +26,9 @@ class MockVolumeIntegrator(ModeVolumeIntegrator):
 
     def info(self) -> si.Info:
         info = super().info()
-        info.add_field('Volume Integral Result', fmt.quantity(self.volume_integral_result, fmt.VOLUME_UNITS))
+        info.add_field(
+            "Volume Integral Result",
+            fmt.quantity(self.volume_integral_result, fmt.VOLUME_UNITS),
+        )
 
         return info

@@ -8,7 +8,7 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
-@functools.lru_cache(maxsize = None)
+@functools.lru_cache(maxsize=None)
 def threej(l1, l2, l3, m1, m2, m3):
     r = _look_for_threej_shortcuts(l1, l2, l3, m1, m2, m3)
     if r is not None:
@@ -31,7 +31,9 @@ def _look_for_threej_shortcuts(l1, l2, l3, m1, m2, m3):
     if any((abs(m1) > l1, abs(m2) > l2, abs(m3) > l3)):
         return 0
 
-    for (l1, l2, l3, m1, m2, m3), sign in _generate_equivalent_threej_symbols(l1, l2, l3, m1, m2, m3):
+    for (l1, l2, l3, m1, m2, m3), sign in _generate_equivalent_threej_symbols(
+        l1, l2, l3, m1, m2, m3
+    ):
         if not abs(l1 - l2) <= l3 <= l1 + l2:  # triangle relations
             return 0
 
@@ -48,11 +50,7 @@ def _zip_symbol_args(a, b, c):
 def _generate_equivalent_threej_symbols(l1, l2, l3, m1, m2, m3):
     yield (l1, l2, l3, m1, m2, m3), 1
 
-    first, second, third = (
-        (l1, m1),
-        (l2, m2),
-        (l3, m3),
-    )
+    first, second, third = ((l1, m1), (l2, m2), (l3, m3))
 
     # even permutations
     yield _zip_symbol_args(third, first, second), 1
@@ -71,13 +69,13 @@ def _threej_l_recursion(l1, l2, l3, m1, m2, m3):
     return family[l1]
 
 
-@functools.lru_cache(maxsize = None)
+@functools.lru_cache(maxsize=None)
 def _threej_l_recursion_family(l2, l3, m2, m3):
     l_min = int(max(abs(l2 - l3), abs(m2 + m3)))
     l_max = int(l2 + l3)
 
-    l_rng = np.zeros(l_max + 1, dtype = np.float64)
-    l_rng[l_min:] = np.arange(l_min, l_max + 1, step = 1)
+    l_rng = np.zeros(l_max + 1, dtype=np.float64)
+    l_rng[l_min:] = np.arange(l_min, l_max + 1, step=1)
 
     X = np.empty_like(l_rng)
     Y = np.empty_like(l_rng)
@@ -90,7 +88,9 @@ def _threej_l_recursion_family(l2, l3, m2, m3):
     if l2 == l3 and m2 == m3 == 0:  # implies all three m are zero, special case
         return l_equal_and_all_m_zero_family_shortcut(l2, l3, l_max, Z, X)
     elif m2 == m3 == 0:
-        unnormalized_psi = generate_unnormalized_psi_for_all_m_zero(X, Y, Z, l_max, l_min)
+        unnormalized_psi = generate_unnormalized_psi_for_all_m_zero(
+            X, Y, Z, l_max, l_min
+        )
     else:
         unnormalized_psi = generate_unnormalized_psi(X, Y, Z, l_max, l_min)
 
@@ -109,7 +109,7 @@ def A(l, l2, l3, m2, m3):
 
 
 def B(l, l2, l3, m2, m3):
-    pre = ((2 * l) + 1)
+    pre = (2 * l) + 1
     first = (m2 + m3) * ((l2 * (l2 + 1)) - (l3 * (l3 + 1)))
     second = (m2 - m3) * l * (l + 1)
 
@@ -117,6 +117,7 @@ def B(l, l2, l3, m2, m3):
 
 
 # these seems to be stable, even going up, because the three-term recursion collapses to two terms
+
 
 def l_equal_and_all_m_zero_family_shortcut(l2, l3, l_max, Z, X):
     """These come out normalized because we can get the first symbol in closed-form."""
@@ -166,7 +167,7 @@ def generate_unnormalized_psi(X, Y, Z, l_max, l_min):
             l_backwards -= 1
 
             num = -Z[l_backwards]
-            denom = (Y[l_backwards] + (X[l_backwards] * r[l_backwards + 1]))
+            denom = Y[l_backwards] + (X[l_backwards] * r[l_backwards + 1])
 
             if denom == 0:
                 l_backwards += 1
@@ -186,7 +187,10 @@ def generate_unnormalized_psi(X, Y, Z, l_max, l_min):
 
         # fill forward to l_backwards
         for l in range(l_forwards + 1, l_backwards + 1):
-            Psi_minus[l] = -((Y[l - 1] * Psi_minus[l - 1]) + (Z[l - 1] * Psi_minus[l - 2])) / X[l - 1]
+            Psi_minus[l] = (
+                -((Y[l - 1] * Psi_minus[l - 1]) + (Z[l - 1] * Psi_minus[l - 2]))
+                / X[l - 1]
+            )
 
         # match up
         ratio = Psi_minus[l_backwards]
@@ -196,7 +200,9 @@ def generate_unnormalized_psi(X, Y, Z, l_max, l_min):
             Psi_plus[l] = Psi_plus[l - 1] * r[l]
 
         return Psi_plus
-    elif len(r) > 1:  # not enough values in forward recursion, start with backward recursion instead
+    elif (
+        len(r) > 1
+    ):  # not enough values in forward recursion, start with backward recursion instead
         # plan: recurse Psi_plus down from l_backward to l_forward
         Psi_plus = {l_backwards: 1, l_backwards + 1: r[l_backwards + 1]}
 
@@ -206,7 +212,10 @@ def generate_unnormalized_psi(X, Y, Z, l_max, l_min):
 
         # fill back to l_forwards
         for l in range(l_backwards - 1, l_forwards - 1, -1):
-            Psi_plus[l] = - ((X[l + 1] * Psi_plus[l + 2]) + (Y[l + 1] * Psi_plus[l + 1])) / Z[l + 1]
+            Psi_plus[l] = (
+                -((X[l + 1] * Psi_plus[l + 2]) + (Y[l + 1] * Psi_plus[l + 1]))
+                / Z[l + 1]
+            )
 
         # match up
         ratio = Psi_plus[l_forwards]
@@ -226,9 +235,13 @@ def generate_unnormalized_psi(X, Y, Z, l_max, l_min):
 
 
 def generate_normalized_psi(unnormalized_psi, l2, l3, m2, m3, l_max):
-    normalization = np.sqrt(sum(((2 * l) + 1) * (f ** 2) for l, f in unnormalized_psi.items()))
+    normalization = np.sqrt(
+        sum(((2 * l) + 1) * (f ** 2) for l, f in unnormalized_psi.items())
+    )
     sgn = 1 if (l2 - l3 + m2 + m3) % 2 == 0 else -1
-    is_negative = np.signbit(unnormalized_psi[l_max])  # need to do it this way to handle negative zero
+    is_negative = np.signbit(
+        unnormalized_psi[l_max]
+    )  # need to do it this way to handle negative zero
     if is_negative:
         current_sign = -1
     else:

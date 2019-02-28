@@ -17,17 +17,17 @@ class ParameterScan:
 
     @classmethod
     def from_file(cls, path: Path):
-        with gzip.open(path, mode = 'rb') as f:
+        with gzip.open(path, mode="rb") as f:
             sims = pickle.load(f)
 
         ps = cls(path.stem, sims)
 
-        logger.debug(f'loaded {len(ps)} simulations from {path}')
+        logger.debug(f"loaded {len(ps)} simulations from {path}")
 
         return ps
 
     def __str__(self):
-        return f'{self.__class__.__name__}(tag = {self.tag})'
+        return f"{self.__class__.__name__}(tag = {self.tag})"
 
     def __len__(self):
         return len(self.sims)
@@ -38,8 +38,9 @@ class ParameterScan:
     def select(self, **parameters) -> List[si.Simulation]:
         return sorted(
             (
-                sim for sim in self.sims
+                sim
+                for sim in self.sims
                 if all(getattr(sim.spec, k) == v for k, v in parameters.items())
             ),
-            key = lambda sim: tuple(getattr(sim.spec, k) for k in parameters.keys())
+            key=lambda sim: tuple(getattr(sim.spec, k) for k in parameters.keys()),
         )

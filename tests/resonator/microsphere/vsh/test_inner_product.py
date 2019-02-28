@@ -14,11 +14,9 @@ def test_inner_product():
     a[1, 0] = np.array([7, 8, 9])
     a[1, 1] = np.array([10, 11, 12])
 
-    e = np.einsum('ijk,ijk->ij', a, b)
+    e = np.einsum("ijk,ijk->ij", a, b)
     v = inner_product_of_vsh(a, b)
 
     assert (e == v).all()
-    assert np.allclose(e, np.array([[6, 15],
-                                    [24, 33]]))
-    assert np.allclose(v, np.array([[6, 15],
-                                    [24, 33]]))
+    assert np.allclose(e, np.array([[6, 15], [24, 33]]))
+    assert np.allclose(v, np.array([[6, 15], [24, 33]]))

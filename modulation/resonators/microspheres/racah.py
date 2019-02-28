@@ -10,7 +10,7 @@ import simulacra as si
 logger = logging.getLogger(__name__)
 
 
-@functools.lru_cache(maxsize = None)
+@functools.lru_cache(maxsize=None)
 def binomial_coefficient(n, k):
     """Return the binomial coefficient (n choose k)."""
     if k < 0 or k > n:
@@ -25,7 +25,7 @@ def binomial_coefficient(n, k):
 
 class PrimeFactorization(collections.Counter):
     @classmethod
-    @functools.lru_cache(maxsize = None)
+    @functools.lru_cache(maxsize=None)
     def of_number(cls, n: int):
         factors = []
 
@@ -48,7 +48,7 @@ class PrimeFactorization(collections.Counter):
         return cls(factors)
 
     @classmethod
-    @functools.lru_cache(maxsize = None)
+    @functools.lru_cache(maxsize=None)
     def of_factorial(cls, n: int):
         factors = cls()
         for factor in range(2, n + 1):
@@ -63,7 +63,7 @@ class PrimeFactorization(collections.Counter):
     def number(self) -> int:
         num = 1
         for factor, count in self.factor_counts():
-            num *= (factor ** count)
+            num *= factor ** count
 
         return num
 
@@ -105,7 +105,7 @@ class PrimeFactorization(collections.Counter):
                 del self[factor]
 
 
-@functools.lru_cache(maxsize = None)
+@functools.lru_cache(maxsize=None)
 def factored_triangle_coefficient_squared(x, y, z):
     if x + y + z != int(x + y + z):
         raise Exception
@@ -144,7 +144,12 @@ def racah_w(a, b, c, d, e, f):
 
         w += sgn * factorization.number
 
-    norm_sq = factored_triangle_coefficient_squared(a, b, e) * factored_triangle_coefficient_squared(c, d, e) * factored_triangle_coefficient_squared(a, c, f) * factored_triangle_coefficient_squared(b, d, f)
+    norm_sq = (
+        factored_triangle_coefficient_squared(a, b, e)
+        * factored_triangle_coefficient_squared(c, d, e)
+        * factored_triangle_coefficient_squared(a, c, f)
+        * factored_triangle_coefficient_squared(b, d, f)
+    )
     norm = np.sqrt(norm_sq.number)
 
     return norm * w

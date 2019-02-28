@@ -14,14 +14,14 @@ logger = logging.getLogger(__name__)
 
 
 def find_mode_with_closest_wavelength(modes, wavelength):
-    return sorted(modes, key = lambda m: abs(m.wavelength - wavelength))[0]
+    return sorted(modes, key=lambda m: abs(m.wavelength - wavelength))[0]
 
 
 class MicrosphereModePolarization(si.utils.StrEnum):
     """An enumeration for the types of electromagnetic modes in a spherical microresonator."""
 
-    TRANSVERSE_ELECTRIC = 'TE'
-    TRANSVERSE_MAGNETIC = 'TM'
+    TRANSVERSE_ELECTRIC = "TE"
+    TRANSVERSE_MAGNETIC = "TM"
 
 
 class MicrosphereMode(Mode):
@@ -43,26 +43,22 @@ class MicrosphereMode(Mode):
         self.polarization = polarization
 
     @classmethod
-    def from_mode_location(
-        cls,
-        mode_location,
-        m: int,
-    ):
+    def from_mode_location(cls, mode_location, m: int):
         return cls(
-            wavelength = mode_location.wavelength,
-            l = mode_location.l,
-            m = m,
-            radial_mode_number = mode_location.radial_mode_number,
-            microsphere = mode_location.microsphere,
-            polarization = mode_location.polarization,
+            wavelength=mode_location.wavelength,
+            l=mode_location.l,
+            m=m,
+            radial_mode_number=mode_location.radial_mode_number,
+            microsphere=mode_location.microsphere,
+            polarization=mode_location.polarization,
         )
 
     def __str__(self):
-        return f'{self.__class__.__name__}(λ = {self.wavelength / u.nm:.3f} nm, f = {self.frequency / u.THz:.3f} THz, l = {self.l}, m = {self.m}, radial_mode_number = {self.radial_mode_number}, polarization = {self.polarization})'
+        return f"{self.__class__.__name__}(λ = {self.wavelength / u.nm:.3f} nm, f = {self.frequency / u.THz:.3f} THz, l = {self.l}, m = {self.m}, radial_mode_number = {self.radial_mode_number}, polarization = {self.polarization})"
 
     @property
     def tex(self):
-        return fr'u^{{{self.polarization}, \ell={self.l}, m = {self.m}, n = {self.radial_mode_number}}}_{{\lambda={self.wavelength / u.nm:.3f} \, \mathrm{{nm}}, f={self.frequency / u.THz:.3f} \, \mathrm{{THz}}}}'
+        return fr"u^{{{self.polarization}, \ell={self.l}, m = {self.m}, n = {self.radial_mode_number}}}_{{\lambda={self.wavelength / u.nm:.3f} \, \mathrm{{nm}}, f={self.frequency / u.THz:.3f} \, \mathrm{{THz}}}}"
 
     @property
     def omega(self):
@@ -91,7 +87,9 @@ class MicrosphereMode(Mode):
         pre = (self.microsphere.radius ** 3) / 2
 
         kr = self.k_inside * self.microsphere.radius
-        bessels = (spc.spherical_jn(self.l, kr) ** 2) - (spc.spherical_jn(self.l - 1, kr) * spc.spherical_jn(self.l + 1, kr))
+        bessels = (spc.spherical_jn(self.l, kr) ** 2) - (
+            spc.spherical_jn(self.l - 1, kr) * spc.spherical_jn(self.l + 1, kr)
+        )
 
         result = pre * bessels
 
@@ -103,8 +101,14 @@ class MicrosphereMode(Mode):
         kl = self.k_outside * L
         kr = self.k_outside * self.microsphere.radius
 
-        l_term = ((L ** 3) / 2) * ((spc.spherical_yn(self.l, kl) ** 2) - (spc.spherical_yn(self.l - 1, kl) * spc.spherical_yn(self.l + 1, kl)))
-        r_term = ((self.microsphere.radius ** 3) / 2) * ((spc.spherical_yn(self.l, kr) ** 2) - (spc.spherical_yn(self.l - 1, kr) * spc.spherical_yn(self.l + 1, kr)))
+        l_term = ((L ** 3) / 2) * (
+            (spc.spherical_yn(self.l, kl) ** 2)
+            - (spc.spherical_yn(self.l - 1, kl) * spc.spherical_yn(self.l + 1, kl))
+        )
+        r_term = ((self.microsphere.radius ** 3) / 2) * (
+            (spc.spherical_yn(self.l, kr) ** 2)
+            - (spc.spherical_yn(self.l - 1, kr) * spc.spherical_yn(self.l + 1, kr))
+        )
 
         result = (self.inside_outside_amplitude_ratio ** 2) * (l_term - r_term)
 
@@ -117,7 +121,9 @@ class MicrosphereMode(Mode):
     @property
     def inside_outside_amplitude_ratio(self):
         """outside = inside * inside_outside_amplitude_ratio"""
-        bessel_ratio = spc.spherical_jn(self.l, self.k_inside * self.microsphere.radius) / spc.spherical_yn(self.l, self.k_outside * self.microsphere.radius)
+        bessel_ratio = spc.spherical_jn(
+            self.l, self.k_inside * self.microsphere.radius
+        ) / spc.spherical_yn(self.l, self.k_outside * self.microsphere.radius)
         if self.polarization is MicrosphereModePolarization.TRANSVERSE_ELECTRIC:
             return bessel_ratio
         elif self.polarization is MicrosphereModePolarization.TRANSVERSE_MAGNETIC:
@@ -126,9 +132,7 @@ class MicrosphereMode(Mode):
     def evaluate_electric_field_mode_shape_inside(self, r, theta, phi):
         if self.polarization is MicrosphereModePolarization.TRANSVERSE_ELECTRIC:
             sph = vsh.VectorSphericalHarmonic(
-                type = vsh.VectorSphericalHarmonicType.CROSS,
-                l = self.l,
-                m = self.m
+                type=vsh.VectorSphericalHarmonicType.CROSS, l=self.l, m=self.m
             )(theta, phi)
 
             rad_in = spc.spherical_jn(self.l, self.k_inside * r)
@@ -139,70 +143,82 @@ class MicrosphereMode(Mode):
 
         elif self.polarization is MicrosphereModePolarization.TRANSVERSE_MAGNETIC:
             grad_sph = vsh.VectorSphericalHarmonic(
-                type = vsh.VectorSphericalHarmonicType.GRADIENT,
-                l = self.l,
-                m = self.m,
+                type=vsh.VectorSphericalHarmonicType.GRADIENT, l=self.l, m=self.m
             )(theta, phi)
 
-            grad_rad_in = spc.spherical_jn(self.l, self.k_inside * r) / (self.k_inside * r)
-            grad_rad_in += spc.spherical_jn(self.l, self.k_inside * r, derivative = True) / self.k_inside
+            grad_rad_in = spc.spherical_jn(self.l, self.k_inside * r) / (
+                self.k_inside * r
+            )
+            grad_rad_in += (
+                spc.spherical_jn(self.l, self.k_inside * r, derivative=True)
+                / self.k_inside
+            )
 
             radial_sph = np.sqrt(self.l * (self.l + 1)) * vsh.VectorSphericalHarmonic(
-                type = vsh.VectorSphericalHarmonicType.RADIAL,
-                l = self.l,
-                m = self.m,
+                type=vsh.VectorSphericalHarmonicType.RADIAL, l=self.l, m=self.m
             )(theta, phi)
 
-            radial_rad_in = spc.spherical_jn(self.l, self.k_inside * r) / (self.k_inside * r)
+            radial_rad_in = spc.spherical_jn(self.l, self.k_inside * r) / (
+                self.k_inside * r
+            )
 
-            inside = (grad_rad_in[..., np.newaxis] * grad_sph) + (radial_rad_in[..., np.newaxis] * radial_sph)
+            inside = (grad_rad_in[..., np.newaxis] * grad_sph) + (
+                radial_rad_in[..., np.newaxis] * radial_sph
+            )
 
             return inside
 
     def evaluate_electric_field_mode_shape_outside(self, r, theta, phi):
         if self.polarization is MicrosphereModePolarization.TRANSVERSE_ELECTRIC:
             sph = vsh.VectorSphericalHarmonic(
-                type = vsh.VectorSphericalHarmonicType.CROSS,
-                l = self.l,
-                m = self.m
+                type=vsh.VectorSphericalHarmonicType.CROSS, l=self.l, m=self.m
             )(theta, phi)
 
             rad_out = spc.spherical_yn(self.l, self.k_outside * r)
 
-            outside = self.inside_outside_amplitude_ratio * rad_out[..., np.newaxis] * sph
+            outside = (
+                self.inside_outside_amplitude_ratio * rad_out[..., np.newaxis] * sph
+            )
 
             return outside
 
         elif self.polarization is MicrosphereModePolarization.TRANSVERSE_MAGNETIC:
             grad_sph = vsh.VectorSphericalHarmonic(
-                type = vsh.VectorSphericalHarmonicType.GRADIENT,
-                l = self.l,
-                m = self.m,
+                type=vsh.VectorSphericalHarmonicType.GRADIENT, l=self.l, m=self.m
             )(theta, phi)
 
-            grad_rad_in = spc.spherical_jn(self.l, self.k_inside * r) / (self.k_inside * r)
-            grad_rad_in += spc.spherical_jn(self.l, self.k_inside * r, derivative = True) / self.k_inside
+            grad_rad_in = spc.spherical_jn(self.l, self.k_inside * r) / (
+                self.k_inside * r
+            )
+            grad_rad_in += (
+                spc.spherical_jn(self.l, self.k_inside * r, derivative=True)
+                / self.k_inside
+            )
 
-            grad_rad_out = spc.spherical_yn(self.l, self.k_outside * r) / (self.k_inside * r)
-            grad_rad_out += spc.spherical_yn(self.l, self.k_outside * r, derivative = True) / self.k_inside
+            grad_rad_out = spc.spherical_yn(self.l, self.k_outside * r) / (
+                self.k_inside * r
+            )
+            grad_rad_out += (
+                spc.spherical_yn(self.l, self.k_outside * r, derivative=True)
+                / self.k_inside
+            )
 
             radial_sph = np.sqrt(self.l * (self.l + 1)) * vsh.VectorSphericalHarmonic(
-                type = vsh.VectorSphericalHarmonicType.RADIAL,
-                l = self.l,
-                m = self.m,
+                type=vsh.VectorSphericalHarmonicType.RADIAL, l=self.l, m=self.m
             )(theta, phi)
 
-            radial_rad_out = spc.spherical_yn(self.l, self.k_outside * r) / (self.k_inside * r)
+            radial_rad_out = spc.spherical_yn(self.l, self.k_outside * r) / (
+                self.k_inside * r
+            )
 
-            outside = self.inside_outside_amplitude_ratio * ((grad_rad_out[..., np.newaxis] * grad_sph) + (radial_rad_out[..., np.newaxis] * radial_sph))
+            outside = self.inside_outside_amplitude_ratio * (
+                (grad_rad_out[..., np.newaxis] * grad_sph)
+                + (radial_rad_out[..., np.newaxis] * radial_sph)
+            )
 
             return outside
 
     def __call__(self, r, theta, phi):
         inside = self.evaluate_electric_field_mode_shape_inside(r, theta, phi)
         outside = self.evaluate_electric_field_mode_shape_inside(r, theta, phi)
-        return np.where(
-            r[..., np.newaxis] <= self.microsphere.radius,
-            inside,
-            outside,
-        )
+        return np.where(r[..., np.newaxis] <= self.microsphere.radius, inside, outside)

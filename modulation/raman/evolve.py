@@ -16,16 +16,12 @@ class EvolutionAlgorithm(abc.ABC):
 
     @abc.abstractmethod
     def evolve(
-        self,
-        sim,
-        mode_amplitudes: np.ndarray,
-        time_initial: float,
-        time_final: float,
+        self, sim, mode_amplitudes: np.ndarray, time_initial: float, time_final: float
     ) -> np.ndarray:
         raise NotImplementedError
 
     def info(self) -> si.Info:
-        info = si.Info(header = f'Evolution Algorithm: {self.__class__.__name__}')
+        info = si.Info(header=f"Evolution Algorithm: {self.__class__.__name__}")
         return info
 
 
@@ -36,11 +32,7 @@ class ForwardEuler(EvolutionAlgorithm):
     """
 
     def evolve(
-        self,
-        sim,
-        mode_amplitudes: np.ndarray,
-        time_initial: float,
-        time_final: float,
+        self, sim, mode_amplitudes: np.ndarray, time_initial: float, time_final: float
     ) -> np.ndarray:
         deriv = sim.calculate_total_derivative(mode_amplitudes, time_initial)
         dt = time_final - time_initial
@@ -54,11 +46,7 @@ class RungeKutta4(EvolutionAlgorithm):
     """
 
     def evolve(
-        self,
-        sim,
-        mode_amplitudes: np.ndarray,
-        time_initial: float,
-        time_final: float,
+        self, sim, mode_amplitudes: np.ndarray, time_initial: float, time_final: float
     ) -> np.ndarray:
         dt = time_final - time_initial
         time_half = time_initial + (dt / 2)

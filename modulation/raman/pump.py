@@ -26,13 +26,13 @@ class MonochromaticPump(abc.ABC):
         raise NotImplementedError
 
     def __repr__(self):
-        return f'{self.__class__.__name__}'
+        return f"{self.__class__.__name__}"
 
     def __str__(self):
-        return f'{self.__class__.__name__}'
+        return f"{self.__class__.__name__}"
 
     def info(self) -> si.Info:
-        info = si.Info(header = self.__class__.__name__)
+        info = si.Info(header=self.__class__.__name__)
 
         return info
 
@@ -43,7 +43,7 @@ class RectangularMonochromaticPump(MonochromaticPump):
     Either endpoint may be ``None``, in which case the rectangle extends to infinity in that direction.
     """
 
-    __slots__ = ('frequency', 'power', 'start_time', 'end_time')
+    __slots__ = ("frequency", "power", "start_time", "end_time")
 
     def __init__(
         self,
@@ -84,24 +84,35 @@ class RectangularMonochromaticPump(MonochromaticPump):
     def get_power(self, time):
         """Return the pump power at the given time."""
         return np.where(
-            np.greater_equal(time, self.start_time) * np.less_equal(time, self.end_time),
+            np.greater_equal(time, self.start_time)
+            * np.less_equal(time, self.end_time),
             self.power,
             0,
         )
 
     def __repr__(self):
-        return f'{self.__class__.__name__}(frequency = {self.frequency}, power = {self.power}, start_time = {self.start_time}, end_time = {self.end_time})'
+        return f"{self.__class__.__name__}(frequency = {self.frequency}, power = {self.power}, start_time = {self.start_time}, end_time = {self.end_time})"
 
     def __str__(self):
-        return f'{self.__class__.__name__}(frequency = {self.frequency / u.THz:.6f} THz, power = {u.uround(self.power, u.mW)} mW, start_time = {u.uround(self.start_time, u.nsec)} ns, end_time = {u.uround(self.end_time, u.nsec)} ns)'
+        return f"{self.__class__.__name__}(frequency = {self.frequency / u.THz:.6f} THz, power = {u.uround(self.power, u.mW)} mW, start_time = {u.uround(self.start_time, u.nsec)} ns, end_time = {u.uround(self.end_time, u.nsec)} ns)"
 
     def info(self) -> si.Info:
         info = super().info()
 
-        info.add_field('Frequency', fmt.quantity(self.frequency, fmt.FREQUENCY_UNITS))
-        info.add_field('Power', fmt.quantity(self.power, fmt.POWER_UNITS))
-        info.add_field('Start Time', fmt.quantity(self.start_time, fmt.TIME_UNITS) if self.start_time != -np.inf else '-∞')
-        info.add_field('End Time', fmt.quantity(self.end_time, fmt.TIME_UNITS) if self.end_time != np.inf else '+∞')
+        info.add_field("Frequency", fmt.quantity(self.frequency, fmt.FREQUENCY_UNITS))
+        info.add_field("Power", fmt.quantity(self.power, fmt.POWER_UNITS))
+        info.add_field(
+            "Start Time",
+            fmt.quantity(self.start_time, fmt.TIME_UNITS)
+            if self.start_time != -np.inf
+            else "-∞",
+        )
+        info.add_field(
+            "End Time",
+            fmt.quantity(self.end_time, fmt.TIME_UNITS)
+            if self.end_time != np.inf
+            else "+∞",
+        )
 
         return info
 
@@ -109,25 +120,25 @@ class RectangularMonochromaticPump(MonochromaticPump):
 class ConstantMonochromaticPump(RectangularMonochromaticPump):
     """A pump that is always on."""
 
-    __slots__ = ('frequency', 'power',)
+    __slots__ = ("frequency", "power")
 
     def __init__(self, frequency: float, power: float):
-        super().__init__(frequency = frequency, power = power)
+        super().__init__(frequency=frequency, power=power)
 
     def get_power(self, time):
         """Return the pump power at the given time."""
         return self.power * np.ones_like(time)
 
     def __repr__(self):
-        return f'{self.__class__.__name__}(frequency = {self.frequency}, power = {self.power})'
+        return f"{self.__class__.__name__}(frequency = {self.frequency}, power = {self.power})"
 
     def __str__(self):
-        return f'{self.__class__.__name__}(frequency = {self.frequency / u.THz:.6f THz}, power = {u.uround(self.power, u.mW)} mW)'
+        return f"{self.__class__.__name__}(frequency = {self.frequency / u.THz:.6f THz}, power = {u.uround(self.power, u.mW)} mW)"
 
     def info(self) -> si.Info:
         info = super().info()
 
-        info.add_field('Frequency', fmt.quantity(self.frequency, fmt.FREQUENCY_UNITS))
-        info.add_field('Power', fmt.quantity(self.power, fmt.POWER_UNITS))
+        info.add_field("Frequency", fmt.quantity(self.frequency, fmt.FREQUENCY_UNITS))
+        info.add_field("Power", fmt.quantity(self.power, fmt.POWER_UNITS))
 
         return info

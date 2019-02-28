@@ -4,12 +4,13 @@ import numpy as np
 
 from . import exceptions
 
-class freezeable_property():
+
+class freezeable_property:
     def __init__(self, func):
         self.func = func
         self.name = func.__name__
 
-    def __get__(self, instance, cls = None):
+    def __get__(self, instance, cls=None):
         if instance is None:
             return self
 
@@ -21,17 +22,9 @@ class Lookback:
     A helper class for a RamanSimulation that "looks backward" from the end of the simulation and collects summary data on the mode amplitudes.
     """
 
-    STATS = [
-        'mean',
-        'max',
-        'min',
-        'std',
-    ]
+    STATS = ["mean", "max", "min", "std"]
 
-    def __init__(
-        self,
-        lookback_time: float = 0,
-    ):
+    def __init__(self, lookback_time: float = 0):
         """
         Parameters
         ----------
@@ -46,7 +39,9 @@ class Lookback:
     def add(self, time: float, mode_amplitudes: np.ndarray):
         """Add a new mode amplitude to the Lookback."""
         if self._entries is None:
-            raise exceptions.LookbackIsFrozen('this lookback is frozen; no more measurements can be added to it')
+            raise exceptions.LookbackIsFrozen(
+                "this lookback is frozen; no more measurements can be added to it"
+            )
 
         self._entries.append((time, mode_amplitudes.copy()))
 
@@ -70,22 +65,22 @@ class Lookback:
     @freezeable_property
     def mean(self) -> np.ndarray:
         """The average magnitude of each mode over the lookback time."""
-        return np.mean(self._stacked_magnitudes, axis = 0)
+        return np.mean(self._stacked_magnitudes, axis=0)
 
     @freezeable_property
     def max(self) -> np.ndarray:
         """The maximum magnitude of each mode over the lookback time."""
-        return np.max(self._stacked_magnitudes, axis = 0)
+        return np.max(self._stacked_magnitudes, axis=0)
 
     @freezeable_property
     def min(self) -> np.ndarray:
         """The minimum magnitude of each mode over the lookback time."""
-        return np.min(self._stacked_magnitudes, axis = 0)
+        return np.min(self._stacked_magnitudes, axis=0)
 
     @freezeable_property
     def std(self) -> np.ndarray:
         """The standard deviation of the magnitude of each mode over the lookback time."""
-        return np.std(self._stacked_magnitudes, axis = 0)
+        return np.std(self._stacked_magnitudes, axis=0)
 
     def freeze(self):
         """Lock the statistical measurements to their current values and clear internal storage."""

@@ -19,13 +19,8 @@ def integrand(spherical_harmonics, theta, phi):
 def dblquad(*spherical_harmonics):
     result = si.math.complex_nquad(
         lambda theta, phi: integrand(spherical_harmonics, theta, phi),
-        ranges = (
-            (0, u.pi),
-            (0, u.twopi),
-        ),
-        opts = dict(
-            limit = 5000,
-        ),
+        ranges=((0, u.pi), (0, u.twopi)),
+        opts=dict(limit=5000),
     )
 
     return np.real(result[0])
@@ -35,7 +30,7 @@ L_MAX = 2
 
 
 @pytest.mark.parametrize(
-    'sph_harms',
+    "sph_harms",
     (
         (
             vsh.RecurrentSphericalHarmonic(l1, m1),
@@ -51,10 +46,10 @@ L_MAX = 2
         for m2 in range(-l2, l2 + 1)
         for m3 in range(-l3, l3 + 1)
         for m in range(-l, l + 1)
-    )
+    ),
 )
 def test_sph_harm_integral_via_sum_against_dblquad_all_valid(sph_harms):
     from_sum = vsh.four_sph_harm_integral(*sph_harms)
     from_dbl = dblquad(*sph_harms)
 
-    assert np.isclose(from_sum, from_dbl, atol = 1e-12, rtol = 1e-12)
+    assert np.isclose(from_sum, from_dbl, atol=1e-12, rtol=1e-12)

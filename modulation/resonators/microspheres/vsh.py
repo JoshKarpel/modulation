@@ -32,23 +32,23 @@ class SphericalComponent(IntEnum):
 class VectorSphericalHarmonicType(si.utils.StrEnum):
     """An enumeration for the possible types of a vector spherical harmonic."""
 
-    RADIAL = 'radial'
-    GRADIENT = 'gradient'
-    CROSS = 'cross'
+    RADIAL = "radial"
+    GRADIENT = "gradient"
+    CROSS = "cross"
 
 
 class RecurrentSphericalHarmonic(si.math.SphericalHarmonic):
-    @functools.lru_cache(maxsize = None)
+    @functools.lru_cache(maxsize=None)
     def a(self, l, m):
         l_sq = l ** 2
         return np.sqrt(((4 * l_sq) - 1) / (l_sq - (m ** 2)))
 
-    @functools.lru_cache(maxsize = None)
+    @functools.lru_cache(maxsize=None)
     def b(self, l, m):
         lm_sq = (l - 1) ** 2
         return -np.sqrt((lm_sq - (m ** 2)) / ((4 * lm_sq) - 1))
 
-    def __call__(self, theta, phi = 0):
+    def __call__(self, theta, phi=0):
         if isinstance(phi, float):
             phi = phi * np.ones_like(theta)
         P = np.ones_like(theta) / np.sqrt(u.twopi)  # P(l = 0, m = 0)
@@ -65,7 +65,11 @@ class RecurrentSphericalHarmonic(si.math.SphericalHarmonic):
 
             # if l = m + 1, we're done
             for curr_l in range(abs_m + 2, self.l + 1):
-                P, prev_P = self.a(curr_l, abs_m) * ((cos_theta * P) + (self.b(curr_l, abs_m) * prev_P)), P
+                P, prev_P = (
+                    self.a(curr_l, abs_m)
+                    * ((cos_theta * P) + (self.b(curr_l, abs_m) * prev_P)),
+                    P,
+                )
 
         # turn normalized legendre polynomial into normalized spherical harmonic
         Y = P * np.exp(1j * self.m * phi) / np.sqrt(2)
@@ -75,11 +79,11 @@ class RecurrentSphericalHarmonic(si.math.SphericalHarmonic):
         return Y
 
 
-@functools.lru_cache(maxsize = None)
+@functools.lru_cache(maxsize=None)
 def four_sph_harm_integral(*spherical_harmonics: si.math.SphericalHarmonic):
     """All spherical harmonics unconjugated"""
     if len(spherical_harmonics) != 4:
-        raise Exception('must have 4 spherical harmonics')
+        raise Exception("must have 4 spherical harmonics")
 
     l1, l2, l3, l = (sh.l for sh in spherical_harmonics)
     m1, m2, m3, m = (sh.m for sh in spherical_harmonics)
@@ -88,13 +92,16 @@ def four_sph_harm_integral(*spherical_harmonics: si.math.SphericalHarmonic):
         return 0
 
     sign = 1 if (m + m3) % 2 == 0 else -1
-    prefactor = np.sqrt(((2 * l1) + 1) * ((2 * l2) + 1) * ((2 * l3) + 1) * ((2 * l) + 1)) / (4 * u.pi)
+    prefactor = np.sqrt(
+        ((2 * l1) + 1) * ((2 * l2) + 1) * ((2 * l3) + 1) * ((2 * l) + 1)
+    ) / (4 * u.pi)
 
     lp_min = max(abs(l1 - l2), abs(l3 - l), abs(m1 + m2))
     lp_max = min(l1 + l2, l3 + l)
 
     acc = sum(
-        ((2 * lp) + 1) * (
+        ((2 * lp) + 1)
+        * (
             threej(lp, l1, l2, -(m1 + m2), m1, m2)
             * threej(lp, l1, l2, 0, 0, 0)
             * threej(lp, l3, l, m1 + m2, m3, -(m1 + m2 + m3))
@@ -109,15 +116,9 @@ def four_sph_harm_integral(*spherical_harmonics: si.math.SphericalHarmonic):
 class VectorSphericalHarmonic:
     """A class that represents a vector spherical harmonic."""
 
-    __slots__ = ('type', 'l', 'm')
+    __slots__ = ("type", "l", "m")
 
-    def __init__(
-        self,
-        *,
-        type: VectorSphericalHarmonicType,
-        l: int = 0,
-        m: int = 0,
-    ):
+    def __init__(self, *, type: VectorSphericalHarmonicType, l: int = 0, m: int = 0):
         self.type = type
         self.l = l
         self.m = m
@@ -143,7 +144,9 @@ class VectorSphericalHarmonic:
 
     def __call__(self, theta, phi) -> np.array:
         """Always build arguments using meshgrid!"""
-        vf = np.zeros((*theta.shape, 3), dtype = np.complex128)  # (positions, vector component)
+        vf = np.zeros(
+            (*theta.shape, 3), dtype=np.complex128
+        )  # (positions, vector component)
 
         sph_harm_lm = RecurrentSphericalHarmonic(self.l, self.m)
         if self.type is VectorSphericalHarmonicType.RADIAL:
@@ -156,7 +159,11 @@ class VectorSphericalHarmonic:
             dy_dphi = 1j * sph_harm / np.sin(theta)
             try:
                 sph_harm_lmp = RecurrentSphericalHarmonic(self.l, self.m + 1)
-                dy_dtheta += np.sqrt((self.l - self.m) * (self.l + self.m + 1)) * np.exp(-1j * phi) * sph_harm_lmp(theta, phi)
+                dy_dtheta += (
+                    np.sqrt((self.l - self.m) * (self.l + self.m + 1))
+                    * np.exp(-1j * phi)
+                    * sph_harm_lmp(theta, phi)
+                )
             except si.exceptions.SimulacraException:
                 pass
 
@@ -174,19 +181,15 @@ class VectorSphericalHarmonic:
         return vf
 
     def info(self) -> si.Info:
-        info = si.Info(header = 'Vector Spherical Harmonic')
+        info = si.Info(header="Vector Spherical Harmonic")
 
-        info.add_field('Type', self.type)
-        info.add_field('l', self.l)
-        info.add_field('m', self.l)
+        info.add_field("Type", self.type)
+        info.add_field("l", self.l)
+        info.add_field("m", self.l)
 
         return info
 
 
 def inner_product_of_vsh(a, b):
     """Point-wise inner product of two vector spherical harmonics."""
-    return np.einsum(
-        'ijk,ijk->ij',
-        a,
-        b,
-    )
+    return np.einsum("ijk,ijk->ij", a, b)

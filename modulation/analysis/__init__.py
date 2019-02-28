@@ -1,3 +1,1 @@
-from .scan import (
-    ParameterScan,
-)
+from .scan import ParameterScan

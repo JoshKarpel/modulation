@@ -46,7 +46,7 @@ class MockMode(Mode):
         return self.label
 
     def __repr__(self):
-        return f'{self.__class__.__name__}(omega = {self.omega}, index_of_refraction = {self.index_of_refraction}, mode_volume_inside_resonator = {self.mode_volume_inside_resonator}, mode_volume_outside_resonator = {self.mode_volume_outside_resonator})'
+        return f"{self.__class__.__name__}(omega = {self.omega}, index_of_refraction = {self.index_of_refraction}, mode_volume_inside_resonator = {self.mode_volume_inside_resonator}, mode_volume_outside_resonator = {self.mode_volume_outside_resonator})"
 
     def __str__(self):
-        return f'{self.__class__.__name__}(frequency = {self.frequency / u.THz:.6f} THz, index_of_refraction = {self.index_of_refraction}, mode_volume_inside_resonator = {self.mode_volume_inside_resonator / (u.um ** 3):.3f} µm^3, mode_volume_outside_resonator = {self.mode_volume_outside_resonator / (u.um ** 3):.3f} µm^3)'
+        return f"{self.__class__.__name__}(frequency = {self.frequency / u.THz:.6f} THz, index_of_refraction = {self.index_of_refraction}, mode_volume_inside_resonator = {self.mode_volume_inside_resonator / (u.um ** 3):.3f} µm^3, mode_volume_outside_resonator = {self.mode_volume_outside_resonator / (u.um ** 3):.3f} µm^3)"

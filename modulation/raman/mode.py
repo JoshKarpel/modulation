@@ -60,11 +60,17 @@ class Mode(abc.ABC):
         raise NotImplementedError
 
     def info(self) -> si.Info:
-        info = si.Info(header = self.__class__.__name__)
+        info = si.Info(header=self.__class__.__name__)
 
-        info.add_field('Frequency', fmt.quantity(self.frequency, fmt.FREQUENCY_UNITS))
-        info.add_field('Index of Refraction', self.index_of_refraction)
-        info.add_field('Mode Volume Inside Resonator', fmt.quantity(self.mode_volume_inside_resonator, fmt.VOLUME_UNITS))
-        info.add_field('Mode Volume Outside Resonator', fmt.quantity(self.mode_volume_outside_resonator, fmt.VOLUME_UNITS))
+        info.add_field("Frequency", fmt.quantity(self.frequency, fmt.FREQUENCY_UNITS))
+        info.add_field("Index of Refraction", self.index_of_refraction)
+        info.add_field(
+            "Mode Volume Inside Resonator",
+            fmt.quantity(self.mode_volume_inside_resonator, fmt.VOLUME_UNITS),
+        )
+        info.add_field(
+            "Mode Volume Outside Resonator",
+            fmt.quantity(self.mode_volume_outside_resonator, fmt.VOLUME_UNITS),
+        )
 
         return info
