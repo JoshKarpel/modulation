@@ -22,14 +22,16 @@ def coupling_quality_factor_for_tapered_fiber(
 
     gamma = (u.twopi / wavelength) * np.sqrt((n_sphere ** 2) - 1)
 
-    q = 16 * np.sqrt(2) * (u.pi ** 5)
-    q *= (
-        (n_sphere ** 4)
+    q = (
+        16
+        * np.sqrt(2)
+        * (u.pi ** 5)
+        * (n_sphere ** 4)
         * n_fiber
         * (((n_sphere ** 2) - 1) ** 2)
         / (9 * ((n_fiber ** 2) - 1))
     )
-    q *= (microsphere_radius ** 1.5) * (fiber_taper_radius ** 3) / (wavelength ** 4.5)
+    q *= (microsphere_radius ** 1.5) * (fiber_taper_radius ** 3) * (wavelength ** -4.5)
     q *= np.exp(
         (2 * gamma * separation) + (((l - m) ** 2) / (gamma * microsphere_radius))
     )

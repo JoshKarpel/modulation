@@ -28,7 +28,9 @@ class RamanSimulation(si.Simulation):
 
         self.lookback = spec.lookback
 
-        self.latest_checkpoint_time = datetime.datetime.utcnow()
+        self.latest_checkpoint_time = (
+            datetime.datetime.utcnow() - 2 * self.spec.checkpoint_every
+        )
 
         total_time = self.spec.time_final - self.spec.time_initial
         self.time_index = 0
@@ -96,7 +98,7 @@ class RamanSimulation(si.Simulation):
 
     @property
     def current_time(self):
-        return self.times[self.time_index]
+        return self.time_at(self.time_index)
 
     @property
     def available_animation_frames(self) -> int:
@@ -169,21 +171,15 @@ class RamanSimulation(si.Simulation):
 
     @functools.lru_cache(maxsize=4)
     def calculate_pumps(self, time: float) -> np.ndarray:
-        # sum_of_pumps = np.zeros_like(self.pump_prefactor, dtype = np.complex128)
-        # for pump in self.spec.pumps:
-        #     # explicitly expand the implicit cosine in the pump
-        #     # and subtract frequencies before multiplying for less float error,
-        #     # only include negative-frequency part b/c of slowly-varying phase
-        #     sum_of_pumps += .5 * np.exp(1j * (self.mode_omegas - pump.omega) * time) * np.sqrt(pump.get_power(time))
-
-        sum_of_pumps = sum(
+        return (
             0.5
-            * np.exp(1j * (self.mode_omegas - pump.omega) * time)
-            * np.sqrt(pump.get_power(time))
-            for pump in self.spec.pumps
+            * self.pump_prefactor
+            * sum(
+                np.exp(1j * (self.mode_omegas - pump.omega) * time)
+                * np.sqrt(pump.get_power(time))
+                for pump in self.spec.pumps
+            )
         )
-
-        return self.pump_prefactor * sum_of_pumps
 
     @abc.abstractmethod
     def _calculate_polarization_sum_factors(self) -> np.ndarray:
@@ -241,8 +237,7 @@ class RamanSimulation(si.Simulation):
 
                 self.time_index += 1
 
-                # pump, decay, polarization
-                self.mode_amplitudes[:] = self.spec.evolution_algorithm.evolve(
+                self.mode_amplitudes = self.spec.evolution_algorithm.evolve(
                     sim=self,
                     mode_amplitudes=self.mode_amplitudes,
                     time_initial=self.time_at(self.time_index - 1),
@@ -421,6 +416,7 @@ class FourWaveMixingSimulation(RamanSimulation):
             mode_volume_ratios,
         )
 
+    @functools.lru_cache(maxsize=4)
     def _calculate_phase_array(self, time: float) -> np.ndarray:
         """
         Caching helps some algorithms like RK4 which need to evaluate at the same time multiple times.
@@ -433,8 +429,7 @@ class FourWaveMixingSimulation(RamanSimulation):
         -------
 
         """
-        minus_omega_t = -time * self.mode_omegas
-        return np.cos(minus_omega_t) + (1j * np.sin(minus_omega_t))
+        return np.exp(-1j * time * self.mode_omegas)
 
     def calculate_polarization(
         self, mode_amplitudes: np.ndarray, time: float
