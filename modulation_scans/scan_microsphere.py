@@ -147,7 +147,7 @@ def main():
         print("Generating modes locally...")
         modes_by_wavelength = {
             wavelength: shared.find_modes(bounds, microsphere, max_radial_mode_number)
-            for wavelength, bounds in wavelength_to_bounds.items()
+            for wavelength, bounds in tqdm(wavelength_to_bounds.items())
         }
     else:
         print(
