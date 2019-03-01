@@ -23,7 +23,7 @@ RUN conda install -y python=3.7 \
 ARG CACHEBUST=1
 
 # my packages
-RUN pip install htcondor==8.8.2b1 \
+RUN pip install htcondor \
                 git+https://github.com/JoshKarpel/htmap.git \
                 git+https://github.com/JoshKarpel/simulacra.git \
                 git+https://github.com/JoshKarpel/modulation.git
