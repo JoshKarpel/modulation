@@ -1,6 +1,8 @@
 import sys
 import datetime
 
+from tqdm import tqdm
+
 import numpy as np
 
 import simulacra as si
@@ -123,8 +125,9 @@ def main():
         lookback=modulation.raman.Lookback(lookback_time=lookback_time),
     )
 
+    print("Generating specifications...")
     specs = []
-    for c, params in enumerate(si.cluster.expand_parameters(parameters)):
+    for c, params in enumerate(tqdm(si.cluster.expand_parameters(parameters))):
         wavelength_bounds = microspheres.sideband_bounds(
             pump_wavelength=params["pump_wavelength"],
             stokes_orders=params["stokes_orders"],
