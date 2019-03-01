@@ -6,6 +6,7 @@ from pathlib import Path
 import gzip
 import pickle
 
+from tqdm import tqdm
 import click
 
 import htmap
@@ -25,15 +26,12 @@ def main(tag, outdir):
         outdir = Path.cwd()
     outdir = Path(outdir)
 
-    with shared.make_spinner(f"pickling sims from {tag}...") as spinner:
-        with si.utils.BlockTimer() as timer:
-            with gzip.open(outdir / f"{tag}.sims", mode="wb") as f:
-                pickle.dump(len(map), f)
-                for sim in map:
-                    pickle.dump(sim, f)
-        spinner.succeed(
-            f"pickled sims from {tag} (took {timer.wall_time_elapsed} seconds)"
-        )
+    with si.utils.BlockTimer() as timer:
+        with gzip.open(outdir / f"{tag}.sims", mode="wb") as f:
+            pickle.dump(len(map), f)
+            for sim in tqdm(map, desc="pickling sims...", total=len(map)):
+                pickle.dump(sim, f)
+    print(f"pickled sims from {tag} (took {timer.wall_time_elapsed} seconds)")
 
 
 if __name__ == "__main__":
