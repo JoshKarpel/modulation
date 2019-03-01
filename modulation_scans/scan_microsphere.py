@@ -2,9 +2,10 @@ import sys
 import datetime
 
 from tqdm import tqdm
-import htmap
 
 import numpy as np
+
+import htmap
 
 import simulacra as si
 import simulacra.units as u
@@ -17,6 +18,7 @@ from . import shared
 
 
 def main():
+    shared.set_htmap_settings()
     # QUESTIONS
 
     tag = shared.ask_for_tag()
@@ -156,7 +158,7 @@ def main():
                 lambda bounds: shared.find_modes(
                     bounds, microsphere, max_radial_mode_number
                 ),
-                wavelength_to_bounds.values(),
+                list(wavelength_to_bounds.values()),
             )
             m.wait(show_progress_bar=True)
             modes_by_wavelength = dict(zip(wavelength_to_bounds.keys(), m))

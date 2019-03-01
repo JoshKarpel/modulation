@@ -141,7 +141,7 @@ def _run(spec):
     return sim
 
 
-def _set_htmap_settings():
+def set_htmap_settings():
     htmap.settings[
         "DOCKER.IMAGE"
     ] = f'maventree/modulation:{si.cluster.ask_for_input("Docker image version?")}'
@@ -166,7 +166,6 @@ def _ask_about_map_options() -> (dict, dict):
 
 
 def create_map(tag: str, specs) -> htmap.Map:
-    _set_htmap_settings()
     opts, custom = _ask_about_map_options()
 
     map = _run.map(
