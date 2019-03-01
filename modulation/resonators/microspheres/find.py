@@ -26,6 +26,17 @@ class Microsphere:
         self.radius = radius
         self.index_of_refraction = index_of_refraction
 
+    def __eq__(self, other):
+        return all(
+            (
+                self.radius == other.radius,
+                self.index_of_refraction == other.index_of_refraction,
+            )
+        )
+
+    def __hash__(self):
+        return hash((self.__class__, self.radius, self.index_of_refraction))
+
     def __str__(self):
         return f"{self.__class__.__name__}(radius = {self.radius / u.um:.4g} um, index_of_refraction = {self.index_of_refraction})"
 
@@ -39,7 +50,7 @@ class Microsphere:
         return info
 
 
-@dataclass
+@dataclass(eq=True, frozen=True)
 class MicrosphereModeLocation:
     wavelength: float
     l: int

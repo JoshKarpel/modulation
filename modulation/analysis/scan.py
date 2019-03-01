@@ -17,6 +17,8 @@ class ParameterScan:
 
     @classmethod
     def from_file(cls, path: Path):
+        path = Path(path)
+
         sims = []
         with gzip.open(path, mode="rb") as f:
             for _ in range(pickle.load(f)):  # first entry is the number of entries

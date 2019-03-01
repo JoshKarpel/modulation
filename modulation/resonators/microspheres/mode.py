@@ -53,6 +53,31 @@ class MicrosphereMode(Mode):
             polarization=mode_location.polarization,
         )
 
+    def __eq__(self, other):
+        return all(
+            (
+                self.l == other.l,
+                self.m == other.m,
+                self.wavelength == other.wavelength,
+                self.radial_mode_number == other.radial_mode_number,
+                self.microsphere == other.microsphere,
+                self.polarization == other.polarization,
+            )
+        )
+
+    def __hash__(self):
+        return hash(
+            (
+                self.__class__,
+                self.l,
+                self.m,
+                self.wavelength,
+                self.radial_mode_number,
+                self.microsphere,
+                self.polarization,
+            )
+        )
+
     def __str__(self):
         return f"{self.__class__.__name__}(λ = {self.wavelength / u.nm:.3f} nm, f = {self.frequency / u.THz:.3f} THz, l = {self.l}, m = {self.m}, radial_mode_number = {self.radial_mode_number}, polarization = {self.polarization})"
 

@@ -33,7 +33,7 @@ def main(tag, outdir):
                 pickle.dump(len(map), f)
                 for sim in tqdm(map, desc="pickling sims...", total=len(map)):
                     pickle.dump(sim, f)
-        print(f"pickled sims from {tag} (took {timer.wall_time_elapsed} seconds)")
+        print(f"pickled sims from {tag} (took {timer.wall_time_elapsed})")
     except:
         if outpath.exists():
             outpath.unlink()
