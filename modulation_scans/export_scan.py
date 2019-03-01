@@ -25,13 +25,11 @@ def main(tag, outdir):
         outdir = Path.cwd()
     outdir = Path(outdir)
 
-    with shared.make_spinner(f"loading sims from {tag}...") as spinner:
-        sims = tuple(map)
-        spinner.succeed(f"loaded sims from {tag}")
-
     with shared.make_spinner(f"pickling sims from {tag}...") as spinner:
         with gzip.open(outdir / f"{tag}.sims", mode="wb") as f:
-            pickle.dump(sims, f)
+            pickle.dump(len(map), f)
+            for sim in map:
+                pickle.dump(sim, f)
         spinner.succeed(f"pickled sims from {tag}")
 
 
