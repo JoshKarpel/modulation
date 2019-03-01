@@ -156,7 +156,7 @@ def sideband_bounds(
         WavelengthBound.from_frequencies(lower, upper) for lower, upper in lower_upper
     ]
 
-    return bounds
+    return tuple(bounds)
 
 
 class LBound:

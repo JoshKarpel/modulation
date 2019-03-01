@@ -1,3 +1,4 @@
+import functools
 from pathlib import Path
 import random
 import sys
@@ -8,6 +9,7 @@ import simulacra as si
 import simulacra.units as u
 
 import modulation
+from modulation.resonators import microspheres
 
 # CLI
 
@@ -27,7 +29,10 @@ def make_spinner(*args, **kwargs):
 
 
 def ask_for_tag():
-    return si.cluster.ask_for_input("Map Tag?", default=None)
+    tag = si.cluster.ask_for_input("Map Tag?", default = None)
+    if tag is None:
+        raise ValueError("tag cannot be None")
+    return tag
 
 
 def ask_spec_type():
@@ -65,17 +70,17 @@ def ask_time_final(default=1):
 
 
 def ask_time_step(default=1):
-    return u.nsec * si.cluster.ask_for_input(
-        "Time step (in ns)?", default=default, cast_to=float
+    return u.psec * si.cluster.ask_for_input(
+        "Time step (in ps)?", default = default, cast_to = float
     )
 
 
 def ask_lookback_time(time_step, num_modes=None):
     lookback_time = u.nsec * si.cluster.ask_for_input(
-        "Lookback time (in ns)?", default=100, cast_to=float
+        "Lookback time (in ns)?", default = 10, cast_to = float
     )
 
-    bytes_per_mode = lookback_time / time_step * 128
+    bytes_per_mode = (lookback_time / time_step) * 128
 
     msg = f"Lookback will use ~{si.utils.bytes_to_str(bytes_per_mode)} per mode"
     if num_modes is not None:
@@ -86,6 +91,32 @@ def ask_lookback_time(time_step, num_modes=None):
     print(msg)
 
     return lookback_time
+
+
+def estimate_lookback_memory(lookback_time, time_step, num_modes):
+    bytes_per_mode = lookback_time / time_step * 128
+
+    total_bytes = bytes_per_mode * num_modes
+
+    print(f"Lookback memory estimate (max): {si.utils.bytes_to_str(total_bytes)}")
+
+
+@functools.lru_cache(maxsize = None)
+def find_modes(wavelength_bounds, microsphere, max_radial_mode_number):
+    mode_locations = microspheres.find_mode_locations(
+        wavelength_bounds = wavelength_bounds,
+        microsphere = microsphere,
+        max_radial_mode_number = max_radial_mode_number,
+    )
+
+    modes = [
+        microspheres.MicrosphereMode.from_mode_location(
+            mode_location, m = mode_location.l
+        )
+        for mode_location in mode_locations
+    ]
+
+    return modes
 
 
 # MAP CREATION

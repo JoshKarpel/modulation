@@ -77,6 +77,17 @@ class RectangularMonochromaticPump(MonochromaticPump):
             end_time = np.inf
         self.end_time = end_time
 
+    @classmethod
+    def from_wavelength(
+        cls,
+        wavelength: float,
+        power: float,
+        start_time: Optional[float] = None,
+        end_time: Optional[float] = None,
+    ):
+        frequency = u.c / wavelength
+        return cls(frequency, power, start_time, end_time)
+
     @property
     def omega(self):
         return u.twopi * self.frequency
@@ -124,6 +135,11 @@ class ConstantMonochromaticPump(RectangularMonochromaticPump):
 
     def __init__(self, frequency: float, power: float):
         super().__init__(frequency=frequency, power=power)
+
+    @classmethod
+    def from_wavelength(cls, wavelength: float, power: float):
+        frequency = u.c / wavelength
+        return cls(frequency, power)
 
     def get_power(self, time):
         """Return the pump power at the given time."""
