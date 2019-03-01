@@ -24,14 +24,14 @@ def main():
 
     material = shared.ask_material()
     microsphere = microspheres.Microsphere(
-        radius = u.um
-                 * si.cluster.ask_for_input(
-            "Microsphere radius (in um)?", cast_to = float, default = 50
+        radius=u.um
+        * si.cluster.ask_for_input(
+            "Microsphere radius (in um)?", cast_to=float, default=50
         ),
-        index_of_refraction = material.index_of_refraction,
+        index_of_refraction=material.index_of_refraction,
     )
     mvi = microspheres.FixedGridSimpsonMicrosphereVolumeIntegrator(
-        microsphere = microsphere
+        microsphere=microsphere
     )
 
     parameters.extend(
@@ -39,13 +39,13 @@ def main():
             si.cluster.Parameter(
                 "stokes_orders",
                 si.cluster.ask_for_input(
-                    "Number of Stokes Orders?", cast_to = int, default = 1
+                    "Number of Stokes Orders?", cast_to=int, default=1
                 ),
             ),
             si.cluster.Parameter(
                 "antistokes_orders",
                 si.cluster.ask_for_input(
-                    "Number of Anti-Stokes Orders?", cast_to = int, default = 0
+                    "Number of Anti-Stokes Orders?", cast_to=int, default=0
                 ),
             ),
             si.cluster.Parameter(
@@ -53,14 +53,14 @@ def main():
                 material.raman_linewidth
                 * si.cluster.ask_for_input(
                     "Mode Group Bandwidth (in Raman Linewidths)",
-                    cast_to = float,
-                    default = 0.2,
+                    cast_to=float,
+                    default=0.2,
                 ),
             ),
             si.cluster.Parameter(
                 "max_radial_mode_number",
                 si.cluster.ask_for_input(
-                    "Maximum Radial Mode Number?", cast_to = int, default = 5
+                    "Maximum Radial Mode Number?", cast_to=int, default=5
                 ),
             ),
         ]
@@ -73,33 +73,33 @@ def main():
                 u.nm
                 * np.array(
                     si.cluster.ask_for_eval(
-                        "Pump laser wavelength (in nm)?", default = "[1064]"
+                        "Pump laser wavelength (in nm)?", default="[1064]"
                     )
                 ),
-                expandable = True,
+                expandable=True,
             ),
             si.cluster.Parameter(
                 "pump_power",
                 u.uW
                 * np.array(
                     si.cluster.ask_for_eval(
-                        f"Launched power (in uW)?", default = "np.linspace(0, 5000, 100)"
+                        f"Launched power (in uW)?", default="np.linspace(0, 5000, 100)"
                     )
                 ),
-                expandable = True,
+                expandable=True,
             ),
         ]
     )
 
-    time_final = shared.ask_time_final(default = 10)
-    time_step = shared.ask_time_step(default = 1)
+    time_final = shared.ask_time_final(default=10)
+    time_step = shared.ask_time_step(default=1)
 
     DEFAULT_Q = 1e8
     parameters.append(
         si.cluster.Parameter(
             "intrinsic_q",
             si.cluster.ask_for_input(
-                "Mode Intrinsic Quality Factor?", cast_to = float, default = DEFAULT_Q
+                "Mode Intrinsic Quality Factor?", cast_to=float, default=DEFAULT_Q
             ),
         )
     )
@@ -108,7 +108,7 @@ def main():
         "Store mode amplitudes vs time?"
     )
 
-    lookback_time = shared.ask_lookback_time(time_step, num_modes = None)
+    lookback_time = shared.ask_lookback_time(time_step, num_modes=None)
 
     # CREATE SPECS
 
@@ -116,9 +116,9 @@ def main():
         time_final=time_final,
         time_step=time_step,
         material=material,
-        mode_volume_integrator = mvi,
+        mode_volume_integrator=mvi,
         checkpoints=True,
-        checkpoint_every = datetime.timedelta(minutes = 20),
+        checkpoint_every=datetime.timedelta(minutes=20),
         store_mode_amplitudes_vs_time=store_mode_amplitudes_vs_time,
         lookback=modulation.raman.Lookback(lookback_time=lookback_time),
     )
@@ -126,11 +126,11 @@ def main():
     specs = []
     for c, params in enumerate(si.cluster.expand_parameters(parameters)):
         wavelength_bounds = microspheres.sideband_bounds(
-            pump_wavelength = params["pump_wavelength"],
-            stokes_orders = params["stokes_orders"],
-            antistokes_orders = params["antistokes_orders"],
-            sideband_frequency = material.modulation_frequency,
-            bandwidth_frequency = params["group_bandwidth"],
+            pump_wavelength=params["pump_wavelength"],
+            stokes_orders=params["stokes_orders"],
+            antistokes_orders=params["antistokes_orders"],
+            sideband_frequency=material.modulation_frequency,
+            bandwidth_frequency=params["group_bandwidth"],
         )
 
         modes = shared.find_modes(
@@ -139,15 +139,15 @@ def main():
 
         spec = spec_type(
             str(c),
-            modes = modes,
-            mode_initial_amplitudes = {m: 1 for m in modes},
-            pumps = [
+            modes=modes,
+            mode_initial_amplitudes={m: 1 for m in modes},
+            pumps=[
                 raman.pump.ConstantMonochromaticPump.from_wavelength(
-                    wavelength = params["pump_wavelength"], power = params["pump_power"]
+                    wavelength=params["pump_wavelength"], power=params["pump_power"]
                 )
             ],
-            mode_intrinsic_quality_factors = {m: params["intrinsic_q"] for m in modes},
-            mode_coupling_quality_factors = {m: params["intrinsic_q"] for m in modes},
+            mode_intrinsic_quality_factors={m: params["intrinsic_q"] for m in modes},
+            mode_coupling_quality_factors={m: params["intrinsic_q"] for m in modes},
             **base_spec_kwargs,
             **{f"_{k}": v for k, v in params.items()},
         )
