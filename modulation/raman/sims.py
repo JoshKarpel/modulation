@@ -160,14 +160,13 @@ class RamanSimulation(si.Simulation):
         """Yields ``(mode, amplitude)`` pairs for all of the cavity modes in order."""
         yield from zip(self.spec.modes, self.mode_amplitudes)
 
-    def calculate_total_derivative(
+    def calculate_polarization_and_decay(
         self, mode_amplitudes: np.ndarray, time: float
     ) -> np.ndarray:
         polarization = self.calculate_polarization(mode_amplitudes, time)
-        pump = self.calculate_pumps(time)
         decay = -self.mode_amplitude_decay_rates * mode_amplitudes
 
-        return polarization + pump + decay
+        return polarization + decay
 
     @functools.lru_cache(maxsize=4)
     def calculate_pumps(self, time: float) -> np.ndarray:
@@ -180,6 +179,22 @@ class RamanSimulation(si.Simulation):
                 for pump in self.spec.pumps
             )
         )
+
+    def evolve_pump(
+        self, mode_amplitudes: np.ndarray, time_initial: float, time_final: float
+    ) -> np.ndarray:
+        midpoint = (time_initial + time_final) / 2
+        change = np.zeros_like(mode_amplitudes, dtype=np.complex128)
+        for pump in self.spec.pumps:
+            dw = self.mode_omegas - pump.omega
+            freq_part = np.where(
+                dw != 0,
+                (np.exp(1j * dw * time_final) - np.exp(1j * dw * time_initial)) / dw,
+                time_final - time_initial,
+            )
+            change += np.sqrt(pump.get_power(midpoint)) * freq_part
+
+        return mode_amplitudes - 0.5j * self.pump_prefactor * change
 
     @abc.abstractmethod
     def _calculate_polarization_sum_factors(self) -> np.ndarray:
@@ -237,12 +252,26 @@ class RamanSimulation(si.Simulation):
 
                 self.time_index += 1
 
-                self.mode_amplitudes = self.spec.evolution_algorithm.evolve(
-                    sim=self,
-                    mode_amplitudes=self.mode_amplitudes,
-                    time_initial=self.time_at(self.time_index - 1),
-                    time_final=self.time_at(self.time_index),
+                start = self.time_at(self.time_index - 1)
+                end = self.time_at(self.time_index)
+                midpoint = (start + end) / 2
+
+                after_first_pump = self.evolve_pump(
+                    self.mode_amplitudes, time_initial=start, time_final=midpoint
                 )
+                # print(after_pump)
+                after_nonlinear = self.spec.evolution_algorithm.evolve(
+                    sim=self,
+                    mode_amplitudes=after_first_pump,
+                    time_initial=start,
+                    time_final=end,
+                )
+                after_second_pump = self.evolve_pump(
+                    after_nonlinear, time_initial=midpoint, time_final=end
+                )
+                # print(after_nonlinear)
+                # print()
+                self.mode_amplitudes = after_second_pump
 
                 if self.spec.checkpoints:
                     now = datetime.datetime.utcnow()

@@ -34,7 +34,7 @@ class ForwardEuler(EvolutionAlgorithm):
     def evolve(
         self, sim, mode_amplitudes: np.ndarray, time_initial: float, time_final: float
     ) -> np.ndarray:
-        deriv = sim.calculate_total_derivative(mode_amplitudes, time_initial)
+        deriv = sim.calculate_polarization_and_decay(mode_amplitudes, time_initial)
         dt = time_final - time_initial
         return mode_amplitudes + (deriv * dt)
 
@@ -51,9 +51,13 @@ class RungeKutta4(EvolutionAlgorithm):
         dt = time_final - time_initial
         time_half = time_initial + (dt / 2)
 
-        k1 = dt * sim.calculate_total_derivative(mode_amplitudes, time_initial)
-        k2 = dt * sim.calculate_total_derivative(mode_amplitudes + (k1 / 2), time_half)
-        k3 = dt * sim.calculate_total_derivative(mode_amplitudes + (k2 / 2), time_half)
-        k4 = dt * sim.calculate_total_derivative(mode_amplitudes + k3, time_final)
+        k1 = dt * sim.calculate_polarization_and_decay(mode_amplitudes, time_initial)
+        k2 = dt * sim.calculate_polarization_and_decay(
+            mode_amplitudes + (k1 / 2), time_half
+        )
+        k3 = dt * sim.calculate_polarization_and_decay(
+            mode_amplitudes + (k2 / 2), time_half
+        )
+        k4 = dt * sim.calculate_polarization_and_decay(mode_amplitudes + k3, time_final)
 
         return mode_amplitudes + ((k1 + (2 * k2) + (2 * k3) + k4) / 6)

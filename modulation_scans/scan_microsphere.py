@@ -149,6 +149,15 @@ def main():
             wavelength: shared.find_modes(bounds, microsphere, max_radial_mode_number)
             for wavelength, bounds in wavelength_to_bounds.items()
         }
+    elif len(wavelength_to_bounds) <= 100:
+        m = si.utils.multi_map(
+            lambda bounds: shared.find_modes(
+                bounds, microsphere, max_radial_mode_number
+            ),
+            list(wavelength_to_bounds.values()),
+            processes=4,
+        )
+        modes_by_wavelength = dict(zip(wavelength_to_bounds.keys(), m))
     else:
         print(
             "Need to generate a large number of different mode sets, mapping over the cluster..."

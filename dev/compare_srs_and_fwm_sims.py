@@ -27,7 +27,7 @@ def find_mode(modes, omega: float):
     return sorted(modes, key=lambda m: abs(m.omega - omega))[0]
 
 
-def test(dt):
+def compare(dt):
     with LOGMAN as logger:
         pump_wavelength = 1064 * u.nm
         pump_power = 100 * u.uW
@@ -46,9 +46,8 @@ def test(dt):
             ),
             mock.MockMode(
                 label=f"stokes",
-                omega=pump_omega
-                - material.modulation_omega
-                + (0.079_384_839_103 * u.THz),
+                omega=pump_omega - material.modulation_omega,
+                # + (0.079_384_839_103 * u.THz),
                 index_of_refraction=1.45,
                 mode_volume_inside_resonator=1e-20,
             ),
@@ -107,11 +106,25 @@ def test(dt):
 
 
 if __name__ == "__main__":
+    # compare(10 * u.psec)
+
     dts = (
         np.array(
-            [9.5, 9.501_823, 9.9, 10, 10.1, 10.5, 14.9, 15, 15.1, 1, 1.1, 1.01, 1.001]
+            [
+                10,
+                10.1,
+                10.01,
+                10.001,
+                10.0001,
+                10.00001,
+                1,
+                1.1,
+                1.01,
+                1.001,
+                1.0001,
+                1.00001,
+            ]
         )
         * u.psec
     )
-
-    si.utils.multi_map(test, dts, processes=6)
+    si.utils.multi_map(compare, dts, processes=2)
