@@ -150,6 +150,7 @@ def main():
             for wavelength, bounds in wavelength_to_bounds.items()
         }
     elif len(wavelength_to_bounds) <= 100:
+        print("Generating modes locally...")
         m = si.utils.multi_map(
             lambda bounds: shared.find_modes(
                 bounds, microsphere, max_radial_mode_number
