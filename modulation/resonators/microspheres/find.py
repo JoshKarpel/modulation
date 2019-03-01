@@ -1,5 +1,5 @@
 import logging
-from typing import List, Iterable, Union
+from typing import List, Iterable, Union, Tuple
 
 import itertools
 from dataclasses import dataclass
@@ -140,7 +140,7 @@ def sideband_bounds(
     antistokes_orders: int = 0,
     sideband_frequency: float,
     bandwidth_frequency: float,
-) -> List[WavelengthBound]:
+) -> Tuple[WavelengthBound]:
     pump_frequency = wavelength_to_frequency(pump_wavelength)
     center_frequencies = (
         pump_frequency - (order * sideband_frequency)
@@ -242,9 +242,9 @@ def modal_equation(
     lm = l - 0.5
 
     k_0_R = microsphere.radius * u.twopi / wavelength
-    k_R = microsphere.index_of_refraction(wavelength) * k_0_R
-
     y = spc.yv(lm, k_0_R) / spc.yv(lp, k_0_R)
+
+    k_R = microsphere.index_of_refraction(wavelength) * k_0_R
     p = P(
         wavelength=wavelength,
         polarization=polarization,
@@ -252,10 +252,7 @@ def modal_equation(
     )
     j = p * spc.jv(lm, k_R) / spc.jv(lp, k_R)
 
-    result = y - j
-    result += -l * ((1 / k_0_R) - (p / k_R))
-
-    return result
+    return y - j - (l * ((1 / k_0_R) - (p / k_R)))
 
 
 def _l_bounds_from_wavelength(
@@ -301,7 +298,7 @@ def l_bound_from_wavelength_bound(
 def find_mode_locations(
     wavelength_bounds: Iterable[WavelengthBound],
     microsphere: Microsphere,
-    max_radial_mode_number=10,
+    max_radial_mode_number=5,
 ) -> List[MicrosphereModeLocation]:
     """
     Find the locations (free-space wavelengths and polarizations) of

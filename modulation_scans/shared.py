@@ -101,7 +101,6 @@ def estimate_lookback_memory(lookback_time, time_step, num_modes):
     print(f"Lookback memory estimate (max): {si.utils.bytes_to_str(total_bytes)}")
 
 
-@functools.lru_cache(maxsize=None)
 def find_modes(wavelength_bounds, microsphere, max_radial_mode_number):
     mode_locations = microspheres.find_mode_locations(
         wavelength_bounds=wavelength_bounds,

@@ -2,6 +2,7 @@ import sys
 import datetime
 
 from tqdm import tqdm
+import htmap
 
 import numpy as np
 
@@ -59,13 +60,13 @@ def main():
                     default=0.2,
                 ),
             ),
-            si.cluster.Parameter(
-                "max_radial_mode_number",
-                si.cluster.ask_for_input(
-                    "Maximum Radial Mode Number?", cast_to=int, default=5
-                ),
-            ),
         ]
+    )
+    max_radial_mode_number = si.cluster.ask_for_input(
+        "Maximum Radial Mode Number?", cast_to=int, default=5
+    )
+    parameters.append(
+        si.cluster.Parameter("max_radial_mode_number", max_radial_mode_number)
     )
 
     parameters.extend(
@@ -125,20 +126,47 @@ def main():
         lookback=modulation.raman.Lookback(lookback_time=lookback_time),
     )
 
-    print("Generating specifications...")
-    specs = []
-    for c, params in enumerate(tqdm(si.cluster.expand_parameters(parameters))):
-        wavelength_bounds = microspheres.sideband_bounds(
+    print("Expanding parameters...")
+    expanded_parameters = si.cluster.expand_parameters(parameters)
+
+    print("Generating wavelength bounds...")
+    wavelength_to_bounds = {
+        params["pump_wavelength"]: microspheres.sideband_bounds(
             pump_wavelength=params["pump_wavelength"],
             stokes_orders=params["stokes_orders"],
             antistokes_orders=params["antistokes_orders"],
             sideband_frequency=material.modulation_frequency,
             bandwidth_frequency=params["group_bandwidth"],
         )
+        for params in expanded_parameters
+    }
 
-        modes = shared.find_modes(
-            wavelength_bounds, microsphere, params["max_radial_mode_number"]
+    if len(wavelength_to_bounds) <= 10:
+        print("Generating modes locally...")
+        modes_by_wavelength = {
+            wavelength: shared.find_modes(bounds, microsphere, max_radial_mode_number)
+            for wavelength, bounds in wavelength_to_bounds.items()
+        }
+    else:
+        print(
+            "Need to generate a large number of different mode sets, mapping over the cluster..."
         )
+        try:
+            m = htmap.map(
+                lambda bounds: shared.find_modes(
+                    bounds, microsphere, max_radial_mode_number
+                ),
+                wavelength_to_bounds.values(),
+            )
+            m.wait(show_progress_bar=True)
+            modes_by_wavelength = dict(zip(wavelength_to_bounds.keys(), m))
+        finally:
+            m.remove()
+
+    print("Generating specifications...")
+    specs = []
+    for c, params in enumerate(tqdm(expanded_parameters)):
+        modes = modes_by_wavelength[params["pump_wavelength"]]
 
         spec = spec_type(
             str(c),
