@@ -159,6 +159,9 @@ def main():
                     bounds, microsphere, max_radial_mode_number
                 ),
                 list(wavelength_to_bounds.values()),
+                map_options=htmap.MapOptions(
+                    custom_opts={"wantflocking": "true", "wantglidein": "true"}
+                ),
             )
             m.wait(show_progress_bar=True)
             modes_by_wavelength = dict(zip(wavelength_to_bounds.keys(), m))
