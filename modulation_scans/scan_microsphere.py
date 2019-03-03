@@ -134,6 +134,7 @@ def main():
 
     final_parameters = [
         dict(
+            component=c,
             pumps=[
                 raman.pump.ConstantMonochromaticPump.from_wavelength(
                     wavelength=params["pump_wavelength"], power=params["pump_power"]
