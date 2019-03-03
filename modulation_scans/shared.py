@@ -75,22 +75,10 @@ def ask_time_step(default=1):
     )
 
 
-def ask_lookback_time(time_step, num_modes=None):
-    lookback_time = u.nsec * si.cluster.ask_for_input(
+def ask_lookback_time():
+    return u.nsec * si.cluster.ask_for_input(
         "Lookback time (in ns)?", default=10, cast_to=float
     )
-
-    bytes_per_mode = (lookback_time / time_step) * 128
-
-    msg = f"Lookback will use ~{si.utils.bytes_to_str(bytes_per_mode)} per mode"
-    if num_modes is not None:
-        total_bytes = bytes_per_mode * num_modes
-
-        msg += f" x {num_modes} modes = ~{si.utils.bytes_to_str(total_bytes)}"
-
-    print(msg)
-
-    return lookback_time
 
 
 def estimate_lookback_memory(lookback_time, time_step, num_modes):
@@ -147,7 +135,7 @@ def set_htmap_settings():
     ] = f'maventree/modulation:{si.cluster.ask_for_input("Docker image version?")}'
 
 
-def _ask_about_map_options() -> (dict, dict):
+def ask_map_options() -> (dict, dict):
     opts = {
         "request_memory": si.cluster.ask_for_input("Memory?", default="250MB"),
         "request_disk": si.cluster.ask_for_input("Disk?", default="500MB"),
@@ -166,7 +154,7 @@ def _ask_about_map_options() -> (dict, dict):
 
 
 def create_map(tag: str, specs) -> htmap.Map:
-    opts, custom = _ask_about_map_options()
+    opts, custom = ask_map_options()
 
     map = _run.map(
         specs, map_options=htmap.MapOptions(**opts, custom_options=custom), tag=tag

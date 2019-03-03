@@ -31,7 +31,7 @@ class IndexOfRefraction(abc.ABC):
         raise NotImplementedError
 
     def info(self) -> si.Info:
-        info = si.Info(header = self.__class__.__name__)
+        info = si.Info(header=self.__class__.__name__)
         if self.name is not None:
             info.add_field("Name", self.name)
         return info
@@ -40,7 +40,7 @@ class IndexOfRefraction(abc.ABC):
 class ConstantIndex(IndexOfRefraction):
     """A wavelength-independent index of refraction."""
 
-    def __init__(self, n = 1, **kwargs):
+    def __init__(self, n=1, **kwargs):
         self.n = n
 
         super().__init__(**kwargs)
@@ -86,7 +86,7 @@ class SellmeierIndex(IndexOfRefraction):
         index
         """
         B, C = SELLMEIER_COEFFICIENTS[name]
-        return cls(B, C, name = name)
+        return cls(B, C, name=name)
 
     def __eq__(self, other):
         return all((np.array_equal(self.B, other.B), np.array_equal(self.C, other.C)))

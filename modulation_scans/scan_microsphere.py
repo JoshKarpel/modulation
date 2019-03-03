@@ -1,7 +1,6 @@
 import sys
 import datetime
-
-from tqdm import tqdm
+from pathlib import Path
 
 import numpy as np
 
@@ -25,7 +24,7 @@ def main():
 
     parameters = []
 
-    spec_type = shared.ask_spec_type()
+    parameters.append(si.cluster.Parameter("spec_type", shared.ask_spec_type()))
 
     material = shared.ask_material()
     microsphere = microspheres.Microsphere(
@@ -62,13 +61,13 @@ def main():
                     default=0.2,
                 ),
             ),
+            si.cluster.Parameter(
+                "max_radial_mode_number",
+                si.cluster.ask_for_input(
+                    "Maximum Radial Mode Number?", cast_to=int, default=5
+                ),
+            ),
         ]
-    )
-    max_radial_mode_number = si.cluster.ask_for_input(
-        "Maximum Radial Mode Number?", cast_to=int, default=5
-    )
-    parameters.append(
-        si.cluster.Parameter("max_radial_mode_number", max_radial_mode_number)
     )
 
     parameters.extend(
@@ -96,8 +95,12 @@ def main():
         ]
     )
 
-    time_final = shared.ask_time_final(default=10)
-    time_step = shared.ask_time_step(default=1)
+    parameters.extend(
+        [
+            si.cluster.Parameter("time_final", shared.ask_time_final(default=10)),
+            si.cluster.Parameter("time_step", shared.ask_time_step(default=1)),
+        ]
+    )
 
     DEFAULT_Q = 1e8
     parameters.append(
@@ -113,13 +116,11 @@ def main():
         "Store mode amplitudes vs time?"
     )
 
-    lookback_time = shared.ask_lookback_time(time_step, num_modes=None)
+    lookback_time = shared.ask_lookback_time()
 
     # CREATE SPECS
 
-    base_spec_kwargs = dict(
-        time_final=time_final,
-        time_step=time_step,
+    extra_parameters = dict(
         material=material,
         mode_volume_integrator=mvi,
         checkpoints=True,
@@ -131,76 +132,89 @@ def main():
     print("Expanding parameters...")
     expanded_parameters = si.cluster.expand_parameters(parameters)
 
-    print("Generating wavelength bounds...")
-    wavelength_to_bounds = {
-        params["pump_wavelength"]: microspheres.sideband_bounds(
-            pump_wavelength=params["pump_wavelength"],
-            stokes_orders=params["stokes_orders"],
-            antistokes_orders=params["antistokes_orders"],
-            sideband_frequency=material.modulation_frequency,
-            bandwidth_frequency=params["group_bandwidth"],
-        )
-        for params in expanded_parameters
-    }
-
-    if len(wavelength_to_bounds) <= 100:
-        print("Generating modes locally...")
-        modes_by_wavelength = {
-            wavelength: shared.find_modes(bounds, microsphere, max_radial_mode_number)
-            for wavelength, bounds in tqdm(wavelength_to_bounds.items())
-        }
-    else:
-        print(
-            "Need to generate a large number of different mode sets, mapping over the cluster..."
-        )
-        try:
-            m = htmap.map(
-                lambda bounds: shared.find_modes(
-                    bounds, microsphere, max_radial_mode_number
-                ),
-                list(wavelength_to_bounds.values()),
-                map_options=htmap.MapOptions(
-                    custom_opts={"wantflocking": "true", "wantglidein": "true"}
-                ),
-            )
-            m.wait(show_progress_bar=True)
-            modes_by_wavelength = dict(zip(wavelength_to_bounds.keys(), m))
-        finally:
-            m.remove()
-
-    print("Generating specifications...")
-    specs = []
-    for c, params in enumerate(tqdm(expanded_parameters)):
-        modes = modes_by_wavelength[params["pump_wavelength"]]
-
-        spec = spec_type(
-            str(c),
-            modes=modes,
-            mode_initial_amplitudes={m: 1 for m in modes},
+    final_parameters = [
+        dict(
             pumps=[
                 raman.pump.ConstantMonochromaticPump.from_wavelength(
                     wavelength=params["pump_wavelength"], power=params["pump_power"]
                 )
             ],
-            mode_intrinsic_quality_factors={m: params["intrinsic_q"] for m in modes},
-            mode_coupling_quality_factors={m: params["intrinsic_q"] for m in modes},
-            **base_spec_kwargs,
+            **extra_parameters,
             **{f"_{k}": v for k, v in params.items()},
         )
+        for c, params in enumerate(expanded_parameters)
+    ]
 
-        specs.append(spec)
-
-    min_time_step = min(spec.time_step for spec in specs)
-    max_num_modes = max(len(spec.modes) for spec in specs)
-
-    shared.estimate_lookback_memory(lookback_time, min_time_step, max_num_modes)
-
-    if not si.cluster.ask_for_bool(f"Launch a map with {len(specs)} simulations?"):
+    if not si.cluster.ask_for_bool(
+        f"Launch a map with {len(final_parameters)} simulations?"
+    ):
         sys.exit(1)
 
     # CREATE MAP
-    shared.create_map(tag, specs)
+    opts, custom = shared.ask_map_options()
+
+    map = run.map(
+        final_parameters,
+        map_options=htmap.MapOptions(**opts, custom_options=custom),
+        tag=tag,
+    )
+
+    print(f"Created map {map.tag}")
+
+    return map
+
+
+@htmap.mapped
+def run(params):
+    with si.utils.LogManager("modulation", "simulacra") as logman:
+        sim_path = Path.cwd() / f"{params['component']}.sim"
+        try:
+            sim = si.Simulation.load(str(sim_path))
+            logman.info(f"Recovered checkpoint from {sim_path}")
+        except (FileNotFoundError, EOFError):
+            logman.info("No checkpoint found")
+
+            bounds = microspheres.sideband_bounds(
+                pump_wavelength=params["pump_wavelength"],
+                stokes_orders=params["stokes_orders"],
+                antistokes_orders=params["antistokes_orders"],
+                sideband_frequency=params["material"].modulation_frequency,
+                bandwidth_frequency=params["group_bandwidth"],
+            )
+            logman.info(f"Found {len(bounds)} bounds:")
+            for bound in bounds:
+                print(bound)
+
+            print()
+
+            modes = shared.find_modes(
+                bounds, params["microsphere"], params["max_radial_mode_number"]
+            )
+            logman.info(f"Found {len(modes)} modes:")
+            for mode in modes:
+                print(mode)
+
+            spec = params["spec_type"](
+                params["component"],
+                modes=modes,
+                mode_initial_amplitudes={m: 1 for m in modes},
+                mode_intrinsic_quality_factors={
+                    m: params["intrinsic_q"] for m in modes
+                },
+                mode_coupling_quality_factors={m: params["intrinsic_q"] for m in modes},
+                **params,
+            )
+
+            sim = spec.to_sim()
+
+        print(sim.info())
+
+        sim.run(checkpoint_callback=htmap.checkpoint)
+
+        print(sim.info())
+
+        return sim
 
 
 if __name__ == "__main__":
-    main()
+    map = main()
