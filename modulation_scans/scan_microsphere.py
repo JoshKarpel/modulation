@@ -121,6 +121,7 @@ def main():
     # CREATE SPECS
 
     extra_parameters = dict(
+        microsphere=microsphere,
         material=material,
         mode_volume_integrator=mvi,
         checkpoints=True,
