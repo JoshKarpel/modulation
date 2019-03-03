@@ -139,8 +139,8 @@ def main():
                     wavelength=params["pump_wavelength"], power=params["pump_power"]
                 )
             ],
+            **params,
             **extra_parameters,
-            **{f"_{k}": v for k, v in params.items()},
         )
         for c, params in enumerate(expanded_parameters)
     ]
