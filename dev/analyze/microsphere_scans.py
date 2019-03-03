@@ -1,3 +1,4 @@
+import collections
 import itertools
 import logging
 from pathlib import Path
@@ -23,26 +24,25 @@ LOGMAN = si.utils.LogManager("simulacra", "modulation", stdout_level=logging.INF
 PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 
 COLORS = [
-    "#e41a1c",
-    "#377eb8",
-    "#4daf4a",
-    "#984ea3",
-    "#ff7f00",
-    "#ffff33",
-    "#a65628",
-    "#f781bf",
-    "#999999",
+    "#1b9e77",
+    "#d95f02",
+    "#7570b3",
+    "#e7298a",
+    "#66a61e",
+    "#e6ab02",
+    "#a6761d",
+    "#666666",
 ]
-LINESTYLES = ["-", "-.", "--", ":"]
+LINESTYLES = ["-", "-.", "--"]
 
 
 def wavelength_scan():
     ps = analysis.ParameterScan.from_file(
-        Path(__file__).parent / "test_wavelength_scan.sims"
+        Path(__file__).parent / "test_wavelength_scan_v2.sims"
     )
     print(ps, len(ps))
 
-    pump_wavelengths = np.array(sorted(ps.parameter_set("_pump_wavelength")))
+    pump_wavelengths = np.array(sorted(ps.parameter_set("pump_wavelength")))
 
     modes = set()
     for sim in ps.sims:
@@ -59,8 +59,8 @@ def wavelength_scan():
     x = np.empty(len(pump_wavelengths), dtype=np.float64)
     mode_to_y = {m: np.zeros_like(x) * np.NaN for m in modes}
     print(len(mode_to_y))
-    for s, sim in enumerate(sorted(ps.sims, key=lambda s: s.spec._pump_wavelength)):
-        x[s] = sim.spec._pump_wavelength
+    for s, sim in enumerate(sorted(ps.sims, key=lambda s: s.spec.pump_wavelength)):
+        x[s] = sim.spec.pump_wavelength
         for mode, energy in zip(sim.spec.modes, sim.mode_energies(sim.lookback.mean)):
             print(mode)
             mode_to_y[mode][s] = energy
@@ -76,6 +76,8 @@ def wavelength_scan():
     colors = itertools.cycle(COLORS)
     mode_kwargs = [dict(linestyle=next(styles), color=next(colors)) for mode in modes]
 
+    mode_vlines_kwargs = dict(alpha=0.8, linestyle=":")
+
     si.vis.xy_plot(
         "wavelength_scan",
         x,
@@ -88,9 +90,13 @@ def wavelength_scan():
         y_label="Mode Energies",
         y_log_axis=True,
         legend_on_right=True,
-        legend_kwargs=dict(fontsize=8, ncol=2),
+        font_size_legend=8,
         vlines=[mode.wavelength for mode in modes],
-        vline_kwargs=[dict(alpha=0.8, linestyle=":") for mode in modes],
+        vline_kwargs=[
+            collections.ChainMap(mode_vlines_kwargs, kw)
+            for mode, kw in zip(modes, mode_kwargs)
+        ],
+        y_lower_limit=1e-9 * u.pJ,
         **PLOT_KWARGS,
     )
 
