@@ -36,10 +36,8 @@ COLORS = [
 LINESTYLES = ["-", "-.", "--"]
 
 
-def wavelength_scan():
-    ps = analysis.ParameterScan.from_file(
-        Path(__file__).parent / "test_wavelength_scan_v2.sims"
-    )
+def wavelength_scan(path):
+    ps = analysis.ParameterScan.from_file(path)
     print(ps, len(ps))
 
     pump_wavelengths = np.array(sorted(ps.parameter_set("pump_wavelength")))
@@ -47,27 +45,16 @@ def wavelength_scan():
     modes = set()
     for sim in ps.sims:
         modes.update(sim.spec.modes)
+    modes = sorted(modes, key=lambda m: m.wavelength)
 
     print("total unique modes", len(modes))
 
-    modes = sorted(modes, key=lambda m: m.wavelength)
-    for mode in modes:
-        print(mode)
-
-    print(len(pump_wavelengths), pump_wavelengths / u.nm)
-
     x = np.empty(len(pump_wavelengths), dtype=np.float64)
     mode_to_y = {m: np.zeros_like(x) * np.NaN for m in modes}
-    print(len(mode_to_y))
     for s, sim in enumerate(sorted(ps.sims, key=lambda s: s.spec.pump_wavelength)):
         x[s] = sim.spec.pump_wavelength
         for mode, energy in zip(sim.spec.modes, sim.mode_energies(sim.lookback.mean)):
-            print(mode)
             mode_to_y[mode][s] = energy
-
-    print(x / u.nm)
-    for k, v in mode_to_y.items():
-        print(k, v / u.pJ)
 
     modes = list(mode_to_y.keys())
     y = list(mode_to_y.values())
@@ -79,7 +66,7 @@ def wavelength_scan():
     mode_vlines_kwargs = dict(alpha=0.8, linestyle=":")
 
     si.vis.xy_plot(
-        "wavelength_scan",
+        f"wavelength_scan_for_{path.stem}",
         x,
         *y,
         line_labels=[rf"${mode.tex}$" for mode in modes],
@@ -103,4 +90,10 @@ def wavelength_scan():
 
 if __name__ == "__main__":
     with LOGMAN as logger:
-        wavelength_scan()
+        paths = [
+            Path(__file__).parent / "test_wavelength_scan_v2.sims",
+            Path(__file__).parent / "focused_wavelength_scan.sims",
+        ]
+
+        for path in paths:
+            wavelength_scan(path)

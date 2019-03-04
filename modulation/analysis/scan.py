@@ -5,6 +5,8 @@ from pathlib import Path
 import gzip
 import pickle
 
+from tqdm import tqdm
+
 import simulacra as si
 
 logger = logging.getLogger(__name__)
@@ -21,7 +23,9 @@ class ParameterScan:
 
         sims = []
         with gzip.open(path, mode="rb") as f:
-            for _ in range(pickle.load(f)):  # first entry is the number of entries
+            for _ in tqdm(
+                range(pickle.load(f))
+            ):  # first entry is the number of entries
                 sims.append(pickle.load(f))
 
         ps = cls(path.stem, sims)
