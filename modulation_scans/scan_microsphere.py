@@ -250,7 +250,7 @@ def run(params):
                 ]
             elif params["pump_selection_method"] in ("offset", "symmetric"):
                 pump_mode = shared.find_mode_nearest_wavelength(
-                    params["pump_wavelength"]
+                    modes, params["pump_wavelength"]
                 )
                 pumps = [
                     raman.pump.ConstantMonochromaticPump(
