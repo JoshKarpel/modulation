@@ -193,7 +193,7 @@ class FixedGridSimpsonMicrosphereVolumeIntegrator(
     def __init__(self, r_points=2001, theta_points=501, **kwargs):
         super().__init__(r_points=r_points, theta_points=theta_points, **kwargs)
 
-    @property
+    @si.utils.cached_property
     def r_theta(self):
         r = np.linspace(0.5 * self.radius, self.radius, self.r_points)
         theta = np.linspace(0, u.pi, self.theta_points + 2)[1:-1]
@@ -231,12 +231,18 @@ class FixedGridSimpsonMicrosphereVolumeIntegrator(
 
     @functools.lru_cache(maxsize=None)
     def mode_magnitude_inside(self, mode):
+        r_mesh, theta_mesh, phi_mesh = self.r_theta_phi_meshes
         mode_shape_vector_field = mode.evaluate_electric_field_mode_shape_inside(
-            self.r_mesh, self.theta_mesh, self.phi_mesh
+            r_mesh, theta_mesh, phi_mesh
         )
         return np.sqrt(np.sum(np.abs(mode_shape_vector_field) ** 2, axis=-1))
 
     def __getstate__(self):
+        try:
+            del self.r_theta
+        except AttributeError:
+            pass
+
         try:
             del self.r_theta_phi_meshes
         except AttributeError:
