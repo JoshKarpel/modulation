@@ -18,7 +18,6 @@ from . import shared
 
 def main():
     shared.set_htmap_settings()
-    # QUESTIONS
 
     tag = shared.ask_for_tag()
 
@@ -70,8 +69,16 @@ def main():
         ]
     )
 
-    parameters.extend(
-        [
+    pump_selection_method = si.cluster.ask_for_choices(
+        "Pump Wavelength Selection Method?",
+        choices={"raw": "raw", "offset": "offset", "symmetric": "symmetric"},
+    )
+    parameters.append(
+        si.cluster.Parameter("pump_selection_method", pump_selection_method)
+    )
+
+    if pump_selection_method == "raw":
+        parameters.append(
             si.cluster.Parameter(
                 "pump_wavelength",
                 u.nm
@@ -81,18 +88,66 @@ def main():
                     )
                 ),
                 expandable=True,
-            ),
-            si.cluster.Parameter(
-                "pump_power",
-                u.uW
-                * np.array(
-                    si.cluster.ask_for_eval(
-                        f"Launched power (in uW)?", default="np.linspace(0, 5000, 100)"
-                    )
+            )
+        )
+    elif pump_selection_method == "offset":
+        parameters.extend(
+            [
+                si.cluster.Parameter(
+                    "pump_wavelength",
+                    u.nm
+                    * si.cluster.ask_for_input(
+                        "Pump laser wavelength (in nm)?", default=1064, cast_to=float
+                    ),
                 ),
-                expandable=True,
+                si.cluster.Parameter(
+                    "pump_frequency_offset",
+                    u.GHz
+                    * np.array(
+                        si.cluster.ask_for_eval(
+                            "Pump laser frequency offsets (in GHz)", default="[0]"
+                        )
+                    ),
+                    expandable=True,
+                ),
+            ]
+        )
+    elif pump_selection_method == "symmetric":
+        pump_wavelength = u.nm * si.cluster.ask_for_input(
+            "Pump laser wavelength (in nm)?", default=1064, cast_to=float
+        )
+        pump_frequency_offsets_raw = u.GHz * np.array(
+            si.cluster.ask_for_eval(
+                "Pump laser frequency offsets (in GHz)", default="[0]"
+            )
+        )
+        pump_frequency_offsets_abs = np.array(
+            sorted(set(np.abs(pump_frequency_offsets_raw)))
+        )
+        if pump_frequency_offsets_abs[0] != 0:
+            pump_frequency_offsets_abs = np.insert(pump_frequency_offsets_abs, 0, 0)
+        pump_frequency_offsets = np.concatenate(
+            (-pump_frequency_offsets_abs[:0:-1], pump_frequency_offsets_abs)
+        )
+
+        parameters.extend(
+            [
+                si.cluster.Parameter("pump_wavelength", pump_wavelength),
+                si.cluster.Parameter(
+                    "pump_frequency_offset", pump_frequency_offsets, expandable=True
+                ),
+            ]
+        )
+
+    parameters.append(
+        si.cluster.Parameter(
+            "pump_power",
+            u.uW
+            * np.array(
+                si.cluster.ask_for_eval(f"Launched power (in uW)?", default="[1000]")
             ),
-        ]
+            expandable=True,
+        )
     )
 
     parameters.extend(
@@ -134,16 +189,7 @@ def main():
     expanded_parameters = si.cluster.expand_parameters(parameters)
 
     final_parameters = [
-        dict(
-            component=c,
-            pumps=[
-                raman.pump.ConstantMonochromaticPump.from_wavelength(
-                    wavelength=params["pump_wavelength"], power=params["pump_power"]
-                )
-            ],
-            **params,
-            **extra_parameters,
-        )
+        dict(component=c, **params, **extra_parameters)
         for c, params in enumerate(expanded_parameters)
     ]
 
@@ -186,7 +232,6 @@ def run(params):
             logman.info(f"Found {len(bounds)} bounds:")
             for bound in bounds:
                 print(bound)
-
             print()
 
             modes = shared.find_modes(
@@ -195,10 +240,29 @@ def run(params):
             logman.info(f"Found {len(modes)} modes:")
             for mode in modes:
                 print(mode)
+            print()
+
+            if params["pump_selection_method"] == "raw":
+                pumps = [
+                    raman.pump.ConstantMonochromaticPump.from_wavelength(
+                        wavelength=params["pump_wavelength"], power=params["pump_power"]
+                    )
+                ]
+            elif params["pump_selection_method"] in ("offset", "symmetric"):
+                pump_mode = shared.find_mode_nearest_wavelength(
+                    params["pump_wavelength"]
+                )
+                pumps = [
+                    raman.pump.ConstantMonochromaticPump(
+                        frequency=pump_mode.frequency + params["pump_frequency_offset"],
+                        power=params["pump_power"],
+                    )
+                ]
 
             spec = params["spec_type"](
                 params["component"],
                 modes=modes,
+                pumps=pumps,
                 mode_initial_amplitudes={m: 1 for m in modes},
                 mode_intrinsic_quality_factors={
                     m: params["intrinsic_q"] for m in modes

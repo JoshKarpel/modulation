@@ -106,6 +106,14 @@ def find_modes(wavelength_bounds, microsphere, max_radial_mode_number):
     return modes
 
 
+def find_mode_nearest_wavelength(modes, wavelength: float):
+    return sorted(modes, key=lambda m: abs(m.wavelength - wavelength))[0]
+
+
+def find_mode_nearest_omega(modes, omega: float):
+    return sorted(modes, key=lambda m: abs(m.omega - omega))[0]
+
+
 # MAP CREATION
 
 

@@ -88,6 +88,17 @@ class RectangularMonochromaticPump(MonochromaticPump):
         frequency = u.c / wavelength
         return cls(frequency, power, start_time, end_time)
 
+    @classmethod
+    def from_omega(
+        cls,
+        omega: float,
+        power: float,
+        start_time: Optional[float] = None,
+        end_time: Optional[float] = None,
+    ):
+        frequency = omega / u.twopi
+        return cls(frequency, power, start_time, end_time)
+
     @property
     def omega(self):
         return u.twopi * self.frequency
@@ -139,6 +150,11 @@ class ConstantMonochromaticPump(RectangularMonochromaticPump):
     @classmethod
     def from_wavelength(cls, wavelength: float, power: float):
         frequency = u.c / wavelength
+        return cls(frequency, power)
+
+    @classmethod
+    def from_omega(cls, omega: float, power: float):
+        frequency = omega / u.twopi
         return cls(frequency, power)
 
     def get_power(self, time):

@@ -6,6 +6,8 @@ import operator
 
 import numpy as np
 from scipy import integrate as integ
+
+import simulacra as si
 from simulacra import units as u
 
 from . import find
@@ -191,19 +193,27 @@ class FixedGridSimpsonMicrosphereVolumeIntegrator(
     def __init__(self, r_points=2001, theta_points=501, **kwargs):
         super().__init__(r_points=r_points, theta_points=theta_points, **kwargs)
 
+    @property
+    def r_theta(self):
         r = np.linspace(0.5 * self.radius, self.radius, self.r_points)
         theta = np.linspace(0, u.pi, self.theta_points + 2)[1:-1]
+        return r, theta
 
-        self.r_mesh, self.theta_mesh, self.phi_mesh = np.meshgrid(
+    @si.utils.cached_property
+    def r_theta_phi_meshes(self):
+        r, theta = self.r_theta
+        r_mesh, theta_mesh, phi_mesh = np.meshgrid(
             r, theta, self.phi, indexing="ij", sparse=True
         )
+        return r_mesh, theta_mesh, phi_mesh
 
+    @si.utils.cached_property
+    def fixed_jacobian(self):
+        r, theta = self.r_theta
         dr = np.abs(r[1] - r[0])
         dtheta = np.abs(theta[1] - theta[0])
-
-        self.fixed_jacobian = self.jacobian(self.r_mesh, self.theta_mesh) * (
-            u.twopi * dr * dtheta
-        )
+        r_mesh, theta_mesh, _ = self.r_theta_phi_meshes
+        return self.jacobian(r_mesh, theta_mesh) * (u.twopi * dr * dtheta)
 
     def mode_volume_integral(self, modes: Tuple[Mode, ...]) -> float:
         integral = integ.simps(

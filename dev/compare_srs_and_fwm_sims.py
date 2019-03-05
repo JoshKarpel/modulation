@@ -90,7 +90,7 @@ def compare(dt):
         # fwm.plot.mode_magnitudes_vs_time(y_log_axis=False, **PLOT_KWARGS)
 
         si.vis.xy_plot(
-            f"compare__dt={spec_kwargs['time_step'] / u.psec:.6f}ps__{df * dt}",
+            f"compare__dt={dt / u.psec:.6f}ps__{df * dt}",
             srs.times,
             srs.mode_magnitudes_vs_time[:, 0],
             srs.mode_magnitudes_vs_time[:, 1],
