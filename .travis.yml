@@ -1,10 +1,12 @@
 dist: xenial
+sudo: required
 
 language: python
 python:
   - "3.7"
 
 install:
+  - sudo apt-get install --no-install-recommends build-essential
   - git clone https://github.com/JoshKarpel/simulacra
   - pip install -e simulacra
   - pip install --upgrade -r requirements-dev.txt
