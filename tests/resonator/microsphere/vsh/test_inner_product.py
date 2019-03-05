@@ -1,8 +1,6 @@
-import pytest
-
 import numpy as np
 
-from whisper.vsh import inner_product_of_vsh
+from modulation.resonators.microspheres import vsh
 
 
 def test_inner_product():
@@ -15,7 +13,7 @@ def test_inner_product():
     a[1, 1] = np.array([10, 11, 12])
 
     e = np.einsum("ijk,ijk->ij", a, b)
-    v = inner_product_of_vsh(a, b)
+    v = vsh.inner_product_of_vsh(a, b)
 
     assert (e == v).all()
     assert np.allclose(e, np.array([[6, 15], [24, 33]]))

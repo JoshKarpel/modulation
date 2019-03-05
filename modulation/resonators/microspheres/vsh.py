@@ -8,7 +8,6 @@ import numpy as np
 import simulacra as si
 import simulacra.units as u
 
-from .threej import threej
 
 logger = logging.getLogger(__name__)
 
@@ -77,40 +76,6 @@ class RecurrentSphericalHarmonic(si.math.SphericalHarmonic):
             Y *= -1
 
         return Y
-
-
-@functools.lru_cache(maxsize=None)
-def four_sph_harm_integral(*spherical_harmonics: si.math.SphericalHarmonic):
-    """All spherical harmonics unconjugated"""
-    if len(spherical_harmonics) != 4:
-        raise Exception("must have 4 spherical harmonics")
-
-    l1, l2, l3, l = (sh.l for sh in spherical_harmonics)
-    m1, m2, m3, m = (sh.m for sh in spherical_harmonics)
-
-    if m1 + m2 + m3 + m != 0:
-        return 0
-
-    sign = 1 if (m + m3) % 2 == 0 else -1
-    prefactor = np.sqrt(
-        ((2 * l1) + 1) * ((2 * l2) + 1) * ((2 * l3) + 1) * ((2 * l) + 1)
-    ) / (4 * u.pi)
-
-    lp_min = max(abs(l1 - l2), abs(l3 - l), abs(m1 + m2))
-    lp_max = min(l1 + l2, l3 + l)
-
-    acc = sum(
-        ((2 * lp) + 1)
-        * (
-            threej(lp, l1, l2, -(m1 + m2), m1, m2)
-            * threej(lp, l1, l2, 0, 0, 0)
-            * threej(lp, l3, l, m1 + m2, m3, -(m1 + m2 + m3))
-            * threej(lp, l3, l, 0, 0, 0)
-        )
-        for lp in range(lp_min, lp_max + 1)
-    )
-
-    return sign * prefactor * acc
 
 
 class VectorSphericalHarmonic:

@@ -2,20 +2,14 @@ import pytest
 
 import numpy as np
 
-import simulacra.units as u
 
-import whisper.vsh as vsh
-
-L_MAX = 3
-L_AND_M = [(l, m) for l in range(L_MAX) for m in range(-l, l + 1)]
-
-theta = np.linspace(0, u.pi, 10)[1:-1]
-phi = np.linspace(0, u.twopi, 10)[1:]
-theta_mesh, phi_mesh = np.meshgrid(theta, phi, indexing="ij")
+from modulation.resonators.microspheres import vsh
 
 
 @pytest.mark.parametrize("l, m", [(l, m) for l in range(21) for m in range(-l, l + 1)])
-def test_radial_vsh_has_only_radial_component(l, m):
+def test_radial_vsh_has_only_radial_component(theta_and_phi_meshes, l, m):
+    theta_mesh, phi_mesh = theta_and_phi_meshes
+
     z = vsh.VectorSphericalHarmonic(
         type=vsh.VectorSphericalHarmonicType.RADIAL, l=l, m=m
     )
@@ -30,7 +24,11 @@ def test_radial_vsh_has_only_radial_component(l, m):
     [vsh.VectorSphericalHarmonicType.GRADIENT, vsh.VectorSphericalHarmonicType.CROSS],
 )
 @pytest.mark.parametrize("l, m", [(l, m) for l in range(21) for m in range(-l, l + 1)])
-def test_grad_and_cross_vsh_have_only_theta_and_phi_component(type, l, m):
+def test_grad_and_cross_vsh_have_only_theta_and_phi_component(
+    theta_and_phi_meshes, type, l, m
+):
+    theta_mesh, phi_mesh = theta_and_phi_meshes
+
     z = vsh.VectorSphericalHarmonic(type=type, l=l, m=m)
 
     assert np.allclose(z(theta_mesh, phi_mesh)[..., vsh.SphericalComponent.R], 0)

@@ -18,13 +18,3 @@ def test_empty_bounds_gives_no_modes():
     )
 
     assert len(modes) == 0
-
-
-def test_for_regressions_in_number_of_modes():
-    wavelength_bounds = [microspheres.WavelengthBound(799 * u.nm, 801 * u.nm)]
-
-    modes = microspheres.find_mode_locations(
-        wavelength_bounds=wavelength_bounds, microsphere=ms
-    )
-
-    assert len(modes) == 78
