@@ -235,3 +235,16 @@ class FixedGridSimpsonMicrosphereVolumeIntegrator(
             self.r_mesh, self.theta_mesh, self.phi_mesh
         )
         return np.sqrt(np.sum(np.abs(mode_shape_vector_field) ** 2, axis=-1))
+
+    def __getstate__(self):
+        try:
+            del self.r_theta_phi_meshes
+        except AttributeError:
+            pass
+
+        try:
+            del self.fixed_jacobian
+        except AttributeError:
+            pass
+
+        return self.__dict__
