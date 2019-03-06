@@ -74,6 +74,8 @@ class RectangularMonochromaticPump(MonochromaticPump):
         """
         super().__init__(frequency=frequency)
 
+        if power < 0:
+            raise ValueError("pump power must be non-negative")
         self.power = power
 
         if start_time is None:
@@ -150,6 +152,8 @@ class ConstantMonochromaticPump(MonochromaticPump):
     def __init__(self, frequency: float, power: float):
         super().__init__(frequency=frequency)
 
+        if power < 0:
+            raise ValueError("pump power must be non-negative")
         self.power = power
 
     @classmethod
