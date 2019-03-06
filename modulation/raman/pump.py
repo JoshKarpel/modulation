@@ -20,7 +20,7 @@ class MonochromaticPump(abc.ABC):
     @property
     def omega(self):
         """Return the angular frequency of the pump."""
-        raise u.twopi * self.frequency
+        return u.twopi * self.frequency
 
     @property
     def wavelength(self):
