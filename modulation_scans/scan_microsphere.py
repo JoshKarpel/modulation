@@ -259,6 +259,9 @@ def run(params):
                     )
                 ]
 
+            params["pump_wavelength"] = pumps[0].wavelength
+            params["pump_frequency"] = pumps[0].frequency
+
             spec = params["spec_type"](
                 params["component"],
                 modes=modes,

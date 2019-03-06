@@ -40,6 +40,9 @@ def wavelength_scan(path):
     ps = analysis.ParameterScan.from_file(path)
     print(ps, len(ps))
 
+    for sim in ps:
+        sim.spec.pump_wavelength = u.c / sim.spec.pumps[0].frequency
+
     pump_wavelengths = np.array(sorted(ps.parameter_set("pump_wavelength")))
 
     modes = set()
@@ -91,8 +94,11 @@ def wavelength_scan(path):
 if __name__ == "__main__":
     with LOGMAN as logger:
         paths = [
-            Path(__file__).parent / "test_wavelength_scan_v2.sims",
-            Path(__file__).parent / "focused_wavelength_scan.sims",
+            # Path(__file__).parent / "test_wavelength_scan_v2.sims",
+            # Path(__file__).parent / "focused_wavelength_scan.sims",
+            # Path(__file__).parent / "even_more_focused_wavelength_scan.sims",
+            Path(__file__).parent
+            / "symmetric_wavelength_scan.sims"
         ]
 
         for path in paths:

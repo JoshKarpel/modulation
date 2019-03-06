@@ -14,11 +14,17 @@ logger = logging.getLogger(__name__)
 
 
 class MonochromaticPump(abc.ABC):
+    def __init__(self, frequency: float):
+        self.frequency = frequency
+
     @property
-    @abc.abstractmethod
     def omega(self):
-        """Return the frequency of the pump."""
-        raise NotImplementedError
+        """Return the angular frequency of the pump."""
+        raise u.twopi * self.frequency
+
+    @property
+    def wavelength(self):
+        return u.c / self.frequency
 
     @abc.abstractmethod
     def get_power(self, time):
@@ -66,7 +72,8 @@ class RectangularMonochromaticPump(MonochromaticPump):
             The time that the pump turns off.
             If ``None``, the pump never turns off once it's on.
         """
-        self.frequency = frequency
+        super().__init__(frequency=frequency)
+
         self.power = power
 
         if start_time is None:
@@ -98,10 +105,6 @@ class RectangularMonochromaticPump(MonochromaticPump):
     ):
         frequency = omega / u.twopi
         return cls(frequency, power, start_time, end_time)
-
-    @property
-    def omega(self):
-        return u.twopi * self.frequency
 
     def get_power(self, time):
         """Return the pump power at the given time."""
@@ -139,13 +142,15 @@ class RectangularMonochromaticPump(MonochromaticPump):
         return info
 
 
-class ConstantMonochromaticPump(RectangularMonochromaticPump):
+class ConstantMonochromaticPump(MonochromaticPump):
     """A pump that is always on."""
 
     __slots__ = ("frequency", "power")
 
     def __init__(self, frequency: float, power: float):
-        super().__init__(frequency=frequency, power=power)
+        super().__init__(frequency=frequency)
+
+        self.power = power
 
     @classmethod
     def from_wavelength(cls, wavelength: float, power: float):

@@ -40,6 +40,12 @@ class ParameterScan:
     def __len__(self):
         return len(self.sims)
 
+    def __iter__(self):
+        yield from self.sims
+
+    def __getitem__(self, item):
+        return self.sims[item]
+
     def parameter_set(self, parameter: str) -> Set[Any]:
         return {getattr(sim.spec, parameter) for sim in self.sims}
 
