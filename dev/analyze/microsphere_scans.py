@@ -40,9 +40,6 @@ def wavelength_scan(path):
     ps = analysis.ParameterScan.from_file(path)
     print(ps, len(ps))
 
-    for sim in ps:
-        sim.spec.pump_wavelength = u.c / sim.spec.pumps[0].frequency
-
     pump_wavelengths = np.array(sorted(ps.parameter_set("pump_wavelength")))
 
     modes = set()
@@ -52,10 +49,12 @@ def wavelength_scan(path):
 
     print("total unique modes", len(modes))
 
-    x = np.empty(len(pump_wavelengths), dtype=np.float64)
-    mode_to_y = {m: np.zeros_like(x) * np.NaN for m in modes}
+    x_wavelength = np.empty(len(pump_wavelengths), dtype=np.float64)
+    x_frequency = np.empty(len(pump_wavelengths), dtype=np.float64)
+    mode_to_y = {m: np.zeros_like(x_wavelength) * np.NaN for m in modes}
     for s, sim in enumerate(sorted(ps.sims, key=lambda s: s.spec.pump_wavelength)):
-        x[s] = sim.spec.pump_wavelength
+        x_wavelength[s] = sim.spec.pump_wavelength
+        x_frequency[s] = sim.spec.pump_frequency
         for mode, energy in zip(sim.spec.modes, sim.mode_energies(sim.lookback.mean)):
             mode_to_y[mode][s] = energy
 
@@ -69,8 +68,8 @@ def wavelength_scan(path):
     mode_vlines_kwargs = dict(alpha=0.8, linestyle=":")
 
     si.vis.xy_plot(
-        f"wavelength_scan_for_{path.stem}",
-        x,
+        f"{path.stem}__wavelength_scan",
+        x_wavelength,
         *y,
         line_labels=[rf"${mode.tex}$" for mode in modes],
         line_kwargs=mode_kwargs,
@@ -89,17 +88,32 @@ def wavelength_scan(path):
         y_lower_limit=1e-9 * u.pJ,
         **PLOT_KWARGS,
     )
+    si.vis.xy_plot(
+        f"{path.stem}__frequency_scan",
+        x_frequency - (u.c / (1064 * u.nm)),
+        *y,
+        line_labels=[rf"${mode.tex}$" for mode in modes],
+        line_kwargs=mode_kwargs,
+        x_unit="MHz",
+        y_unit="pJ",
+        x_label=r"Pump Frequency Detuning from $1064 \, \mathrm{nm}}$",
+        y_label="Mode Energies",
+        y_log_axis=True,
+        legend_on_right=True,
+        font_size_legend=8,
+        vlines=[mode.wavelength for mode in modes],
+        vline_kwargs=[
+            collections.ChainMap(mode_vlines_kwargs, kw)
+            for mode, kw in zip(modes, mode_kwargs)
+        ],
+        y_lower_limit=1e-9 * u.pJ,
+        **PLOT_KWARGS,
+    )
 
 
 if __name__ == "__main__":
     with LOGMAN as logger:
-        paths = [
-            # Path(__file__).parent / "test_wavelength_scan_v2.sims",
-            # Path(__file__).parent / "focused_wavelength_scan.sims",
-            # Path(__file__).parent / "even_more_focused_wavelength_scan.sims",
-            Path(__file__).parent
-            / "symmetric_wavelength_scan.sims"
-        ]
+        paths = [Path(__file__).parent / "sym_wavelength_scan_v2.sims"]
 
         for path in paths:
             wavelength_scan(path)

@@ -252,6 +252,7 @@ def run(params):
                 pump_mode = shared.find_mode_nearest_wavelength(
                     modes, params["pump_wavelength"]
                 )
+                params["pump_mode"] = pump_mode
                 pumps = [
                     raman.pump.ConstantMonochromaticPump(
                         frequency=pump_mode.frequency + params["pump_frequency_offset"],
