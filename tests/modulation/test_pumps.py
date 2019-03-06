@@ -54,7 +54,9 @@ def test_power_cannot_be_negative(pump_type, power):
 @hyp.given(
     time=st.one_of(
         st.floats(allow_infinity=True, allow_nan=False),
-        stnp.arrays(dtype=np.float64, shape=(st.integers(min_value=0))),
+        stnp.arrays(
+            dtype=np.float64, shape=(st.integers(min_value=0, max_value=10000))
+        ),
     ),
     power=st.floats(min_value=0, allow_infinity=False, allow_nan=False),
 )
