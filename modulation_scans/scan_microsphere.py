@@ -229,7 +229,6 @@ def run(params):
                 sideband_frequency=params["material"].modulation_frequency,
                 bandwidth_frequency=params["group_bandwidth"],
             )
-            params["wavelength_bounds"] = bounds
             logman.info(f"Found {len(bounds)} bounds:")
             for bound in bounds:
                 print(bound)
@@ -261,6 +260,35 @@ def run(params):
                     )
                 ]
 
+                # re-center wavelengths bounds
+                bounds = microspheres.sideband_bounds(
+                    pump_wavelength=pumps[0].wavelength,
+                    stokes_orders=params["stokes_orders"],
+                    antistokes_orders=params["antistokes_orders"],
+                    sideband_frequency=params["material"].modulation_frequency,
+                    bandwidth_frequency=params["group_bandwidth"],
+                )
+
+                # re-find modes
+                print("redoing mode finding using new pump wavelength")
+                modes = shared.find_modes(
+                    bounds, params["microsphere"], params["max_radial_mode_number"]
+                )
+                logman.info(f"Found {len(modes)} modes:")
+                for mode in modes:
+                    print(mode)
+                print()
+
+                check_pump_mode = shared.find_mode_nearest_wavelength(
+                    modes, params["pump_wavelength"]
+                )
+
+                if check_pump_mode != pump_mode:
+                    print(f"original pump mode: {pump_mode}")
+                    print(f"new pump mode: {check_pump_mode}")
+                    raise ValueError("pump mode mismatch!")
+
+            params["wavelength_bounds"] = bounds
             params["pump_wavelength"] = pumps[0].wavelength
             params["pump_frequency"] = pumps[0].frequency
 
