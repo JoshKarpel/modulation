@@ -254,7 +254,7 @@ def run_scan(tag):
 
     map = run.map(
         sims,
-        htmap.MapOptions(**opts, custom_options=custom),
+        map_options=htmap.MapOptions(**opts, custom_options=custom),
         tag=tag.replace("_INIT__", ""),
     )
 
