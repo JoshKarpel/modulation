@@ -229,6 +229,7 @@ def run(params):
                 sideband_frequency=params["material"].modulation_frequency,
                 bandwidth_frequency=params["group_bandwidth"],
             )
+            params["wavelength_bounds"] = bounds
             logman.info(f"Found {len(bounds)} bounds:")
             for bound in bounds:
                 print(bound)
