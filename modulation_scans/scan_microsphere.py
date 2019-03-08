@@ -192,7 +192,7 @@ def init_scan(tag):
 
     # MEMORY AND RUNTIME CHECK
 
-    p = expanded_parameters[0]
+    p = final_parameters[0]
 
     bounds = microspheres.sideband_bounds(
         pump_wavelength=p["pump_wavelength"],
