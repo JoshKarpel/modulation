@@ -23,7 +23,6 @@ logger = logging.getLogger(__name__)
 
 
 class RamanSimulation(si.Simulation):
-    @profile
     def __init__(self, spec):
         super().__init__(spec)
 
@@ -214,7 +213,6 @@ class RamanSimulation(si.Simulation):
             1j * u.twopi * np.random.random(self.mode_amplitudes.shape)
         )
 
-    @profile
     def run(
         self,
         progress_bar: bool = False,
@@ -325,7 +323,6 @@ class RamanSimulation(si.Simulation):
 
 
 class StimulatedRamanScatteringSimulation(RamanSimulation):
-    @profile
     def _calculate_polarization_sum_factors(self) -> np.ndarray:
         num_modes = len(self.spec.modes)
 
@@ -377,7 +374,6 @@ class StimulatedRamanScatteringSimulation(RamanSimulation):
 class RamanSidebandSimulation(StimulatedRamanScatteringSimulation):
     """A version of the SRS simulation that doesn't include the self-interaction, and only includes nearest-neighbour sideband interactions."""
 
-    @profile
     def _calculate_polarization_sum_factors(self) -> np.ndarray:
         num_modes = len(self.spec.modes)
 
@@ -421,7 +417,6 @@ class RamanSidebandSimulation(StimulatedRamanScatteringSimulation):
 
 
 class FourWaveMixingSimulation(RamanSimulation):
-    @profile
     def _calculate_polarization_sum_factors(self) -> np.ndarray:
         num_modes = len(self.spec.modes)
 
@@ -490,7 +485,6 @@ class FourWaveMixingSimulation(RamanSimulation):
 class RamanSpecification(si.Specification):
     simulation_type = RamanSimulation
 
-    @profile
     def __init__(
         self,
         name: str,
