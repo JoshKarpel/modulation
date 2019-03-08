@@ -373,7 +373,7 @@ def run(sim):
         return sim
 
 
-if __name__ == "__main__":
+def main():
     shared.set_htmap_settings()
 
     tag = shared.ask_for_tag()
@@ -385,3 +385,7 @@ if __name__ == "__main__":
     else:
         print("unrecognized command")
         sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
