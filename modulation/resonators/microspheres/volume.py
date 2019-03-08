@@ -238,6 +238,13 @@ class FixedGridSimpsonMicrosphereVolumeIntegrator(
         return np.sqrt(np.sum(np.abs(mode_shape_vector_field) ** 2, axis=-1))
 
     def __getstate__(self):
+        self.clear()
+
+        return self.__dict__
+
+    def clear(self):
+        self.mode_magnitude_inside.cache_clear()
+
         try:
             del self.r_theta
         except AttributeError:
@@ -252,5 +259,3 @@ class FixedGridSimpsonMicrosphereVolumeIntegrator(
             del self.fixed_jacobian
         except AttributeError:
             pass
-
-        return self.__dict__

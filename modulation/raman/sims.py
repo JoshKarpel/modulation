@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 class RamanSimulation(si.Simulation):
+    @profile
     def __init__(self, spec):
         super().__init__(spec)
 
@@ -82,6 +83,7 @@ class RamanSimulation(si.Simulation):
         else:
             logger.debug(f"Using cached polarization sum factors for {self}")
             self.polarization_sum_factors = self.spec.cached_polarization_sum_factors
+        self.spec.mode_volume_integrator.clear()
 
         self.plot = plotter.RamanSimulationPlotter(self)
 
@@ -212,6 +214,7 @@ class RamanSimulation(si.Simulation):
             1j * u.twopi * np.random.random(self.mode_amplitudes.shape)
         )
 
+    @profile
     def run(
         self,
         progress_bar: bool = False,
@@ -307,8 +310,22 @@ class RamanSimulation(si.Simulation):
     def percent_completed(self) -> float:
         return 100 * (self.time_index + 1) / self.time_steps
 
+    def info(self) -> si.Info:
+        info = super().info()
+
+        mem = si.Info(header="Memory Usage")
+        mem.add_field(
+            "Polarization Sum Factors",
+            si.utils.bytes_to_str(self.polarization_sum_factors.nbytes),
+        )
+
+        info.add_info(mem)
+
+        return info
+
 
 class StimulatedRamanScatteringSimulation(RamanSimulation):
+    @profile
     def _calculate_polarization_sum_factors(self) -> np.ndarray:
         num_modes = len(self.spec.modes)
 
@@ -360,6 +377,7 @@ class StimulatedRamanScatteringSimulation(RamanSimulation):
 class RamanSidebandSimulation(StimulatedRamanScatteringSimulation):
     """A version of the SRS simulation that doesn't include the self-interaction, and only includes nearest-neighbour sideband interactions."""
 
+    @profile
     def _calculate_polarization_sum_factors(self) -> np.ndarray:
         num_modes = len(self.spec.modes)
 
@@ -403,13 +421,14 @@ class RamanSidebandSimulation(StimulatedRamanScatteringSimulation):
 
 
 class FourWaveMixingSimulation(RamanSimulation):
+    @profile
     def _calculate_polarization_sum_factors(self) -> np.ndarray:
         num_modes = len(self.spec.modes)
 
         logger.debug(f"Building two-mode inverse detuning array for {self}...")
         double_inverse_detunings = np.zeros((num_modes, num_modes), dtype=np.complex128)
         pairs = itertools.product(enumerate(self.spec.modes), repeat=2)
-        if is_interactive_session() or True:
+        if is_interactive_session():
             pairs = tqdm(list(pairs))
         for (s, mode_s), (t, mode_t) in pairs:
             double_inverse_detunings[s, t] = self._double_inverse_detuning(
@@ -423,7 +442,7 @@ class FourWaveMixingSimulation(RamanSimulation):
         four_modes_combinations = itertools.combinations_with_replacement(
             enumerate(self.spec.modes), r=4
         )
-        if is_interactive_session() or True:
+        if is_interactive_session():
             four_modes_combinations = tqdm(list(four_modes_combinations))
         for (
             (q, mode_q),
@@ -471,6 +490,7 @@ class FourWaveMixingSimulation(RamanSimulation):
 class RamanSpecification(si.Specification):
     simulation_type = RamanSimulation
 
+    @profile
     def __init__(
         self,
         name: str,

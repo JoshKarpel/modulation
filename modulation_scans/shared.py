@@ -145,7 +145,7 @@ def set_htmap_settings():
 
 def ask_map_options() -> (dict, dict):
     opts = {
-        "request_memory": si.cluster.ask_for_input("Memory?", default="250MB"),
+        "request_memory": si.cluster.ask_for_input("Memory?", default="500MB"),
         "request_disk": si.cluster.ask_for_input("Disk?", default="500MB"),
     }
     custom_opts = {
@@ -155,7 +155,6 @@ def ask_map_options() -> (dict, dict):
         "wantglidein": str(
             si.cluster.ask_for_bool("Want gliding?", default=True)
         ).lower(),
-        "is_resumable": "true",
     }
 
     return opts, custom_opts

@@ -144,6 +144,7 @@ def _merge_bounds_pair(a: WavelengthBound, b: WavelengthBound) -> WavelengthBoun
     return WavelengthBound(lower=min(a.lower, b.lower), upper=max(a.upper, b.upper))
 
 
+@profile
 def sideband_bounds(
     *,
     pump_wavelength: float,
@@ -306,6 +307,7 @@ def l_bound_from_wavelength_bound(
     return LBound(min=min(bound_1.min, bound_2.min), max=max(bound_1.max, bound_2.max))
 
 
+@profile
 def find_mode_locations(
     wavelength_bounds: Iterable[WavelengthBound],
     microsphere: Microsphere,

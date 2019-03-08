@@ -162,9 +162,7 @@ class MicrosphereMode(Mode):
 
             rad_in = spc.spherical_jn(self.l, self.k_inside * r)
 
-            inside = rad_in[..., np.newaxis] * sph
-
-            return inside
+            return rad_in[..., np.newaxis] * sph
 
         elif self.polarization is MicrosphereModePolarization.TRANSVERSE_MAGNETIC:
             grad_sph = vsh.VectorSphericalHarmonic(
@@ -187,25 +185,19 @@ class MicrosphereMode(Mode):
                 self.k_inside * r
             )
 
-            inside = (grad_rad_in[..., np.newaxis] * grad_sph) + (
+            return (grad_rad_in[..., np.newaxis] * grad_sph) + (
                 radial_rad_in[..., np.newaxis] * radial_sph
             )
 
-            return inside
-
     def evaluate_electric_field_mode_shape_outside(self, r, theta, phi):
         if self.polarization is MicrosphereModePolarization.TRANSVERSE_ELECTRIC:
-            sph = vsh.VectorSphericalHarmonic(
-                type=vsh.VectorSphericalHarmonicType.CROSS, l=self.l, m=self.m
-            )(theta, phi)
-
-            rad_out = spc.spherical_yn(self.l, self.k_outside * r)
-
-            outside = (
-                self.inside_outside_amplitude_ratio * rad_out[..., np.newaxis] * sph
+            return (
+                self.inside_outside_amplitude_ratio
+                * spc.spherical_yn(self.l, self.k_outside * r)[..., np.newaxis]
+                * vsh.VectorSphericalHarmonic(
+                    type=vsh.VectorSphericalHarmonicType.CROSS, l=self.l, m=self.m
+                )(theta, phi)
             )
-
-            return outside
 
         elif self.polarization is MicrosphereModePolarization.TRANSVERSE_MAGNETIC:
             grad_sph = vsh.VectorSphericalHarmonic(
@@ -236,14 +228,14 @@ class MicrosphereMode(Mode):
                 self.k_inside * r
             )
 
-            outside = self.inside_outside_amplitude_ratio * (
+            return self.inside_outside_amplitude_ratio * (
                 (grad_rad_out[..., np.newaxis] * grad_sph)
                 + (radial_rad_out[..., np.newaxis] * radial_sph)
             )
 
-            return outside
-
     def __call__(self, r, theta, phi):
-        inside = self.evaluate_electric_field_mode_shape_inside(r, theta, phi)
-        outside = self.evaluate_electric_field_mode_shape_inside(r, theta, phi)
-        return np.where(r[..., np.newaxis] <= self.microsphere.radius, inside, outside)
+        return np.where(
+            r[..., np.newaxis] <= self.microsphere.radius,
+            self.evaluate_electric_field_mode_shape_inside(r, theta, phi),
+            self.evaluate_electric_field_mode_shape_inside(r, theta, phi),
+        )

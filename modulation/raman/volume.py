@@ -21,6 +21,12 @@ class ModeVolumeIntegrator(abc.ABC):
         """
         raise NotImplementedError
 
+    def clear(self):
+        """
+        Erase any internal storage.
+        """
+        pass
+
     def info(self) -> si.Info:
         info = si.Info(header=f"Mode Volume Integrator: {self.__class__.__name__}")
         return info
