@@ -101,7 +101,7 @@ def wavelength_scan(path):
             y_log_axis=True,
             legend_on_right=True,
             font_size_legend=8,
-            vlines=[mode.wavelength for mode in modes],
+            vlines=[mode.wavelength - pump_mode.wavelength for mode in modes],
             vline_kwargs=[
                 collections.ChainMap(mode_vlines_kwargs, kw)
                 for mode, kw in zip(modes, mode_kwargs)
@@ -123,7 +123,7 @@ def wavelength_scan(path):
             y_log_axis=True,
             legend_on_right=True,
             font_size_legend=8,
-            vlines=[mode.wavelength for mode in modes],
+            vlines=[mode.frequency - pump_mode.frequency for mode in modes],
             vline_kwargs=[
                 collections.ChainMap(mode_vlines_kwargs, kw)
                 for mode, kw in zip(modes, mode_kwargs)
