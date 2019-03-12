@@ -123,7 +123,7 @@ def init_scan(tag):
 
     if p["spec_type"] is modulation.raman.StimulatedRamanScatteringSpecification:
         approximate_psf_time = comb(len(modes), 2, repetition=True) * 0.05
-    elif ["spec_type"] is modulation.raman.FourWaveMixingSpecification:
+    elif p["spec_type"] is modulation.raman.FourWaveMixingSpecification:
         approximate_psf_time = comb(len(modes), 4, repetition=True) * 0.05
     approximate_psf_time = datetime.timedelta(seconds=int(approximate_psf_time))
     print(
