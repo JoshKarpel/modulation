@@ -312,10 +312,12 @@ class RamanSimulation(si.Simulation):
         info = super().info()
 
         mem = si.Info(header="Memory Usage")
-        mem.add_field(
-            "Polarization Sum Factors",
-            si.utils.bytes_to_str(self.polarization_sum_factors.nbytes),
-        )
+
+        try:
+            psf_mem = self.polarization_sum_factors.nbytes
+        except AttributeError:
+            psf_mem = 0
+        mem.add_field("Polarization Sum Factors", si.utils.bytes_to_str(psf_mem))
 
         info.add_info(mem)
 

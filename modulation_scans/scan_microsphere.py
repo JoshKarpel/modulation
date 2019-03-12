@@ -366,10 +366,9 @@ def run(sim):
 
         sim.run(checkpoint_callback=htmap.checkpoint)
 
-        sim.polarization_sum_factors = None
-
         print(sim.info())
 
+        sim.polarization_sum_factors = None
         return sim
 
 
