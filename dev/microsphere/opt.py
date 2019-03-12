@@ -70,7 +70,7 @@ if __name__ == "__main__":
         coupling_q = 1e8
 
         wavelength_bounds = microspheres.sideband_bounds(
-            pump_wavelength=pump_wavelength,
+            center_wavelength=pump_wavelength,
             stokes_orders=stokes_orders,
             antistokes_orders=antistokes_orders,
             sideband_frequency=material.modulation_frequency,

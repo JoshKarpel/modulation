@@ -69,7 +69,7 @@ def run():
     pump_power = 1 * u.mW
 
     wavelength_bounds = microspheres.sideband_bounds(
-        pump_wavelength=pump_wavelength,
+        center_wavelength=pump_wavelength,
         stokes_orders=stokes_orders,
         antistokes_orders=antistokes_orders,
         sideband_frequency=material.modulation_frequency,

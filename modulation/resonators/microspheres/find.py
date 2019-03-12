@@ -146,13 +146,13 @@ def _merge_bounds_pair(a: WavelengthBound, b: WavelengthBound) -> WavelengthBoun
 
 def sideband_bounds(
     *,
-    pump_wavelength: float,
+    center_wavelength: float,
     stokes_orders: int,
     antistokes_orders: int = 0,
     sideband_frequency: float,
     bandwidth_frequency: float,
 ) -> Tuple[WavelengthBound]:
-    pump_frequency = wavelength_to_frequency(pump_wavelength)
+    pump_frequency = wavelength_to_frequency(center_wavelength)
     center_frequencies = (
         pump_frequency - (order * sideband_frequency)
         for order in range(-antistokes_orders, stokes_orders + 1)
