@@ -61,9 +61,9 @@ def run():
     pump_start_time = 1 * u.usec
     time_step = 1 * u.psec
     time_final = 10000 * u.psec
-    stokes_orders = 3
-    bnd = 0.2
+    stokes_orders = 2
     antistokes_orders = 0  # you won't see any amplitude on these unless you have fwm
+    bnd = 0.2
     intrinsic_q = 1e8
     coupling_q = 1e8
     pump_power = 1 * u.mW

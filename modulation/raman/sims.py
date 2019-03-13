@@ -169,22 +169,9 @@ class RamanSimulation(si.Simulation):
 
         return polarization + decay
 
-    @functools.lru_cache(maxsize=4)
-    def calculate_pumps(self, time: float) -> np.ndarray:
-        return (
-            0.5
-            * self.pump_prefactor
-            * sum(
-                np.exp(1j * (self.mode_omegas - pump.omega) * time)
-                * np.sqrt(pump.get_power(time))
-                for pump in self.spec.pumps
-            )
-        )
-
     def evolve_pump(
         self, mode_amplitudes: np.ndarray, time_initial: float, time_final: float
     ) -> np.ndarray:
-        midpoint = (time_initial + time_final) / 2
         change = np.zeros_like(mode_amplitudes, dtype=np.complex128)
         for pump in self.spec.pumps:
             dw = self.mode_omegas - pump.omega
@@ -193,7 +180,10 @@ class RamanSimulation(si.Simulation):
                 (np.exp(1j * dw * time_final) - np.exp(1j * dw * time_initial)) / dw,
                 time_final - time_initial,
             )
-            change += np.sqrt(pump.get_power(midpoint)) * freq_part
+
+            change += (
+                np.sqrt(pump.get_power((time_initial + time_final) / 2)) * freq_part
+            )
 
         return mode_amplitudes - 0.5j * self.pump_prefactor * change
 
@@ -260,7 +250,6 @@ class RamanSimulation(si.Simulation):
                 after_first_pump = self.evolve_pump(
                     self.mode_amplitudes, time_initial=start, time_final=midpoint
                 )
-                # print(after_pump)
                 after_nonlinear = self.spec.evolution_algorithm.evolve(
                     sim=self,
                     mode_amplitudes=after_first_pump,
@@ -270,8 +259,6 @@ class RamanSimulation(si.Simulation):
                 after_second_pump = self.evolve_pump(
                     after_nonlinear, time_initial=midpoint, time_final=end
                 )
-                # print(after_nonlinear)
-                # print()
                 self.mode_amplitudes = after_second_pump
 
                 if self.spec.checkpoints:

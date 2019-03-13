@@ -113,6 +113,7 @@ def create_scan(tag):
     ]
 
     # MEMORY AND RUNTIME CHECK
+    print("Checking memory and runtime...")
 
     p = final_parameters[0]
 

@@ -1,3 +1,5 @@
+# cython: language_level=3
+
 cimport cython
 
 import numpy as np
@@ -14,7 +16,7 @@ def four_wave_polarization(
 ):
     cdef Py_ssize_t n_modes = fields.shape[0]
     cdef Py_ssize_t q, r, s, t
-    cdef np.complex128_t acc, term_r, term_s, pre
+    cdef np.complex128_t acc, term_r, term_s, fields_product
 
     cdef np.complex128_t[::1] conj_fields = np.conj(fields)
 
@@ -26,9 +28,9 @@ def four_wave_polarization(
         for s in range(n_modes):
             term_s = conj_fields[s]
             for t in range(n_modes):
-                pre = term_r * term_s * fields[t]
+                fields_product = term_r * term_s * fields[t]
                 for q in range(n_modes):
-                    mode_polarization_view[q] = mode_polarization_view[q] + (pre * polarization_sum_factors[q, r, s, t])
+                    mode_polarization_view[q] = mode_polarization_view[q] + (fields_product * polarization_sum_factors[q, r, s, t])
 
     cdef np.complex128_t[::1] conj_phase = np.conj(phase)
     for q in range(n_modes):

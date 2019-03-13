@@ -59,8 +59,8 @@ def run(postfix, pump_power, time_step):
     pump_wavelength = 800 * u.nm
     pump_start_time = 1 * u.usec
     time_final = 10 * u.usec
-    stokes_orders = 3
-    antistokes_orders = 0  # you won't see any amplitude on these unless you have fwm
+    stokes_orders = 2
+    antistokes_orders = 1  # you won't see any amplitude on these unless you have fwm
     intrinsic_q = 1e8
     coupling_q = 1e8
 
@@ -87,12 +87,12 @@ def run(postfix, pump_power, time_step):
     # for m in modes:
     #     print(m)
 
-    # print(f'found {len(modes)} modes')
+    print(f"found {len(modes)} modes")
 
     pump_mode = microspheres.find_mode_with_closest_wavelength(modes, pump_wavelength)
     # print(f'pump mode is {pump_mode}')
 
-    spec = raman.StimulatedRamanScatteringSpecification(
+    spec = raman.FourWaveMixingSpecification(
         f"pump={pump_power / u.mW:.3f}mW_dt={time_step / u.psec:.3f}ps__{postfix}",
         material=material,
         modes=modes,
@@ -142,9 +142,11 @@ def run(postfix, pump_power, time_step):
 
 
 if __name__ == "__main__":
-    postfix = "OFF_RESONANT"
-    powers = np.array([1, 2, 4]) * u.mW
-    time_steps = np.array([100, 10, 1]) * u.psec
+    # postfix = "OFF_RESONANT"
+    # powers = np.array([1, 2, 4]) * u.mW
+    # time_steps = np.array([100, 10, 1]) * u.psec
+    #
+    # for power, time_step in itertools.product(powers, time_steps):
+    #     run(postfix, power, time_step)
 
-    for power, time_step in itertools.product(powers, time_steps):
-        run(postfix, power, time_step)
+    run("TEST", 1 * u.mW, 1 * u.psec)
