@@ -71,8 +71,22 @@ def create_scan(tag):
 
     parameters.extend(
         [
-            si.cluster.Parameter("time_final", shared.ask_time_final(default=10)),
-            si.cluster.Parameter("time_step", shared.ask_time_step(default=1)),
+            si.cluster.Parameter(
+                "time_final",
+                u.usec
+                * np.array(
+                    si.cluster.ask_for_eval("Final time (in us)?", default="[10]")
+                ),
+                expandable=True,
+            ),
+            si.cluster.Parameter(
+                "time_step",
+                u.psec
+                * np.array(
+                    si.cluster.ask_for_eval("Time step (in ps)?", default="[10]")
+                ),
+                expandable=True,
+            ),
         ]
     )
 
