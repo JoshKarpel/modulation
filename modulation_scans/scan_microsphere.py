@@ -69,21 +69,28 @@ def create_scan(tag):
     get_laser_parameters("pump", parameters)
     get_laser_parameters("mixing", parameters)
 
+    # sort longest times and shortest time steps into earlier components
+    # to get them running first
     parameters.extend(
         [
             si.cluster.Parameter(
                 "time_final",
-                u.usec
-                * np.array(
-                    si.cluster.ask_for_eval("Final time (in us)?", default="[10]")
+                sorted(
+                    u.usec
+                    * np.array(
+                        si.cluster.ask_for_eval("Final time (in us)?", default="[10]")
+                    ),
+                    key=lambda x: -x,
                 ),
                 expandable=True,
             ),
             si.cluster.Parameter(
                 "time_step",
-                u.psec
-                * np.array(
-                    si.cluster.ask_for_eval("Time step (in ps)?", default="[10]")
+                sorted(
+                    u.psec
+                    * np.array(
+                        si.cluster.ask_for_eval("Time step (in ps)?", default="[10]")
+                    )
                 ),
                 expandable=True,
             ),
