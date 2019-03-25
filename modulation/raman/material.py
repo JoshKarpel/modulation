@@ -28,6 +28,8 @@ class RamanMaterial:
         number_density: float,
         index_of_refraction: refraction.IndexOfRefraction,
     ):
+        self.coupling_prefactor = coupling_prefactor
+
         self.modulation_omega = modulation_omega
         self.raman_prefactor = (coupling_prefactor ** 2) / (4 * (u.hbar ** 3))
         self.raman_linewidth = raman_linewidth
