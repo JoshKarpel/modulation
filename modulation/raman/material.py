@@ -6,10 +6,16 @@ from .. import refraction, fmt
 MATERIAL_DATA = {
     "silica": dict(
         modulation_omega=u.twopi * 14 * u.THz,
-        raman_linewidth=1 * u.THz,
-        coupling_prefactor=(
-            0.75 * 1e-2 * ((u.atomic_electric_dipole_moment ** 2) / (500 * u.THz))
-        ),
+        raman_linewidth=u.twopi * 2 * u.THz,
+        coupling_prefactor_squared=2
+        * (u.c ** 2)
+        * (u.epsilon_0 ** 2)
+        * (u.hbar ** 3)
+        * (1.4496 ** 2)
+        * u.twopi
+        * (2 * u.THz)
+        * (1e-11 * u.cm / u.W)
+        / (5e22 / (u.cm ** 3) * (u.twopi * u.c / (1064 * u.nm))),
         number_density=5e22 / (u.cm ** 3),
         index_of_refraction=refraction.SellmeierIndex.from_name("silica"),
     )
@@ -23,15 +29,15 @@ class RamanMaterial:
         self,
         *,
         modulation_omega: float,
-        coupling_prefactor: complex,
+        coupling_prefactor_squared: complex,
         raman_linewidth: float,
         number_density: float,
         index_of_refraction: refraction.IndexOfRefraction,
     ):
-        self.coupling_prefactor = coupling_prefactor
+        self.coupling_prefactor_squared = coupling_prefactor_squared
 
         self.modulation_omega = modulation_omega
-        self.raman_prefactor = (coupling_prefactor ** 2) / (4 * (u.hbar ** 3))
+        self.raman_prefactor = coupling_prefactor_squared / (4 * (u.hbar ** 3))
         self.raman_linewidth = raman_linewidth
         self.number_density = number_density
         self.index_of_refraction = index_of_refraction

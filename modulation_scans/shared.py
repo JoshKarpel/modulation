@@ -55,7 +55,7 @@ def ask_material():
     if choice == "CUSTOM":
         return modulation.raman.RamanMaterial(
             modulation_omega=si.cluster.ask_for_eval("Modulation Omega?"),
-            coupling_prefactor=si.cluster.ask_for_eval("Coupling Prefactor?"),
+            coupling_prefactor_squared=si.cluster.ask_for_eval("Coupling Prefactor?"),
             raman_linewidth=si.cluster.ask_for_eval("Raman Linewidth?"),
             number_density=si.cluster.ask_for_eval("Number Density?"),
         )

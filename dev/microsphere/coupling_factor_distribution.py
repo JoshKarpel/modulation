@@ -188,8 +188,3 @@ if __name__ == "__main__":
     #     run(postfix, power, time_step)
 
     run("TEST", 1 * u.mW, 1 * u.psec)
-
-    # mat = raman.RamanMaterial.from_name("silica")
-
-    # print(mat.coupling_prefactor)
-    # print(mat.coupling_prefactor ** 2)
