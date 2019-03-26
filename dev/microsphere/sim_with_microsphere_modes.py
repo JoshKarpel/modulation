@@ -56,9 +56,9 @@ def run(postfix, pump_power, time_step):
     R = 50 * u.um
     max_radial_mode_number = 5
     material = raman.RamanMaterial.from_name("silica")
-    pump_wavelength = 800 * u.nm
-    pump_start_time = 1 * u.usec
-    time_final = 10 * u.usec
+    pump_wavelength = 1064 * u.nm
+    pump_start_time = 0 * u.usec
+    time_final = 1 * u.usec
     stokes_orders = 2
     antistokes_orders = 1  # you won't see any amplitude on these unless you have fwm
     intrinsic_q = 1e8
@@ -69,7 +69,7 @@ def run(postfix, pump_power, time_step):
         stokes_orders=stokes_orders,
         antistokes_orders=antistokes_orders,
         sideband_frequency=material.modulation_frequency,
-        bandwidth_frequency=0.2 * material.raman_linewidth,
+        bandwidth_frequency=0.1 * material.raman_linewidth / u.twopi,
     )
 
     # for b in wavelength_bounds:
@@ -92,6 +92,7 @@ def run(postfix, pump_power, time_step):
     pump_mode = microspheres.find_mode_with_closest_wavelength(modes, pump_wavelength)
     # print(f'pump mode is {pump_mode}')
 
+    # spec = raman.StimulatedRamanScatteringSpecification(
     spec = raman.FourWaveMixingSpecification(
         f"pump={pump_power / u.mW:.3f}mW_dt={time_step / u.psec:.3f}ps__{postfix}",
         material=material,
@@ -129,8 +130,8 @@ def run(postfix, pump_power, time_step):
     #     **PLOT_KWARGS,
     # )
     sim.plot.mode_energies_vs_time(
-        y_lower_limit=1e-5 * u.pJ,
-        y_upper_limit=2e1 * u.pJ,
+        # y_lower_limit=1e-5 * u.pJ,
+        # y_upper_limit=2e1 * u.pJ,
         average_over=10 * u.nsec,
         y_log_pad=1,
         mode_kwargs=lambda sim, q, mode: mode_kwargs(
@@ -149,4 +150,4 @@ if __name__ == "__main__":
     # for power, time_step in itertools.product(powers, time_steps):
     #     run(postfix, power, time_step)
 
-    run("TEST", 1 * u.mW, 1 * u.psec)
+    run("TEST", 100_000 * u.uW, 10 * u.psec)

@@ -59,7 +59,8 @@ class RamanMaterial:
             fmt.quantity(self.modulation_frequency, fmt.FREQUENCY_UNITS),
         )
         info.add_field(
-            "Raman Linewidth", fmt.quantity(self.raman_linewidth, fmt.FREQUENCY_UNITS)
+            "Raman Linewidth",
+            fmt.quantity(self.raman_linewidth / u.twopi, fmt.FREQUENCY_UNITS),
         )
         info.add_field("Number Density", self.number_density)
         info.add_info(self.index_of_refraction.info())

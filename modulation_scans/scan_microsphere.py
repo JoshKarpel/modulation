@@ -50,11 +50,11 @@ def create_scan(tag):
             ),
             si.cluster.Parameter(
                 "group_bandwidth",
-                material.raman_linewidth
+                (material.raman_linewidth / u.twopi)
                 * si.cluster.ask_for_input(
                     "Mode Group Bandwidth (in Raman Linewidths)",
                     cast_to=float,
-                    default=0.2,
+                    default=0.1,
                 ),
             ),
             si.cluster.Parameter(
