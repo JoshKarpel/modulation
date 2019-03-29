@@ -92,8 +92,8 @@ def run(postfix, pump_power, time_step):
     pump_mode = microspheres.find_mode_with_closest_wavelength(modes, pump_wavelength)
     # print(f'pump mode is {pump_mode}')
 
-    # spec = raman.StimulatedRamanScatteringSpecification(
-    spec = raman.FourWaveMixingSpecification(
+    spec = raman.StimulatedRamanScatteringSpecification(
+        # spec = raman.FourWaveMixingSpecification(
         f"pump={pump_power / u.mW:.3f}mW_dt={time_step / u.psec:.3f}ps__{postfix}",
         material=material,
         modes=modes,
@@ -117,7 +117,7 @@ def run(postfix, pump_power, time_step):
     )
 
     sim = spec.to_sim()
-    # print(sim.info())
+    print(sim.info())
 
     sim.run(progress_bar=True)
     print(sim.info())

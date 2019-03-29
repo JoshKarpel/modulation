@@ -215,7 +215,9 @@ def get_laser_parameters(name, parameters):
                     f"{name}_wavelength",
                     u.nm
                     * si.cluster.ask_for_input(
-                        "Pump laser wavelength (in nm)?", default=1064, cast_to=float
+                        f"{name.title()} laser wavelength (in nm)?",
+                        default=1064,
+                        cast_to=float,
                     ),
                 ),
                 si.cluster.Parameter(
@@ -261,7 +263,7 @@ def get_laser_parameters(name, parameters):
     parameters.append(
         si.cluster.Parameter(
             f"{name}_power",
-            u.uW
+            u.mW
             * np.array(
                 si.cluster.ask_for_eval(
                     f"Launched {name} power (in mW)?", default="[1]"
