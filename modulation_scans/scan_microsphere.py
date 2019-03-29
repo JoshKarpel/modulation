@@ -162,6 +162,13 @@ def create_scan(tag):
     print(
         f"Approximate memory requirements for polarization sum factor storage: {si.utils.bytes_to_str(psf_storage)}"
     )
+
+    shortest_time_step = min(p["time_step"] for p in final_parameters)
+    lookback_mem = len(modes) * shortest_time_step * (128 / 8)
+    print(
+        f"Approximate memory requirements for largest lookback: {si.utils.bytes_to_str(lookback_mem)}"
+    )
+
     print("Remember: add about 100 MB for everything else!")
 
     opts, custom = shared.ask_map_options()
