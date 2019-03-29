@@ -164,7 +164,7 @@ def create_scan(tag):
     )
 
     shortest_time_step = min(p["time_step"] for p in final_parameters)
-    lookback_mem = len(modes) * shortest_time_step * (128 / 8)
+    lookback_mem = len(modes) * int(lookback_time / shortest_time_step) * (128 / 8)
     print(
         f"Approximate memory requirements for largest lookback: {si.utils.bytes_to_str(lookback_mem)}"
     )
