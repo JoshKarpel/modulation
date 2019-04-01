@@ -82,7 +82,7 @@ def time_step_scan(path):
     ]
 
     y_lower_lim = 1e-12 * u.pJ
-    y_upper_lim = 1e1 * u.pJ
+    y_upper_lim = 1e3 * u.pJ
 
     y = list(mode_to_y.values())
     si.vis.xy_plot(
@@ -104,73 +104,30 @@ def time_step_scan(path):
         **PLOT_KWARGS,
     )
 
-
-def final_time_and_time_step_scan(path):
-    ps = analysis.ParameterScan.from_file(path)
-    print(ps, len(ps))
-    sim = ps[0]
-
-    final_times = np.array(sorted(ps.parameter_set("time_final"), key=lambda x: -x))
-    time_steps = np.array(sorted(ps.parameter_set("time_step")))
-    final_time_mesh, time_step_mesh = np.meshgrid(
-        final_times, time_steps, indexing="xy"
-    )
-
-    print(final_times)
-    print(time_steps)
-
-    print(len(final_times), len(time_steps))
-
-    sims = {(sim.spec.time_final, sim.spec.time_step): sim for sim in ps}
-
-    modes = sim.spec.modes
-    mti = sim.mode_to_index
-    print(len(modes))
-    final_amplitude_by_mode = {mode: np.empty_like(final_time_mesh) for mode in modes}
-    for mode, amplitude_mesh in final_amplitude_by_mode.items():
-        for i, final_time in enumerate(final_times):
-            for j, time_step in enumerate(time_steps):
-                # print(i, j, final_time, time_step)
-                mode_index = mti[mode]
-                amplitude_mesh[i, j] = sims[(final_time, time_step)].lookback.mean[
-                    mode_index
-                ]
-
-    shared = dict(
-        x_label="Time Final",
-        y_label="Time Step",
-        x_unit="usec",
-        y_unit="psec",
+    y = list(mode_to_y.values())
+    si.vis.xy_plot(
+        f"{path.stem}__time_step_scan__relative",
+        x,
+        *[yy / yy[0] for yy in y],
+        line_labels=[rf"${mode.tex}$" for mode in modes],
+        line_kwargs=kwargs,
+        x_unit="psec",
+        x_label=r"Time Step",
+        y_label="Mode Energies / Most Accurate",
         x_log_axis=True,
         y_log_axis=True,
-        z_log_axis=True,
+        legend_on_right=True,
+        font_size_legend=8,
+        **PLOT_KWARGS,
     )
-
-    for mode, amplitude_mesh in final_amplitude_by_mode.items():
-        # si.vis.xyz_plot(
-        #     f"{path.stem}__ABSOLUTE__time_final_and_time_step__{mode}",
-        #     final_time_mesh,
-        #     time_step_mesh,
-        #     np.abs(amplitude_mesh),
-        #     **shared,
-        #     **PLOT_KWARGS,
-        # )
-
-        best = np.abs(amplitude_mesh[0, 0])  # longest final time, shortest time step
-
-        si.vis.xyz_plot(
-            f"{path.stem}__FRACDIFF__time_final_and_time_step__{mode}",
-            final_time_mesh,
-            time_step_mesh,
-            np.abs(amplitude_mesh) / best,
-            **shared,
-            **PLOT_KWARGS,
-        )
 
 
 if __name__ == "__main__":
     with LOGMAN as logger:
-        paths = [Path(__file__).parent / "srs_convergence_test.sims"]
+        paths = [
+            Path(__file__).parent / "convergence_scan_srs.sims",
+            Path(__file__).parent / "convergence_scan_fwm.sims",
+        ]
 
         for path in paths:
             time_step_scan(path)

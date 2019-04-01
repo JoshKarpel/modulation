@@ -5,7 +5,6 @@ from pathlib import Path
 import numpy as np
 from scipy.special import comb
 
-import htmap
 
 import simulacra as si
 import simulacra.units as u
@@ -15,6 +14,8 @@ from modulation import raman
 from modulation.resonators import microspheres
 
 from . import shared
+
+import htmap
 
 
 def create_scan(tag):
