@@ -141,7 +141,7 @@ def set_htmap_settings():
     docker_image_version = si.cluster.ask_for_input("Docker image version?")
     htmap.settings["DOCKER.IMAGE"] = f"maventree/modulation:{docker_image_version}"
     htmap.settings[
-        "SINGULARITY_IMAGE"
+        "SINGULARITY.IMAGE"
     ] = f"docker://maventree/modulation:{docker_image_version}"
 
     delivery_method = si.cluster.ask_for_choices(
@@ -158,7 +158,7 @@ def set_htmap_settings():
 def ask_map_options() -> (dict, dict):
     opts = {
         "request_memory": si.cluster.ask_for_input("Memory?", default="500MB"),
-        "request_disk": si.cluster.ask_for_input("Disk?", default="500MB"),
+        "request_disk": si.cluster.ask_for_input("Disk?", default="10GB"),
     }
     custom_opts = {
         "wantflocking": str(
