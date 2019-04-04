@@ -138,9 +138,21 @@ def _run(spec):
 
 
 def set_htmap_settings():
+    docker_image_version = si.cluster.ask_for_input("Docker image version?")
+    htmap.settings["DOCKER.IMAGE"] = f"maventree/modulation:{docker_image_version}"
     htmap.settings[
-        "DOCKER.IMAGE"
-    ] = f'maventree/modulation:{si.cluster.ask_for_input("Docker image version?")}'
+        "SINGULARITY_IMAGE"
+    ] = f"docker://maventree/modulation:{docker_image_version}"
+
+    delivery_method = si.cluster.ask_for_choices(
+        "Use Docker or Singularity?",
+        choices={"docker": "docker", "singularity": "singularity"},
+        default="docker",
+    )
+
+    htmap.settings["DELIVERY_METHOD"] = delivery_method
+    if delivery_method == "singularity":
+        htmap.settings["MAP_OPTIONS.requirements"] = "OpSysMajorVer =?= 7"
 
 
 def ask_map_options() -> (dict, dict):

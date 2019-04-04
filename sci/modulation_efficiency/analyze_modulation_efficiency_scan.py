@@ -23,23 +23,21 @@ LOGMAN = si.utils.LogManager("simulacra", "modulation", stdout_level=logging.INF
 
 PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 
-COLORS = itertools.cycle(
-    [
-        "#1b9e77",
-        "#d95f02",
-        "#7570b3",
-        "#e7298a",
-        "#66a61e",
-        "#e6ab02",
-        "#a6761d",
-        "#666666",
-    ]
-)
+COLORS = [
+    "#1b9e77",
+    "#d95f02",
+    "#7570b3",
+    "#e7298a",
+    "#66a61e",
+    "#e6ab02",
+    "#a6761d",
+    "#666666",
+]
 
 LINESTYLES = ["-", "-.", "--", ":"]
 
 
-def mode_kwargs(mode, pump_mode, wavelength_bounds):
+def mode_kwargs(q, mode, pump_mode, wavelength_bounds):
     base = {}
 
     if mode == pump_mode:
@@ -50,7 +48,7 @@ def mode_kwargs(mode, pump_mode, wavelength_bounds):
         if mode.wavelength in bound:
             return {
                 "linestyle": LINESTYLES[i % len(LINESTYLES)],
-                "color": next(COLORS),
+                "color": COLORS[q % len(COLORS)],
                 **base,
             }
         i += 1
@@ -74,14 +72,14 @@ def mode_energy_plot_by_mixing_power(path):
         lines = []
         line_kwargs = []
         line_labels = []
-        for idx, mode, color in zip(idxs, modes, COLORS):
+        for idx, mode in zip(idxs, modes):
             line = np.array([mean[idx] for mean in means])
 
-            if not np.any(line >= lower_lim):
+            if lower_lim is not None and not np.any(line >= lower_lim):
                 continue
 
             lines.append(line)
-            line_kwargs.append(mode_kwargs(mode, pump_mode, wavelength_bounds))
+            line_kwargs.append(mode_kwargs(idx, mode, pump_mode, wavelength_bounds))
             line_labels.append(fr"${mode.tex}$")
 
         si.vis.xy_plot(
@@ -97,52 +95,59 @@ def mode_energy_plot_by_mixing_power(path):
             x_log_axis=scan_powers[0] != 0,
             y_log_axis=True,
             y_lower_limit=lower_lim,
-            # y_upper_limit=1e3 * u.pJ,
             legend_on_right=True,
             **PLOT_KWARGS,
         )
 
 
-def conversion_efficiency_plot(path):
-    sims = analysis.ParameterScan.from_file(path)
-    mixing_powers = set()
-    without_mixing = list(sims.select(mixing_power=0))
-    with_mixings = [list(sims.select(mixing))]
+def modulation_efficiency_plot_by_mixing_power(path):
+    ps = analysis.ParameterScan.from_file(path)
+    mixing_powers = sorted(ps.parameter_set("mixing_power"))
 
-    for with_mixing in with_mixings:
-        s = with_mixing[0].spec
-        modes = (s._pump_mode, s._stokes_mode, s._mixing_mode, s._modulated_mode)
-        idxs = [with_mixing[0].mode_to_index[mode] for mode in modes]
-        idxs_by_mode = dict(zip(modes, idxs))
+    print(mixing_powers)
 
-        scan_powers = np.array([sim.spec._scan_power for sim in with_mixing])
+    without_mixing = sorted(ps.select(mixing_power=0), key=lambda s: s.spec.pump_power)
 
-        launched_mixing_power = s.mode_pumps[idxs_by_mode[s._mixing_mode]]._power
+    nonzero_mixing_powers = sorted(ps.parameter_set("mixing_power") - {0})
+    print(nonzero_mixing_powers)
 
-        getter = lambda sim: sim.mode_output_powers(sim.lookback.mean)[
-            idxs_by_mode[s._modulated_mode]
-        ]
+    for mixing_power in nonzero_mixing_powers:
+        sims = ps.select(mixing_power=mixing_power)
+        print(len(sims))
+        s = sims[0].spec
 
-        efficiency = np.array(
-            [
-                (getter(w) - getter(wo)) / launched_mixing_power
-                for w, wo in zip(with_mixing, without_mixing)
-            ]
-        )
+        pump_powers = np.array([sim.spec.pump_power for sim in sims])
+        print(pump_powers)
 
-        si.vis.xy_plot(
-            f"{path.stem}__conversion_efficiency",
-            scan_powers,
-            efficiency,
-            x_label=f"Launched {scan_mode.label} Power",
-            y_label="Conversion Efficiency",
-            x_unit="uW",
-            # y_unit = 'pJ',
-            # title = rf'Mode Energies for $ P_{{\mathrm{{{fixed_mode.label}}}}} = {s.mode_pumps[idxs_by_mode[fixed_mode]]._power / u.uW:.1f} \, \mathrm{{\mu W}} $',
-            x_log_axis=scan_powers[0] != 0,
-            y_log_axis=True,
-            **PLOT_KWARGS,
-        )
+    #
+    #     scan_powers = np.array([sim.spec._scan_power for sim in with_mixing])
+    #
+    #     launched_mixing_power = s.mode_pumps[idxs_by_mode[s._mixing_mode]]._power
+    #
+    #     getter = lambda sim: sim.mode_output_powers(sim.lookback.mean)[
+    #         idxs_by_mode[s._modulated_mode]
+    #     ]
+    #
+    #     efficiency = np.array(
+    #         [
+    #             (getter(w) - getter(wo)) / launched_mixing_power
+    #             for w, wo in zip(with_mixing, without_mixing)
+    #         ]
+    #     )
+    #
+    #     si.vis.xy_plot(
+    #         f"{path.stem}__conversion_efficiency",
+    #         scan_powers,
+    #         efficiency,
+    #         x_label=f"Launched {scan_mode.label} Power",
+    #         y_label="Conversion Efficiency",
+    #         x_unit="uW",
+    #         # y_unit = 'pJ',
+    #         # title = rf'Mode Energies for $ P_{{\mathrm{{{fixed_mode.label}}}}} = {s.mode_pumps[idxs_by_mode[fixed_mode]]._power / u.uW:.1f} \, \mathrm{{\mu W}} $',
+    #         x_log_axis=scan_powers[0] != 0,
+    #         y_log_axis=True,
+    #         **PLOT_KWARGS,
+    #     )
 
 
 if __name__ == "__main__":
@@ -151,3 +156,4 @@ if __name__ == "__main__":
 
         for path in paths:
             mode_energy_plot_by_mixing_power(path)
+            # modulation_efficiency_plot_by_mixing_power(path)
