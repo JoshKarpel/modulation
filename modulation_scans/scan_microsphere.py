@@ -79,7 +79,7 @@ def create_scan(tag):
                 sorted(
                     u.usec
                     * np.array(
-                        si.cluster.ask_for_eval("Final time (in us)?", default="[10]")
+                        si.cluster.ask_for_eval("Final time (in us)?", default="[1]")
                     ),
                     key=lambda x: -x,
                 ),
@@ -90,7 +90,7 @@ def create_scan(tag):
                 sorted(
                     u.psec
                     * np.array(
-                        si.cluster.ask_for_eval("Time step (in ps)?", default="[10]")
+                        si.cluster.ask_for_eval("Time step (in ps)?", default="[1]")
                     )
                 ),
                 expandable=True,
