@@ -96,58 +96,84 @@ def mode_energy_plot_by_mixing_power(path):
             y_log_axis=True,
             y_lower_limit=lower_lim,
             legend_on_right=True,
+            font_size_legend=6,
             **PLOT_KWARGS,
         )
+
+
+def group_modes_by_sideband(modes, sidebands):
+    sideband_to_modes = collections.defaultdict(set)
+    for sideband in sidebands:
+        for mode in modes:
+            if mode.wavelength in sideband:
+                sideband_to_modes[sideband].add(mode)
+
+    return sideband_to_modes
+
+
+def sideband_of_wavelength(wavelength, sidebands):
+    for sideband in sidebands:
+        if wavelength in sideband:
+            return sideband
 
 
 def modulation_efficiency_plot_by_mixing_power(path):
     ps = analysis.ParameterScan.from_file(path)
     mixing_powers = sorted(ps.parameter_set("mixing_power"))
 
-    print(mixing_powers)
-
     without_mixing = sorted(ps.select(mixing_power=0), key=lambda s: s.spec.pump_power)
+    s = without_mixing[0].spec
+
+    sidebands = sorted(s.wavelength_bounds)
+
+    mixing_sideband = sideband_of_wavelength(s.mixing_wavelength, sidebands)
+    modulated_mixing_sideband = sidebands[sidebands.index(mixing_sideband) - 1]
+
+    sidebands_to_modes = group_modes_by_sideband(s.modes, s.wavelength_bounds)
 
     nonzero_mixing_powers = sorted(ps.parameter_set("mixing_power") - {0})
-    print(nonzero_mixing_powers)
 
-    for mixing_power in nonzero_mixing_powers:
-        sims = ps.select(mixing_power=mixing_power)
-        print(len(sims))
-        s = sims[0].spec
+    for modulated_mode in sidebands_to_modes[modulated_mixing_sideband]:
+        modulated_mode_index = s.modes.index(modulated_mode)
+        mixing_power_to_xy = {}
+        for mixing_power in nonzero_mixing_powers:
+            sims = sorted(
+                ps.select(mixing_power=mixing_power), key=lambda s: s.spec.pump_power
+            )
 
-        pump_powers = np.array([sim.spec.pump_power for sim in sims])
-        print(pump_powers)
+            pump_powers = np.array([sim.spec.pump_power for sim in sims])
 
-    #
-    #     scan_powers = np.array([sim.spec._scan_power for sim in with_mixing])
-    #
-    #     launched_mixing_power = s.mode_pumps[idxs_by_mode[s._mixing_mode]]._power
-    #
-    #     getter = lambda sim: sim.mode_output_powers(sim.lookback.mean)[
-    #         idxs_by_mode[s._modulated_mode]
-    #     ]
-    #
-    #     efficiency = np.array(
-    #         [
-    #             (getter(w) - getter(wo)) / launched_mixing_power
-    #             for w, wo in zip(with_mixing, without_mixing)
-    #         ]
-    #     )
-    #
-    #     si.vis.xy_plot(
-    #         f"{path.stem}__conversion_efficiency",
-    #         scan_powers,
-    #         efficiency,
-    #         x_label=f"Launched {scan_mode.label} Power",
-    #         y_label="Conversion Efficiency",
-    #         x_unit="uW",
-    #         # y_unit = 'pJ',
-    #         # title = rf'Mode Energies for $ P_{{\mathrm{{{fixed_mode.label}}}}} = {s.mode_pumps[idxs_by_mode[fixed_mode]]._power / u.uW:.1f} \, \mathrm{{\mu W}} $',
-    #         x_log_axis=scan_powers[0] != 0,
-    #         y_log_axis=True,
-    #         **PLOT_KWARGS,
-    #     )
+            getter = lambda s: s.mode_output_powers(s.lookback.mean)[
+                modulated_mode_index
+            ]
+            efficiency = np.empty_like(pump_powers)
+            for idx, (no_mixing_sim, with_mixing_sim) in enumerate(
+                zip(without_mixing, sims)
+            ):
+                efficiency[idx] = (
+                    getter(with_mixing_sim) - getter(no_mixing_sim)
+                ) / mixing_power
+
+            mixing_power_to_xy[mixing_power] = (pump_powers, efficiency)
+
+        xx = [x for x, y in mixing_power_to_xy.values()]
+        yy = [y for x, y in mixing_power_to_xy.values()]
+
+        si.vis.xxyy_plot(
+            f"{path.stem}__modulation_efficiency__mode_at_{modulated_mode.wavelength / u.nm:.6f}nm",
+            xx,
+            yy,
+            line_labels=[
+                fr'$P_{{\mathrm{{mixing}}}} = {mixing_power / u.uW:.3f} \, \mathrm{{\mu W}}$'
+                for mixing_power in nonzero_mixing_powers
+            ],
+            x_label="Launched Pump Power",
+            y_label="Modulation Efficiency",
+            x_unit="mW",
+            x_log_axis=True,
+            y_log_axis=True,
+            **PLOT_KWARGS,
+        )
 
 
 if __name__ == "__main__":
@@ -155,5 +181,5 @@ if __name__ == "__main__":
         paths = [Path(__file__).parent / "meff_test.sims"]
 
         for path in paths:
-            mode_energy_plot_by_mixing_power(path)
-            # modulation_efficiency_plot_by_mixing_power(path)
+            # mode_energy_plot_by_mixing_power(path)
+            modulation_efficiency_plot_by_mixing_power(path)
