@@ -167,6 +167,7 @@ def modulation_efficiency_plot_by_mixing_power(path):
                 fr'$P_{{\mathrm{{mixing}}}} = {mixing_power / u.uW:.3f} \, \mathrm{{\mu W}}$'
                 for mixing_power in nonzero_mixing_powers
             ],
+            title=rf"Modulation Efficiency for ${modulated_mode.tex}$",
             x_label="Launched Pump Power",
             y_label="Modulation Efficiency",
             x_unit="mW",
