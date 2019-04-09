@@ -387,9 +387,9 @@ def run(params):
                         )
 
                     logger.info(
-                        f"{name} frequency is {pumps[0].frequency / u.THz:.6f} THz"
+                        f"{name} frequency is {pumps[-1].frequency / u.THz:.6f} THz"
                     )
-                    params[f"{name}_frequency"] = pumps[0].frequency
+                    params[f"{name}_frequency"] = pumps[-1].frequency
                     params[f"{name}_mode"] = target_mode
 
             params["wavelength_bounds"] = bounds
