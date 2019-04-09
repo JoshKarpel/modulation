@@ -35,20 +35,40 @@ def create_scan(tag):
         microsphere=microsphere
     )
 
+    pump_stokes_orders = si.cluster.Parameter(
+        "pump_stokes_orders",
+        si.cluster.ask_for_input(
+            "Number of Stokes Orders for Pump?", cast_to=int, default=1
+        ),
+    )
+    pump_antistokes_orders = si.cluster.Parameter(
+        "pump_antistokes_orders",
+        si.cluster.ask_for_input(
+            "Number of Anti-Stokes Orders for Pump?", cast_to=int, default=0
+        ),
+    )
+    mixing_stokes_orders = si.cluster.Parameter(
+        "mixing_stokes_orders",
+        si.cluster.ask_for_input(
+            "Number of Stokes Orders for Mixing?",
+            cast_to=int,
+            default=pump_stokes_orders.value,
+        ),
+    )
+    mixing_antistokes_orders = si.cluster.Parameter(
+        "mixing_antistokes_orders",
+        si.cluster.ask_for_input(
+            "Number of Anti-Stokes Orders for Mixing?",
+            cast_to=int,
+            default=pump_antistokes_orders.value,
+        ),
+    )
     parameters.extend(
         [
-            si.cluster.Parameter(
-                "stokes_orders",
-                si.cluster.ask_for_input(
-                    "Number of Stokes Orders?", cast_to=int, default=1
-                ),
-            ),
-            si.cluster.Parameter(
-                "antistokes_orders",
-                si.cluster.ask_for_input(
-                    "Number of Anti-Stokes Orders?", cast_to=int, default=0
-                ),
-            ),
+            pump_stokes_orders,
+            pump_antistokes_orders,
+            mixing_stokes_orders,
+            mixing_antistokes_orders,
             si.cluster.Parameter(
                 "group_bandwidth",
                 (material.raman_linewidth / u.twopi)
@@ -278,15 +298,15 @@ def get_laser_parameters(name, parameters):
 def get_bounds(params):
     pump_bounds = microspheres.sideband_bounds(
         center_wavelength=params["pump_wavelength"],
-        stokes_orders=params["stokes_orders"],
-        antistokes_orders=params["antistokes_orders"],
+        stokes_orders=params["pump_stokes_orders"],
+        antistokes_orders=params["pump_antistokes_orders"],
         sideband_frequency=params["material"].modulation_frequency,
         bandwidth_frequency=params["group_bandwidth"],
     )
     mixing_bounds = microspheres.sideband_bounds(
         center_wavelength=params["mixing_wavelength"],
-        stokes_orders=params["stokes_orders"],
-        antistokes_orders=params["antistokes_orders"],
+        stokes_orders=params["mixing_stokes_orders"],
+        antistokes_orders=params["mixing_antistokes_orders"],
         sideband_frequency=params["material"].modulation_frequency,
         bandwidth_frequency=params["group_bandwidth"],
     )
