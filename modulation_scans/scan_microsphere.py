@@ -1,8 +1,8 @@
-import sys
 import datetime
 from pathlib import Path
 
 import numpy as np
+import scipy.optimize as opt
 from scipy.special import comb
 
 
@@ -33,6 +33,15 @@ def create_scan(tag):
     )
     mvi = microspheres.FixedGridSimpsonMicrosphereVolumeIntegrator(
         microsphere=microsphere
+    )
+    parameters.append(
+        si.cluster.Parameter(
+            "fiber_taper_radius",
+            value=u.um
+            * si.cluster.ask_for_input(
+                "Fiber Taper Radius (in um)?", default=1, cast_to=int
+            ),
+        )
     )
 
     pump_stokes_orders = si.cluster.Parameter(
@@ -211,6 +220,7 @@ def get_laser_parameters(name, parameters):
     selection_method = si.cluster.ask_for_choices(
         f"{name.title()} Wavelength Selection Method?",
         choices={"raw": "raw", "offset": "offset", "symmetric": "symmetric"},
+        default="offset",
     )
     parameters.append(
         si.cluster.Parameter(f"{name}_selection_method", selection_method)
@@ -358,7 +368,7 @@ def run(params):
                         power=params[f"{name}_power"],
                     )
                     pumps.append(pump)
-                    logger.info(f"{name} wavelength is {pump.wavelength}")
+                    logger.info(f"{name} wavelength is {pump.wavelength / u.nm:.6f} nm")
                     params[f"{name}_wavelength"] = pump.wavelength
 
                     # re-center wavelengths bounds
@@ -376,7 +386,9 @@ def run(params):
                             f"disagreement about which mode is the target after refind!\noriginal: {target_mode}\nnew: {refind_target_mode}"
                         )
 
-                    logger.info(f"{name} frequency is {pumps[0].frequency}")
+                    logger.info(
+                        f"{name} frequency is {pumps[0].frequency / u.THz:.6f} THz"
+                    )
                     params[f"{name}_frequency"] = pumps[0].frequency
                     params[f"{name}_mode"] = target_mode
 
@@ -399,15 +411,58 @@ def run(params):
                 for m in modes
             }
 
+            # determine critical coupling distance
+            if "pump_mode" in params:
+                pump_mode = params["pump_mode"]
+                intrinsic_q = params["intrinsic_q"]
+                kwargs_for_coupling_q = dict(
+                    microsphere_index_of_refraction=params[
+                        "microsphere"
+                    ].index_of_refraction,
+                    fiber_index_of_refraction=params[
+                        "microsphere"
+                    ].index_of_refraction,  # assume fiber is made of same material as microsphere
+                    microsphere_radius=params["microsphere"].radius,
+                    fiber_taper_radius=params["fiber_taper_radius"],
+                )
+                separation = opt.brentq(
+                    lambda x: intrinsic_q
+                    - microspheres.coupling_quality_factor_for_tapered_fiber(
+                        separation=x,
+                        wavelength=pump_mode.wavelength,
+                        l=target_mode.l,
+                        m=target_mode.m,
+                        **kwargs_for_coupling_q,
+                    ),
+                    0,
+                    10 * u.um,
+                )
+                logger.info(
+                    f"fiber-microsphere separation is {separation / u.nm:.3f} nm"
+                )
+
+                coupling_qs = {
+                    m: microspheres.coupling_quality_factor_for_tapered_fiber(
+                        separation=separation,
+                        wavelength=m.wavelength,
+                        l=m.l,
+                        m=m.m,
+                        **kwargs_for_coupling_q,
+                    )
+                    for m in modes
+                }
+            else:
+                coupling_qs = {
+                    m: params["intrinsic_q"] for m in modes
+                }  # todo: this should be customizable
+
             spec = params["spec_type"](
                 params["component"],
                 modes=modes,
                 pumps=pumps,
                 mode_initial_amplitudes=initial_amps,
-                mode_intrinsic_quality_factors={
-                    m: params["intrinsic_q"] for m in modes
-                },
-                mode_coupling_quality_factors={m: params["intrinsic_q"] for m in modes},
+                mode_intrinsic_quality_factors={m: intrinsic_q for m in modes},
+                mode_coupling_quality_factors=coupling_qs,
                 **params,
             )
 
