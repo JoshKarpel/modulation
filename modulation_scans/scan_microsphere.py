@@ -372,11 +372,18 @@ def run(params):
                 print(mode)
             print()
 
+            initial_amps = {
+                m: 1
+                if params["spec_type"] is raman.StimulatedRamanScatteringSpecification
+                else 0
+                for m in modes
+            }
+
             spec = params["spec_type"](
                 params["component"],
                 modes=modes,
                 pumps=pumps,
-                mode_initial_amplitudes={m: 1 for m in modes},
+                mode_initial_amplitudes=initial_amps,
                 mode_intrinsic_quality_factors={
                     m: params["intrinsic_q"] for m in modes
                 },
@@ -385,6 +392,8 @@ def run(params):
             )
 
             sim = spec.to_sim()
+
+        print(sim.info())
 
         sim.run(checkpoint_callback=htmap.checkpoint)
 
