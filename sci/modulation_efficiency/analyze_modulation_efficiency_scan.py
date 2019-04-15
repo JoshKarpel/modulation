@@ -21,7 +21,7 @@ SIM_LIB = OUT_DIR / "SIMLIB"
 
 LOGMAN = si.utils.LogManager("simulacra", "modulation", stdout_level=logging.INFO)
 
-PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
+PLOT_KWARGS = dict(img_format="png", fig_dpi_scale=6)
 
 COLORS = [
     "#1b9e77",
@@ -64,28 +64,46 @@ def mode_energy_plot_by_mixing_power(path):
     pump_mode = s.pump_mode
     wavelength_bounds = s.wavelength_bounds
 
+    # for idx, mode in enumerate(modes):
+    #     print(mode, f"{s.mode_coupling_quality_factors[idx]:.4g}")
+
     for mixing_power in all_sims.parameter_set("mixing_power"):
         sims = all_sims.select(mixing_power=mixing_power)
+
+        sim = sims[-1]
+        for idx, mode in enumerate(sim.spec.modes):
+            print(
+                idx,
+                mode,
+                f"{s.mode_coupling_quality_factors[idx]:.4g}",
+                sim.mode_energies(sim.lookback.mean)[idx] / u.pJ,
+                sim.mode_output_powers(sim.lookback.mean)[idx] / u.uW,
+            )
+
         scan_powers = np.array([sim.spec.pump_power for sim in sims])
         means = [sim.mode_energies(sim.lookback.mean) for sim in sims]
+        powers = [sim.mode_output_powers(sim.lookback.mean) for sim in sims]
 
-        lines = []
+        energy_lines = []
+        power_lines = []
         line_kwargs = []
         line_labels = []
         for idx, mode in zip(idxs, modes):
-            line = np.array([mean[idx] for mean in means])
+            energy = np.array([energies[idx] for energies in means])
+            power = np.array([pow[idx] for pow in powers])
 
-            if lower_lim is not None and not np.any(line >= lower_lim):
+            if lower_lim is not None and not np.any(energy >= lower_lim):
                 continue
 
-            lines.append(line)
+            energy_lines.append(energy)
+            power_lines.append(power)
             line_kwargs.append(mode_kwargs(idx, mode, pump_mode, wavelength_bounds))
             line_labels.append(fr"${mode.tex}$")
 
         si.vis.xy_plot(
-            f"{path.stem}__mode_energies__mixing={mixing_power / u.mW:.6f}mW",
+            f"mode_energies__mixing={mixing_power / u.mW:.6f}mW",
             scan_powers,
-            *lines,
+            *energy_lines,
             line_kwargs=line_kwargs,
             line_labels=line_labels,
             x_label=f"Launched Pump Power",
@@ -97,6 +115,24 @@ def mode_energy_plot_by_mixing_power(path):
             y_lower_limit=lower_lim,
             legend_on_right=True,
             font_size_legend=6,
+            target_dir=OUT_DIR / path.stem,
+            **PLOT_KWARGS,
+        )
+        si.vis.xy_plot(
+            f"mode_powers__mixing={mixing_power / u.mW:.6f}mW",
+            scan_powers,
+            *power_lines,
+            line_kwargs=line_kwargs,
+            line_labels=line_labels,
+            x_label=f"Launched Pump Power",
+            y_label="Steady-State Mode Output Power",
+            x_unit="mW",
+            y_unit="nW",
+            x_log_axis=scan_powers[0] != 0,
+            y_log_axis=True,
+            legend_on_right=True,
+            font_size_legend=6,
+            target_dir=OUT_DIR / path.stem,
             **PLOT_KWARGS,
         )
 
@@ -119,7 +155,6 @@ def sideband_of_wavelength(wavelength, sidebands):
 
 def modulation_efficiency_plot_by_mixing_power(path):
     ps = analysis.ParameterScan.from_file(path)
-    mixing_powers = sorted(ps.parameter_set("mixing_power"))
 
     without_mixing = sorted(ps.select(mixing_power=0), key=lambda s: s.spec.pump_power)
     s = without_mixing[0].spec
@@ -160,7 +195,7 @@ def modulation_efficiency_plot_by_mixing_power(path):
         yy = [y for x, y in mixing_power_to_xy.values()]
 
         si.vis.xxyy_plot(
-            f"{path.stem}__modulation_efficiency__mode_at_{modulated_mode.wavelength / u.nm:.6f}nm",
+            f"modulation_efficiency__mode_at_{modulated_mode.wavelength / u.nm:.6f}nm",
             xx,
             yy,
             line_labels=[
@@ -173,14 +208,20 @@ def modulation_efficiency_plot_by_mixing_power(path):
             x_unit="mW",
             x_log_axis=True,
             y_log_axis=True,
+            target_dir=OUT_DIR / path.stem,
             **PLOT_KWARGS,
         )
 
 
 if __name__ == "__main__":
     with LOGMAN as logger:
-        paths = [Path(__file__).parent / "meff_test.sims"]
+        paths = [
+            # Path(__file__).parent / "meff_test.sims",
+            # Path(__file__).parent / "meff_test_v2.sims",
+            Path(__file__).parent
+            / "meff_test_with_new_amps_coupling__minimal_set.sims"
+        ]
 
         for path in paths:
-            # mode_energy_plot_by_mixing_power(path)
+            mode_energy_plot_by_mixing_power(path)
             modulation_efficiency_plot_by_mixing_power(path)
