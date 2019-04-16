@@ -11,7 +11,7 @@ import simulacra as si
 import simulacra.units as u
 
 from modulation import raman, analysis
-from modulation.resonators import mock
+from modulation.resonators import microspheres
 
 import matplotlib.pyplot as plt
 
@@ -137,22 +137,6 @@ def mode_energy_plot_by_mixing_power(path):
         )
 
 
-def group_modes_by_sideband(modes, sidebands):
-    sideband_to_modes = collections.defaultdict(set)
-    for sideband in sidebands:
-        for mode in modes:
-            if mode.wavelength in sideband:
-                sideband_to_modes[sideband].add(mode)
-
-    return sideband_to_modes
-
-
-def sideband_of_wavelength(wavelength, sidebands):
-    for sideband in sidebands:
-        if wavelength in sideband:
-            return sideband
-
-
 def modulation_efficiency_plot_by_mixing_power(path):
     ps = analysis.ParameterScan.from_file(path)
 
@@ -161,10 +145,14 @@ def modulation_efficiency_plot_by_mixing_power(path):
 
     sidebands = sorted(s.wavelength_bounds)
 
-    mixing_sideband = sideband_of_wavelength(s.mixing_wavelength, sidebands)
+    mixing_sideband = microspheres.sideband_of_wavelength(
+        s.mixing_wavelength, sidebands
+    )
     modulated_mixing_sideband = sidebands[sidebands.index(mixing_sideband) - 1]
 
-    sidebands_to_modes = group_modes_by_sideband(s.modes, s.wavelength_bounds)
+    sidebands_to_modes = microspheres.group_modes_by_sideband(
+        s.modes, s.wavelength_bounds
+    )
 
     nonzero_mixing_powers = sorted(ps.parameter_set("mixing_power") - {0})
 

@@ -1,10 +1,8 @@
 import datetime
 from pathlib import Path
 
-import numpy as np
 import scipy.optimize as opt
 from scipy.special import comb
-
 
 import simulacra as si
 import simulacra.units as u
@@ -34,113 +32,22 @@ def create_scan(tag):
     mvi = microspheres.FixedGridSimpsonMicrosphereVolumeIntegrator(
         microsphere=microsphere
     )
-    parameters.append(
-        si.cluster.Parameter(
-            "fiber_taper_radius",
-            value=u.um
-            * si.cluster.ask_for_input(
-                "Fiber Taper Radius (in um)?", default=1, cast_to=int
-            ),
-        )
-    )
 
-    pump_stokes_orders = si.cluster.Parameter(
-        "pump_stokes_orders",
-        si.cluster.ask_for_input(
-            "Number of Stokes Orders for Pump?", cast_to=int, default=1
-        ),
-    )
-    pump_antistokes_orders = si.cluster.Parameter(
-        "pump_antistokes_orders",
-        si.cluster.ask_for_input(
-            "Number of Anti-Stokes Orders for Pump?", cast_to=int, default=0
-        ),
-    )
-    mixing_stokes_orders = si.cluster.Parameter(
-        "mixing_stokes_orders",
-        si.cluster.ask_for_input(
-            "Number of Stokes Orders for Mixing?",
-            cast_to=int,
-            default=pump_stokes_orders.value,
-        ),
-    )
-    mixing_antistokes_orders = si.cluster.Parameter(
-        "mixing_antistokes_orders",
-        si.cluster.ask_for_input(
-            "Number of Anti-Stokes Orders for Mixing?",
-            cast_to=int,
-            default=pump_antistokes_orders.value,
-        ),
-    )
-    parameters.extend(
-        [
-            pump_stokes_orders,
-            pump_antistokes_orders,
-            mixing_stokes_orders,
-            mixing_antistokes_orders,
-            si.cluster.Parameter(
-                "group_bandwidth",
-                (material.raman_linewidth / u.twopi)
-                * si.cluster.ask_for_input(
-                    "Mode Group Bandwidth (in Raman Linewidths)",
-                    cast_to=float,
-                    default=0.1,
-                ),
-            ),
-            si.cluster.Parameter(
-                "max_radial_mode_number",
-                si.cluster.ask_for_input(
-                    "Maximum Radial Mode Number?", cast_to=int, default=5
-                ),
-            ),
-        ]
-    )
+    shared.ask_fiber_parameters(parameters)
 
-    get_laser_parameters("pump", parameters)
-    get_laser_parameters("mixing", parameters)
+    shared.ask_sideband_parameters(parameters, material)
 
-    # sort longest times and shortest time steps into earlier components
-    # to get them running first
-    parameters.extend(
-        [
-            si.cluster.Parameter(
-                "time_final",
-                sorted(
-                    u.usec
-                    * np.array(
-                        si.cluster.ask_for_eval("Final time (in us)?", default="[1]")
-                    ),
-                    key=lambda x: -x,
-                ),
-                expandable=True,
-            ),
-            si.cluster.Parameter(
-                "time_step",
-                sorted(
-                    u.psec
-                    * np.array(
-                        si.cluster.ask_for_eval("Time step (in ps)?", default="[1]")
-                    )
-                ),
-                expandable=True,
-            ),
-        ]
-    )
+    shared.ask_laser_parameters("pump", parameters)
+    shared.ask_laser_parameters("mixing", parameters)
 
-    DEFAULT_Q = 1e8
-    parameters.append(
-        si.cluster.Parameter(
-            "intrinsic_q",
-            si.cluster.ask_for_input(
-                "Mode Intrinsic Quality Factor?", cast_to=float, default=DEFAULT_Q
-            ),
-        )
-    )
+    shared.ask_time_final(parameters)
+    shared.ask_time_step(parameters)
+
+    shared.ask_intrinsic_q(parameters)
 
     store_mode_amplitudes_vs_time = si.cluster.ask_for_bool(
         "Store mode amplitudes vs time?"
     )
-
     lookback_time = shared.ask_lookback_time()
 
     # CREATE SPECS
@@ -168,7 +75,7 @@ def create_scan(tag):
 
     p = final_parameters[0]
 
-    bounds = get_bounds(p)
+    bounds = shared.get_bounds(p)
     modes = shared.find_modes(bounds, p["microsphere"], p["max_radial_mode_number"])
 
     print(f"Approximate number of modes in each simulation: {len(modes)}")
@@ -216,114 +123,6 @@ def create_scan(tag):
     return map
 
 
-def get_laser_parameters(name, parameters):
-    selection_method = si.cluster.ask_for_choices(
-        f"{name.title()} Wavelength Selection Method?",
-        choices={"raw": "raw", "offset": "offset", "symmetric": "symmetric"},
-        default="offset",
-    )
-    parameters.append(
-        si.cluster.Parameter(f"{name}_selection_method", selection_method)
-    )
-
-    if selection_method == "raw":
-        parameters.append(
-            si.cluster.Parameter(
-                f"{name}_wavelength",
-                u.nm
-                * np.array(
-                    si.cluster.ask_for_eval(
-                        f"{name.title()} laser wavelength (in nm)?", default="[1064]"
-                    )
-                ),
-                expandable=True,
-            )
-        )
-    elif selection_method == "offset":
-        parameters.extend(
-            [
-                si.cluster.Parameter(
-                    f"{name}_wavelength",
-                    u.nm
-                    * si.cluster.ask_for_input(
-                        f"{name.title()} laser wavelength (in nm)?",
-                        default=1064,
-                        cast_to=float,
-                    ),
-                ),
-                si.cluster.Parameter(
-                    f"{name}_frequency_offset",
-                    u.GHz
-                    * np.array(
-                        si.cluster.ask_for_eval(
-                            f"{name.title()} laser frequency offsets (in GHz)",
-                            default="[0]",
-                        )
-                    ),
-                    expandable=True,
-                ),
-            ]
-        )
-    elif selection_method == "symmetric":
-        pump_wavelength = u.nm * si.cluster.ask_for_input(
-            f"{name.title()} laser wavelength (in nm)?", default=1064, cast_to=float
-        )
-        pump_frequency_offsets_raw = u.GHz * np.array(
-            si.cluster.ask_for_eval(
-                f"{name.title()} laser frequency offsets (in GHz)", default="[0]"
-            )
-        )
-        frequency_offsets_abs = np.array(
-            sorted(set(np.abs(pump_frequency_offsets_raw)))
-        )
-        if frequency_offsets_abs[0] != 0:
-            frequency_offsets_abs = np.insert(frequency_offsets_abs, 0, 0)
-        frequency_offsets = np.concatenate(
-            (-frequency_offsets_abs[:0:-1], frequency_offsets_abs)
-        )
-
-        parameters.extend(
-            [
-                si.cluster.Parameter(f"{name}_wavelength", pump_wavelength),
-                si.cluster.Parameter(
-                    f"{name}_frequency_offset", frequency_offsets, expandable=True
-                ),
-            ]
-        )
-
-    parameters.append(
-        si.cluster.Parameter(
-            f"{name}_power",
-            u.mW
-            * np.array(
-                si.cluster.ask_for_eval(
-                    f"Launched {name} power (in mW)?", default="[1]"
-                )
-            ),
-            expandable=True,
-        )
-    )
-
-
-def get_bounds(params):
-    pump_bounds = microspheres.sideband_bounds(
-        center_wavelength=params["pump_wavelength"],
-        stokes_orders=params["pump_stokes_orders"],
-        antistokes_orders=params["pump_antistokes_orders"],
-        sideband_frequency=params["material"].modulation_frequency,
-        bandwidth_frequency=params["group_bandwidth"],
-    )
-    mixing_bounds = microspheres.sideband_bounds(
-        center_wavelength=params["mixing_wavelength"],
-        stokes_orders=params["mixing_stokes_orders"],
-        antistokes_orders=params["mixing_antistokes_orders"],
-        sideband_frequency=params["material"].modulation_frequency,
-        bandwidth_frequency=params["group_bandwidth"],
-    )
-
-    return microspheres.merge_wavelength_bounds(pump_bounds + mixing_bounds)
-
-
 @htmap.mapped(map_options=htmap.MapOptions(custom_options={"is_resumable": "true"}))
 def run(params):
     with si.utils.LogManager("modulation", "simulacra") as logger:
@@ -338,7 +137,7 @@ def run(params):
             # note: bounds and modes may be replaced in the loop that follows
             # and params may be modified!
             # but it IS all deterministic...
-            bounds = get_bounds(params)
+            bounds = shared.get_bounds(params)
             modes = shared.find_modes(
                 bounds, params["microsphere"], params["max_radial_mode_number"]
             )
@@ -372,7 +171,7 @@ def run(params):
                     params[f"{name}_wavelength"] = pump.wavelength
 
                     # re-center wavelengths bounds
-                    bounds = get_bounds(params)
+                    bounds = shared.get_bounds(params)
                     modes = shared.find_modes(
                         bounds, params["microsphere"], params["max_radial_mode_number"]
                     )
@@ -430,8 +229,8 @@ def run(params):
                     - microspheres.coupling_quality_factor_for_tapered_fiber(
                         separation=x,
                         wavelength=pump_mode.wavelength,
-                        l=target_mode.l,
-                        m=target_mode.m,
+                        l=pump_mode.l,
+                        m=pump_mode.m,
                         **kwargs_for_coupling_q,
                     ),
                     0,
@@ -479,7 +278,7 @@ def run(params):
 
 
 def main():
-    shared.set_htmap_settings()
+    shared.ask_htmap_settings()
 
     tag = shared.ask_for_tag()
 

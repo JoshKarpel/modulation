@@ -1,3 +1,4 @@
+import collections
 import logging
 from typing import List, Iterable, Union, Tuple
 
@@ -168,6 +169,22 @@ def sideband_bounds(
     ]
 
     return tuple(bounds)
+
+
+def group_modes_by_sideband(modes, sidebands):
+    sideband_to_modes = collections.defaultdict(set)
+    for sideband in sidebands:
+        for mode in modes:
+            if mode.wavelength in sideband:
+                sideband_to_modes[sideband].add(mode)
+
+    return sideband_to_modes
+
+
+def sideband_of_wavelength(wavelength, sidebands):
+    for sideband in sidebands:
+        if wavelength in sideband:
+            return sideband
 
 
 class LBound:

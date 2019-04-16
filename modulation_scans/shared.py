@@ -5,6 +5,8 @@ import sys
 
 import htmap
 
+import numpy as np
+
 import simulacra as si
 import simulacra.units as u
 
@@ -42,6 +44,7 @@ def ask_spec_type():
             "SRS": modulation.raman.StimulatedRamanScatteringSpecification,
             "FWM": modulation.raman.FourWaveMixingSpecification,
         },
+        default="FWM",
     )
 
 
@@ -63,15 +66,198 @@ def ask_material():
     return modulation.raman.RamanMaterial.from_name(choice)
 
 
-def ask_time_final(default=1):
-    return u.usec * si.cluster.ask_for_input(
-        "Final time (in us)?", default=default, cast_to=float
+def ask_fiber_parameters(parameters):
+    parameters.append(
+        si.cluster.Parameter(
+            "fiber_taper_radius",
+            value=u.um
+            * si.cluster.ask_for_input(
+                "Fiber Taper Radius (in um)?", default=1, cast_to=int
+            ),
+        )
     )
 
 
-def ask_time_step(default=1):
-    return u.psec * si.cluster.ask_for_input(
-        "Time step (in ps)?", default=default, cast_to=float
+def ask_sideband_parameters(parameters, material):
+    pump_stokes_orders = si.cluster.Parameter(
+        "pump_stokes_orders",
+        si.cluster.ask_for_input(
+            "Number of Stokes Orders for Pump?", cast_to=int, default=1
+        ),
+    )
+    pump_antistokes_orders = si.cluster.Parameter(
+        "pump_antistokes_orders",
+        si.cluster.ask_for_input(
+            "Number of Anti-Stokes Orders for Pump?", cast_to=int, default=0
+        ),
+    )
+    mixing_stokes_orders = si.cluster.Parameter(
+        "mixing_stokes_orders",
+        si.cluster.ask_for_input(
+            "Number of Stokes Orders for Mixing?",
+            cast_to=int,
+            default=pump_stokes_orders.value,
+        ),
+    )
+    mixing_antistokes_orders = si.cluster.Parameter(
+        "mixing_antistokes_orders",
+        si.cluster.ask_for_input(
+            "Number of Anti-Stokes Orders for Mixing?",
+            cast_to=int,
+            default=pump_antistokes_orders.value,
+        ),
+    )
+    parameters.extend(
+        [
+            pump_stokes_orders,
+            pump_antistokes_orders,
+            mixing_stokes_orders,
+            mixing_antistokes_orders,
+            si.cluster.Parameter(
+                "group_bandwidth",
+                (material.raman_linewidth / u.twopi)
+                * si.cluster.ask_for_input(
+                    "Mode Group Bandwidth (in Raman Linewidths)",
+                    cast_to=float,
+                    default=0.1,
+                ),
+            ),
+            si.cluster.Parameter(
+                "max_radial_mode_number",
+                si.cluster.ask_for_input(
+                    "Maximum Radial Mode Number?", cast_to=int, default=5
+                ),
+            ),
+        ]
+    )
+
+
+def ask_laser_parameters(name, parameters):
+    selection_method = si.cluster.ask_for_choices(
+        f"{name.title()} Wavelength Selection Method?",
+        choices={"raw": "raw", "offset": "offset", "symmetric": "symmetric"},
+        default="offset",
+    )
+    parameters.append(
+        si.cluster.Parameter(f"{name}_selection_method", selection_method)
+    )
+
+    if selection_method == "raw":
+        parameters.append(
+            si.cluster.Parameter(
+                f"{name}_wavelength",
+                u.nm
+                * np.array(
+                    si.cluster.ask_for_eval(
+                        f"{name.title()} laser wavelength (in nm)?", default="[1064]"
+                    )
+                ),
+                expandable=True,
+            )
+        )
+    elif selection_method == "offset":
+        parameters.extend(
+            [
+                si.cluster.Parameter(
+                    f"{name}_wavelength",
+                    u.nm
+                    * si.cluster.ask_for_input(
+                        f"{name.title()} laser wavelength (in nm)?",
+                        default=1064,
+                        cast_to=float,
+                    ),
+                ),
+                si.cluster.Parameter(
+                    f"{name}_frequency_offset",
+                    u.GHz
+                    * np.array(
+                        si.cluster.ask_for_eval(
+                            f"{name.title()} laser frequency offsets (in GHz)",
+                            default="[0]",
+                        )
+                    ),
+                    expandable=True,
+                ),
+            ]
+        )
+    elif selection_method == "symmetric":
+        pump_wavelength = u.nm * si.cluster.ask_for_input(
+            f"{name.title()} laser wavelength (in nm)?", default=1064, cast_to=float
+        )
+        pump_frequency_offsets_raw = u.GHz * np.array(
+            si.cluster.ask_for_eval(
+                f"{name.title()} laser frequency offsets (in GHz)", default="[0]"
+            )
+        )
+        frequency_offsets_abs = np.array(
+            sorted(set(np.abs(pump_frequency_offsets_raw)))
+        )
+        if frequency_offsets_abs[0] != 0:
+            frequency_offsets_abs = np.insert(frequency_offsets_abs, 0, 0)
+        frequency_offsets = np.concatenate(
+            (-frequency_offsets_abs[:0:-1], frequency_offsets_abs)
+        )
+
+        parameters.extend(
+            [
+                si.cluster.Parameter(f"{name}_wavelength", pump_wavelength),
+                si.cluster.Parameter(
+                    f"{name}_frequency_offset", frequency_offsets, expandable=True
+                ),
+            ]
+        )
+
+    parameters.append(
+        si.cluster.Parameter(
+            f"{name}_power",
+            u.mW
+            * np.array(
+                si.cluster.ask_for_eval(
+                    f"Launched {name} power (in mW)?", default="[1]"
+                )
+            ),
+            expandable=True,
+        )
+    )
+
+
+def ask_time_final(parameters,):
+    parameters.append(
+        si.cluster.Parameter(
+            "time_final",
+            sorted(
+                u.usec
+                * np.array(
+                    si.cluster.ask_for_eval("Final time (in us)?", default="[1]")
+                ),
+                key=lambda x: -x,
+            ),
+            expandable=True,
+        )
+    )
+
+
+def ask_time_step(parameters,):
+    parameters.append(
+        si.cluster.Parameter(
+            "time_step",
+            sorted(
+                u.psec
+                * np.array(si.cluster.ask_for_eval("Time step (in ps)?", default="[1]"))
+            ),
+            expandable=True,
+        )
+    )
+
+
+def ask_intrinsic_q(parameters):
+    parameters.append(
+        si.cluster.Parameter(
+            "intrinsic_q",
+            si.cluster.ask_for_input(
+                "Mode Intrinsic Quality Factor?", cast_to=float, default=1e8
+            ),
+        )
     )
 
 
@@ -116,28 +302,29 @@ def find_mode_nearest_omega(modes, omega: float):
 
 # MAP CREATION
 
+# JUST A TEMPLATE
 
-@htmap.mapped
-def _run(spec):
-    sim_path = Path.cwd() / f"{spec.file_name}.sim"
+# @htmap.mapped
+# def _run(spec):
+#     sim_path = Path.cwd() / f"{spec.file_name}.sim"
+#
+#     try:
+#         sim = si.Simulation.load(str(sim_path))
+#         print(f"Recovered checkpoint from {sim_path}")
+#     except (FileNotFoundError, EOFError):
+#         sim = spec.to_sim()
+#         print("No checkpoint found")
+#
+#     print(sim.info())
+#
+#     sim.run(checkpoint_callback=htmap.checkpoint)
+#
+#     print(sim.info())
+#
+#     return sim
 
-    try:
-        sim = si.Simulation.load(str(sim_path))
-        print(f"Recovered checkpoint from {sim_path}")
-    except (FileNotFoundError, EOFError):
-        sim = spec.to_sim()
-        print("No checkpoint found")
 
-    print(sim.info())
-
-    sim.run(checkpoint_callback=htmap.checkpoint)
-
-    print(sim.info())
-
-    return sim
-
-
-def set_htmap_settings():
+def ask_htmap_settings():
     docker_image_version = si.cluster.ask_for_input("Docker image version?")
     htmap.settings["DOCKER.IMAGE"] = f"maventree/modulation:{docker_image_version}"
     htmap.settings[
@@ -162,23 +349,30 @@ def ask_map_options() -> (dict, dict):
     }
     custom_opts = {
         "wantflocking": str(
-            si.cluster.ask_for_bool("Want flocking?", default=True)
+            si.cluster.ask_for_bool("Want flocking?", default=False)
         ).lower(),
         "wantglidein": str(
-            si.cluster.ask_for_bool("Want gliding?", default=True)
+            si.cluster.ask_for_bool("Want gliding?", default=False)
         ).lower(),
     }
 
     return opts, custom_opts
 
 
-def create_map(tag: str, specs) -> htmap.Map:
-    opts, custom = ask_map_options()
-
-    map = _run.map(
-        specs, map_options=htmap.MapOptions(**opts, custom_options=custom), tag=tag
+def get_bounds(params):
+    pump_bounds = microspheres.sideband_bounds(
+        center_wavelength=params["pump_wavelength"],
+        stokes_orders=params["pump_stokes_orders"],
+        antistokes_orders=params["pump_antistokes_orders"],
+        sideband_frequency=params["material"].modulation_frequency,
+        bandwidth_frequency=params["group_bandwidth"],
+    )
+    mixing_bounds = microspheres.sideband_bounds(
+        center_wavelength=params["mixing_wavelength"],
+        stokes_orders=params["mixing_stokes_orders"],
+        antistokes_orders=params["mixing_antistokes_orders"],
+        sideband_frequency=params["material"].modulation_frequency,
+        bandwidth_frequency=params["group_bandwidth"],
     )
 
-    print(f"Created map {map.tag}")
-
-    return map
+    return microspheres.merge_wavelength_bounds(pump_bounds + mixing_bounds)
