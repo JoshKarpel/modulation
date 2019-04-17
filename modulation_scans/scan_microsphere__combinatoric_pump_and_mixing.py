@@ -227,7 +227,7 @@ def stripped_ask_laser_parameters(name, parameters):
 @htmap.mapped(map_options=htmap.MapOptions(custom_options={"is_resumable": "true"}))
 def run(spec):
     with si.utils.LogManager("modulation", "simulacra") as logger:
-        sim_path = Path.cwd() / f"{spec.component}.sim"
+        sim_path = Path.cwd() / f"{spec.name}.sim"
 
         try:
             sim = si.Simulation.load(sim_path.as_posix())
