@@ -70,16 +70,6 @@ def mode_energy_plot_by_mixing_power(path):
     for mixing_power in all_sims.parameter_set("mixing_power"):
         sims = all_sims.select(mixing_power=mixing_power)
 
-        sim = sims[-1]
-        for idx, mode in enumerate(sim.spec.modes):
-            print(
-                idx,
-                mode,
-                f"{s.mode_coupling_quality_factors[idx]:.4g}",
-                sim.mode_energies(sim.lookback.mean)[idx] / u.pJ,
-                sim.mode_output_powers(sim.lookback.mean)[idx] / u.uW,
-            )
-
         scan_powers = np.array([sim.spec.pump_power for sim in sims])
         means = [sim.mode_energies(sim.lookback.mean) for sim in sims]
         powers = [sim.mode_output_powers(sim.lookback.mean) for sim in sims]
