@@ -34,7 +34,7 @@ COLORS = [
     "#666666",
 ]
 
-LINESTYLES = ["-", "-.", "--", ":"]
+LINESTYLES = ["-", "-.", "--", ":", (0, (3, 1, 1, 1, 1, 1))]
 
 
 def mode_kwargs(q, mode, pump_mode, mixing_mode, wavelength_bounds):
@@ -139,35 +139,44 @@ def mode_energy_plot_by_mixing_power_per_combination(path):
         )
 
 
-def modulation_efficiency_plot_by_mixing_power_per_combination(path):
+def modulation_efficiency_plot_by_modulated_mode(path):
     ps = analysis.ParameterScan.from_file(path)
 
-    without_mixing = sorted(ps.select(mixing_power=0), key=lambda s: s.spec.pump_power)
-    s = without_mixing[0].spec
-
+    s = ps[0].spec
     sidebands = sorted(s.wavelength_bounds)
-
     mixing_sideband = microspheres.sideband_of_wavelength(
         s.mixing_wavelength, sidebands
     )
     modulated_mixing_sideband = sidebands[sidebands.index(mixing_sideband) - 1]
-
     sidebands_to_modes = microspheres.group_modes_by_sideband(
         s.modes, s.wavelength_bounds
     )
 
     nonzero_mixing_powers = sorted(ps.parameter_set("mixing_power") - {0})
-    pump_modes = ps.parameter_set("pump_mode")
-    mixing_modes = ps.parameter_set("mixing_mode")
+    pump_modes = sorted(ps.parameter_set("pump_mode"), key=lambda m: m.wavelength)
+    mixing_modes = sorted(ps.parameter_set("mixing_mode"), key=lambda m: m.wavelength)
+    pump_mixing_pairs = list(itertools.product(pump_modes, mixing_modes))
 
-    for modulated_mode in sidebands_to_modes[modulated_mixing_sideband]:
-        modulated_mode_index = s.modes.index(modulated_mode)
-        for pump_mode, mixing_mode in tqdm(
-            list(itertools.product(pump_modes, mixing_modes))
-        ):
-            mixing_power_to_xy = {}
-            for mixing_power in nonzero_mixing_powers:
-                sims = sorted(
+    pump_to_color = {pump: COLORS[i % len(COLORS)] for i, pump in enumerate(pump_modes)}
+    mixing_to_style = {
+        mixing: LINESTYLES[i % len(LINESTYLES)] for i, mixing in enumerate(mixing_modes)
+    }
+
+    for modulated_mode in sorted(
+        sidebands_to_modes[modulated_mixing_sideband], key=lambda m: m.wavelength
+    ):
+        print(f"making plots for modulated mode {modulated_mode}")
+        for mixing_power in nonzero_mixing_powers:
+            print(f"  making plot for {mixing_power / u.uW:.6f} uW")
+
+            xx = []
+            yy_efficiency = []
+            yy_excess_output = []
+            yy_increase = []
+            line_labels = []
+            line_kwargs = []
+            for pump_mode, mixing_mode in pump_mixing_pairs:
+                with_mixing = sorted(
                     ps.select(
                         pump_mode=pump_mode,
                         mixing_mode=mixing_mode,
@@ -175,42 +184,100 @@ def modulation_efficiency_plot_by_mixing_power_per_combination(path):
                     ),
                     key=lambda s: s.spec.pump_power,
                 )
+                without_mixing = sorted(
+                    ps.select(
+                        pump_mode=pump_mode, mixing_mode=mixing_mode, mixing_power=0
+                    ),
+                    key=lambda s: s.spec.pump_power,
+                )
 
-                pump_powers = np.array([sim.spec.pump_power for sim in sims])
+                pump_powers = np.array([sim.spec.pump_power for sim in with_mixing])
 
                 getter = lambda s: s.mode_output_powers(s.lookback.mean)[
-                    modulated_mode_index
+                    s.spec.modes.index(modulated_mode)
                 ]
-                efficiency = np.empty_like(pump_powers)
+                efficiency = np.zeros_like(pump_powers) * np.NaN
+                output = np.zeros_like(pump_powers) * np.NaN
+                increase = np.zeros_like(pump_powers) * np.NaN
                 for idx, (no_mixing_sim, with_mixing_sim) in enumerate(
-                    zip(without_mixing, sims)
+                    zip(without_mixing, with_mixing)
                 ):
-                    efficiency[idx] = (
-                        getter(with_mixing_sim) - getter(no_mixing_sim)
-                    ) / mixing_power
+                    excess_output = getter(with_mixing_sim) - getter(no_mixing_sim)
+                    eff = excess_output / mixing_power
 
-                mixing_power_to_xy[mixing_power] = (pump_powers, efficiency)
+                    output[idx] = excess_output if excess_output > 0 else np.NaN
+                    efficiency[idx] = eff if eff > 0 else np.NaN  # filter out negative
+                    increase[idx] = getter(with_mixing_sim) / getter(no_mixing_sim)
 
-            xx = [x for x, y in mixing_power_to_xy.values()]
-            yy = [y for x, y in mixing_power_to_xy.values()]
+                xx.append(pump_powers)
+                yy_efficiency.append(efficiency)
+                yy_excess_output.append(output)
+                yy_increase.append(increase)
+                line_labels.append(fr"${pump_mode.tex} \, \mid \, {mixing_mode.tex}$")
+                line_kwargs.append(
+                    {
+                        "color": pump_to_color[pump_mode],
+                        "linestyle": mixing_to_style[mixing_mode],
+                        "alpha": 0.8,
+                    }
+                )
 
-            postfix = f"pump_wavelength={pump_mode.wavelength / u.nm:.3f}nm_mixing_wavelength={mixing_mode.wavelength / u.nm:.3f}nm__mixing_power={mixing_power / u.mW:.6f}mW"
+            postfix = f"mixing_power={mixing_power / u.uW:.6f}uW"
 
             si.vis.xxyy_plot(
-                f"modulation_efficiency__{postfix}__mode_at_{modulated_mode.wavelength / u.nm:.6f}nm",
+                f"modulation_efficiency__mode_at_{modulated_mode.wavelength / u.nm:.6f}nm__{postfix}",
                 xx,
-                yy,
-                line_labels=[
-                    fr'$P_{{\mathrm{{mixing}}}} = {mixing_power / u.uW:.3f} \, \mathrm{{\mu W}}$'
-                    for mixing_power in nonzero_mixing_powers
-                ],
+                yy_efficiency,
+                line_labels=line_labels,
+                line_kwargs=line_kwargs,
                 title=rf"Modulation Efficiency for ${modulated_mode.tex}$",
                 x_label="Launched Pump Power",
                 y_label="Modulation Efficiency",
                 x_unit="mW",
                 x_log_axis=True,
                 y_log_axis=True,
-                target_dir=OUT_DIR / path.stem,
+                target_dir=OUT_DIR / path.stem / "by_modulated_mode",
+                legend_on_right=True,
+                font_size_legend=6,
+                # y_lower_limit=1e-9,
+                # y_upper_limit=1e-2,
+                **PLOT_KWARGS,
+            )
+            si.vis.xxyy_plot(
+                f"excess_output_power__mode_at_{modulated_mode.wavelength / u.nm:.6f}nm__{postfix}",
+                xx,
+                yy_excess_output,
+                line_labels=line_labels,
+                line_kwargs=line_kwargs,
+                title=rf"Excess Output Power for ${modulated_mode.tex}$",
+                x_label="Launched Pump Power",
+                y_label="Mode Output Power",
+                x_unit="mW",
+                y_unit="nW",
+                x_log_axis=True,
+                y_log_axis=True,
+                # y_lower_limit=1e-9 * u.nW,
+                # y_upper_limit=100 * u.nW,
+                target_dir=OUT_DIR / path.stem / "by_modulated_mode",
+                legend_on_right=True,
+                font_size_legend=6,
+                **PLOT_KWARGS,
+            )
+            si.vis.xxyy_plot(
+                f"frac_increase_output_power__mode_at_{modulated_mode.wavelength / u.nm:.6f}nm__{postfix}",
+                xx,
+                yy_increase,
+                line_labels=line_labels,
+                line_kwargs=line_kwargs,
+                title=rf"Increase in Output Power for ${modulated_mode.tex}$",
+                x_label="Launched Pump Power",
+                y_label="Fractional Increase",
+                x_unit="mW",
+                x_log_axis=True,
+                y_log_axis=True,
+                target_dir=OUT_DIR / path.stem / "by_modulated_mode",
+                legend_on_right=True,
+                font_size_legend=6,
                 **PLOT_KWARGS,
             )
 
@@ -223,5 +290,6 @@ if __name__ == "__main__":
         ]
 
         for path in paths:
-            mode_energy_plot_by_mixing_power_per_combination(path)
-            modulation_efficiency_plot_by_mixing_power_per_combination(path)
+            # mode_energy_plot_by_mixing_power_per_combination(path)
+            # modulation_efficiency_plot_by_mixing_power_per_combination(path)
+            modulation_efficiency_plot_by_modulated_mode(path)
