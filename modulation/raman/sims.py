@@ -420,7 +420,7 @@ class FourWaveMixingSimulation(RamanSimulation):
             )
 
         logger.debug(f"Building four-mode volume ratio array for {self}...")
-        mode_volume_ratios = np.empty(
+        mode_volume_ratios = np.zeros(
             (num_modes, num_modes, num_modes, num_modes), dtype=np.float64
         )
         four_modes_combinations = itertools.combinations_with_replacement(
@@ -434,12 +434,23 @@ class FourWaveMixingSimulation(RamanSimulation):
             (s, mode_s),
             (t, mode_t),
         ) in four_modes_combinations:
-            volume = self.spec.mode_volume_integrator.mode_volume_integral(
-                (mode_q, mode_r, mode_s, mode_t)
-            )
+            modes = (mode_q, mode_r, mode_s, mode_t)
+            volume = self.spec.mode_volume_integrator.mode_volume_integral(modes)
 
             for q_, r_, s_, t_ in itertools.permutations((q, r, s, t)):
-                mode_volume_ratios[q_, r_, s_, t_] = volume / self.mode_volumes[q]
+                four_mode_detuning = np.abs(
+                    self.spec.modes[r_].frequency
+                    - self.spec.modes[s_].frequency
+                    + self.spec.modes[t_].frequency
+                    - self.spec.modes[q_].frequency
+                )
+                under_cutoff = (
+                    self.spec.four_mode_detuning_cutoff is None
+                    or four_mode_detuning < self.spec.four_mode_detuning_cutoff
+                )
+                print(q_, r_, s_, t_, four_mode_detuning / u.THz, under_cutoff)
+                if under_cutoff:
+                    mode_volume_ratios[q_, r_, s_, t_] = volume / self.mode_volumes[q]
 
         return np.einsum(
             "q,st,qrst->qrst",
@@ -491,6 +502,7 @@ class RamanSpecification(si.Specification):
         material: material.RamanMaterial = None,
         evolution_algorithm: evolve.EvolutionAlgorithm = evolve.RungeKutta4(),
         mode_volume_integrator: volume.ModeVolumeIntegrator = None,
+        four_mode_detuning_cutoff=None,
         store_mode_amplitudes_vs_time: bool = False,
         lookback: Optional[lookback.Lookback] = None,
         freeze_lookback: bool = True,
@@ -539,6 +551,7 @@ class RamanSpecification(si.Specification):
                 "mode_volume_integrator cannot be None"
             )
         self.mode_volume_integrator = mode_volume_integrator
+        self.four_mode_detuning_cutoff = four_mode_detuning_cutoff
 
         self.store_mode_amplitudes_vs_time = store_mode_amplitudes_vs_time
         self.lookback = lookback
@@ -645,5 +658,6 @@ def is_interactive_session():
         (
             bool(getattr(sys, "ps1", sys.flags.interactive)),  # console sessions
             not hasattr(main, "__file__"),  # jupyter-like notebooks
+            True,  # todo: remove
         )
     )

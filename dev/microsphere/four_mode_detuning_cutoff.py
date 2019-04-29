@@ -45,7 +45,7 @@ def mode_kwargs(sim, q, mode, pump_mode, mixing_mode, wavelength_bounds):
     if mode == pump_mode:
         return {"color": "black", **base}
     elif mode == mixing_mode:
-        return {"color": "black", "linestyle": "--", **base}
+        return {"color": "black", **base}
 
     i = 0
     for bound in wavelength_bounds:
@@ -54,19 +54,16 @@ def mode_kwargs(sim, q, mode, pump_mode, mixing_mode, wavelength_bounds):
         i += 1
 
 
-def run():
+def run(pump_power, mixing_power, time_step, cutoff):
     pump_wavelength = 1064 * u.nm
-    pump_power = 1 * u.W
     mixing_wavelength = 800 * u.nm
-    mixing_power = 1 * u.uW
 
     R = 50 * u.um
     max_radial_mode_number = 5
     material = raman.RamanMaterial.from_name("silica")
 
     pump_start_time = 0 * u.usec
-    time_final = 1 * u.usec
-    time_step = 10 * u.psec
+    time_final = 600 * u.nsec
     intrinsic_q = 1e8
     coupling_q = 1e8
 
@@ -75,14 +72,14 @@ def run():
         stokes_orders=1,
         antistokes_orders=0,
         sideband_frequency=material.modulation_frequency,
-        bandwidth_frequency=0.1 * material.raman_linewidth / u.twopi,
+        bandwidth_frequency=0.05 * material.raman_linewidth / u.twopi,
     )
     wavelength_bounds += microspheres.sideband_bounds(
         center_wavelength=mixing_wavelength,
         stokes_orders=0,
         antistokes_orders=1,
         sideband_frequency=material.modulation_frequency,
-        bandwidth_frequency=0.1 * material.raman_linewidth / u.twopi,
+        bandwidth_frequency=0.05 * material.raman_linewidth / u.twopi,
     )
 
     for b in wavelength_bounds:
@@ -97,8 +94,8 @@ def run():
         wavelength_bounds, microsphere, max_radial_mode_number=max_radial_mode_number
     )
 
-    # for m in modes:
-    #     print(m)
+    for m in modes:
+        print(m)
 
     print(f"found {len(modes)} modes")
 
@@ -109,8 +106,11 @@ def run():
     print("pump mode is", pump_mode)
     print("mixing mode is", mixing_mode)
 
+    cutoff_str = (
+        f"cutoff={cutoff / u.THz:.3f}THz" if cutoff is not None else "cutoff=none"
+    )
     spec = raman.FourWaveMixingSpecification(
-        f"pump={pump_power / u.mW:.3f}mW_mixing={mixing_power / u.uW:.3f}uW",
+        f"pump={pump_power / u.mW:.3f}mW_mixing={mixing_power / u.uW:.3f}uW_dt={time_step / u.psec:.3f}ps_{cutoff_str}",
         material=material,
         modes=modes,
         mode_volume_integrator=microspheres.FixedGridSimpsonMicrosphereVolumeIntegrator(
@@ -136,6 +136,7 @@ def run():
         store_mode_amplitudes_vs_time=True,
         pump_mode=pump_mode,
         mixing_mode=mixing_mode,
+        four_mode_detuning_cutoff=cutoff,
     )
 
     try:
@@ -149,20 +150,20 @@ def run():
 
         sim.save(target_dir=OUT_DIR)
 
-    sim.plot.mode_magnitudes_vs_time(
-        # y_lower_limit=1e5 * u.V_per_m,
-        # y_upper_limit=1e10 * u.V_per_m,
-        average_over=10 * u.nsec,
-        mode_kwargs=lambda s, q, mode: mode_kwargs(
-            s, q, mode, sim.spec.pump_mode, sim.spec.mixing_mode, wavelength_bounds
-        ),
-        font_size_legend=8,
-        **PLOT_KWARGS,
-    )
+    # sim.plot.mode_magnitudes_vs_time(
+    #     # y_lower_limit=1e5 * u.V_per_m,
+    #     # y_upper_limit=1e10 * u.V_per_m,
+    #     average_over=10 * u.nsec,
+    #     mode_kwargs=lambda s, q, mode: mode_kwargs(
+    #         s, q, mode, sim.spec.pump_mode, sim.spec.mixing_mode, wavelength_bounds
+    #     ),
+    #     font_size_legend=8,
+    #     **PLOT_KWARGS,
+    # )
     sim.plot.mode_energies_vs_time(
-        # y_lower_limit=1e-5 * u.pJ,
-        # y_upper_limit=2e1 * u.pJ,
-        average_over=10 * u.nsec,
+        y_lower_limit=1e-12 * u.pJ,
+        y_upper_limit=1e4 * u.pJ,
+        average_over=0.1 * u.nsec,
         y_log_pad=1,
         mode_kwargs=lambda s, q, mode: mode_kwargs(
             s, q, mode, sim.spec.pump_mode, sim.spec.mixing_mode, wavelength_bounds
@@ -173,4 +174,12 @@ def run():
 
 
 if __name__ == "__main__":
-    run()
+    time_steps = [10 * u.psec, 1 * u.psec, 0.1 * u.psec, 0.05 * u.psec]
+    cutoffs = [None, 10 * u.THz, 20 * u.THz]
+    for time_step, cutoff in itertools.product(time_steps, cutoffs):
+        run(
+            pump_power=1 * u.W,
+            mixing_power=1 * u.uW,
+            time_step=time_step,
+            cutoff=cutoff,
+        )

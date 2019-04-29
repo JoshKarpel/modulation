@@ -290,6 +290,5 @@ if __name__ == "__main__":
         ]
 
         for path in paths:
-            # mode_energy_plot_by_mixing_power_per_combination(path)
-            # modulation_efficiency_plot_by_mixing_power_per_combination(path)
+            mode_energy_plot_by_mixing_power_per_combination(path)
             modulation_efficiency_plot_by_modulated_mode(path)
