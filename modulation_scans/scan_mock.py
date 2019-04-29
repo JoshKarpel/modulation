@@ -38,8 +38,6 @@ def create_scan(tag):
         )
     )
 
-    shared.ask_fiber_parameters(parameters)
-
     shared.ask_laser_parameters("pump", parameters)
     shared.ask_laser_parameters("mixing", parameters)
 

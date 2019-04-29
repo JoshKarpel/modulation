@@ -255,11 +255,12 @@ def ask_intrinsic_q(parameters):
 
 def ask_four_mode_detuning_cutoff(parameters):
     cutoff = si.cluster.ask_for_eval(
-        "Four-mode Detuning Cutoff (in THz)?", default="None"
+        "Four-mode Detuning Cutoff (in THz)?", default="[None]"
     )
-    if cutoff is not None:
-        cutoff = u.THz * np.array(cutoff)
-    parameters.append(si.cluster.Parameter("four_mode_detuning_cutoff", cutoff))
+    cutoff = [c * u.THz if c is not None else c for c in cutoff]
+    parameters.append(
+        si.cluster.Parameter("four_mode_detuning_cutoff", cutoff, expandable=True)
+    )
 
 
 def ask_lookback_time():
