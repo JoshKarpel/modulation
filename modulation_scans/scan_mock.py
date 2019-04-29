@@ -97,17 +97,15 @@ def create_scan(tag):
 
     # CREATE MAP
 
-    run(final_parameters[0])
+    map = run.map(
+        final_parameters,
+        map_options=htmap.MapOptions(**opts, custom_options=custom),
+        tag=tag,
+    )
 
-    # map = run.map(
-    #     final_parameters,
-    #     map_options=htmap.MapOptions(**opts, custom_options=custom),
-    #     tag=tag,
-    # )
-    #
-    # print(f"Created map {map.tag}")
-    #
-    # return map
+    print(f"Created map {map.tag}")
+
+    return map
 
 
 @htmap.mapped(map_options=htmap.MapOptions(custom_options={"is_resumable": "true"}))
