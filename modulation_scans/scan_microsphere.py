@@ -164,11 +164,11 @@ def run(params):
                     pump = raman.pump.ConstantMonochromaticPump(
                         frequency=target_mode.frequency
                         + params[f"{name}_frequency_offset"],
-                        power=params[f"{name}_power"],
+                        power=params[f"launched_{name}_power"],
                     )
                     pumps.append(pump)
                     logger.info(f"{name} wavelength is {pump.wavelength / u.nm:.6f} nm")
-                    params[f"{name}_wavelength"] = pump.wavelength
+                    params[f"launched_{name}_wavelength"] = pump.wavelength
 
                     # re-center wavelengths bounds
                     bounds = shared.get_bounds(params)

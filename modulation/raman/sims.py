@@ -448,7 +448,6 @@ class FourWaveMixingSimulation(RamanSimulation):
                     self.spec.four_mode_detuning_cutoff is None
                     or four_mode_detuning < self.spec.four_mode_detuning_cutoff
                 )
-                print(q_, r_, s_, t_, four_mode_detuning / u.THz, under_cutoff)
                 if under_cutoff:
                     mode_volume_ratios[q_, r_, s_, t_] = volume / self.mode_volumes[q]
 
@@ -623,7 +622,7 @@ class RamanSpecification(si.Specification):
     def mode_info(self) -> si.Info:
         info = si.Info(header="Modes")
 
-        for mode, q_intrinsic, q_coupling, q_total, pump in zip(
+        for mode, q_intrinsic, q_coupling, q_total in zip(
             self.modes,
             self.mode_intrinsic_quality_factors,
             self.mode_coupling_quality_factors,
@@ -633,7 +632,6 @@ class RamanSpecification(si.Specification):
             mode_info.add_field("Intrinsic Quality Factor", f"{q_intrinsic:.4g}")
             mode_info.add_field("Coupling Quality Factor", f"{q_coupling:.4g}")
             mode_info.add_field("Total Quality Factor", f"{q_total:.4g}")
-            mode_info.add_info(pump.info())
             info.add_info(mode_info)
 
         return info

@@ -138,14 +138,11 @@ def ask_laser_parameters(name, parameters):
         choices={"raw": "raw", "offset": "offset", "symmetric": "symmetric"},
         default="offset",
     )
-    parameters.append(
-        si.cluster.Parameter(f"{name}_selection_method", selection_method)
-    )
 
     if selection_method == "raw":
         parameters.append(
             si.cluster.Parameter(
-                f"{name}_wavelength",
+                f"launched_{name}_wavelength",
                 u.nm
                 * np.array(
                     si.cluster.ask_for_eval(
@@ -159,21 +156,20 @@ def ask_laser_parameters(name, parameters):
         parameters.extend(
             [
                 si.cluster.Parameter(
-                    f"{name}_wavelength",
+                    f"launched_{name}_wavelength",
                     u.nm
                     * si.cluster.ask_for_input(
-                        f"{name.title()} laser wavelength (in nm)?",
+                        f"Launched {name.title()} wavelength (in nm)?",
                         default=1064,
                         cast_to=float,
                     ),
                 ),
                 si.cluster.Parameter(
-                    f"{name}_frequency_offset",
-                    u.GHz
+                    f"launched_{name}_detuning",
+                    u.MHz
                     * np.array(
                         si.cluster.ask_for_eval(
-                            f"{name.title()} laser frequency offsets (in GHz)",
-                            default="[0]",
+                            f"Launched {name.title()} detunings (in MHz)", default="[0]"
                         )
                     ),
                     expandable=True,
@@ -184,14 +180,12 @@ def ask_laser_parameters(name, parameters):
         pump_wavelength = u.nm * si.cluster.ask_for_input(
             f"{name.title()} laser wavelength (in nm)?", default=1064, cast_to=float
         )
-        pump_frequency_offsets_raw = u.GHz * np.array(
+        pump_detunings_raw = u.MHz * np.array(
             si.cluster.ask_for_eval(
-                f"{name.title()} laser frequency offsets (in GHz)", default="[0]"
+                f"Launched {name.title()} detunings (in MHz)", default="[0]"
             )
         )
-        frequency_offsets_abs = np.array(
-            sorted(set(np.abs(pump_frequency_offsets_raw)))
-        )
+        frequency_offsets_abs = np.array(sorted(set(np.abs(pump_detunings_raw))))
         if frequency_offsets_abs[0] != 0:
             frequency_offsets_abs = np.insert(frequency_offsets_abs, 0, 0)
         frequency_offsets = np.concatenate(
@@ -200,20 +194,20 @@ def ask_laser_parameters(name, parameters):
 
         parameters.extend(
             [
-                si.cluster.Parameter(f"{name}_wavelength", pump_wavelength),
+                si.cluster.Parameter(f"launched_{name}_wavelength", pump_wavelength),
                 si.cluster.Parameter(
-                    f"{name}_frequency_offset", frequency_offsets, expandable=True
+                    f"launched_{name}_detuning", frequency_offsets, expandable=True
                 ),
             ]
         )
 
     parameters.append(
         si.cluster.Parameter(
-            f"{name}_power",
+            f"launched_{name}_power",
             u.mW
             * np.array(
                 si.cluster.ask_for_eval(
-                    f"Launched {name} power (in mW)?", default="[1]"
+                    f"Launched {name.title()} power (in mW)?", default="[1]"
                 )
             ),
             expandable=True,
@@ -221,7 +215,7 @@ def ask_laser_parameters(name, parameters):
     )
 
 
-def ask_time_final(parameters,):
+def ask_time_final(parameters):
     parameters.append(
         si.cluster.Parameter(
             "time_final",
@@ -251,14 +245,21 @@ def ask_time_step(parameters,):
 
 
 def ask_intrinsic_q(parameters):
-    parameters.append(
-        si.cluster.Parameter(
-            "intrinsic_q",
-            si.cluster.ask_for_input(
-                "Mode Intrinsic Quality Factor?", cast_to=float, default=1e8
-            ),
-        )
+    q = si.cluster.ask_for_input(
+        "Mode Intrinsic Quality Factor?", cast_to=float, default=1e8
     )
+    parameters.append(si.cluster.Parameter("intrinsic_q", q))
+
+    return q
+
+
+def ask_four_mode_detuning_cutoff(parameters):
+    cutoff = si.cluster.ask_for_eval(
+        "Four-mode Detuning Cutoff (in THz)?", default="None"
+    )
+    if cutoff is not None:
+        cutoff = u.THz * np.array(cutoff)
+    parameters.append(si.cluster.Parameter("four_mode_detuning_cutoff", cutoff))
 
 
 def ask_lookback_time():
