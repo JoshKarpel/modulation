@@ -658,6 +658,5 @@ def is_interactive_session():
         (
             bool(getattr(sys, "ps1", sys.flags.interactive)),  # console sessions
             not hasattr(main, "__file__"),  # jupyter-like notebooks
-            True,  # todo: remove
         )
     )
