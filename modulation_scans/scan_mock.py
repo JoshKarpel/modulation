@@ -220,6 +220,7 @@ def run(params):
         print(sim.spec.mode_info())
 
         sim.polarization_sum_factors = None
+        del sim.times
         return sim
 
 
