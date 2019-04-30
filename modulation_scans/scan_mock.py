@@ -177,6 +177,11 @@ def run(params):
                 ),
             )
 
+            params["pump_mode"] = pump_mode
+            params["stokes_mode"] = stokes_mode
+            params["mixing_mode"] = mixing_mode
+            params["modulated_mode"] = modulated_mode
+
             modes = [pump_mode, stokes_mode, mixing_mode, modulated_mode]
 
             pumps = [

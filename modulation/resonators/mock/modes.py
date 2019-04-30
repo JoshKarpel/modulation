@@ -1,8 +1,10 @@
+from typing import Union
 import logging
 
 import simulacra.units as u
 
 from ...raman import Mode
+from ...refraction import IndexOfRefraction
 
 logger = logging.getLogger(__name__)
 
@@ -15,19 +17,31 @@ class MockMode(Mode):
         *,
         label: str,
         omega: float,
-        index_of_refraction: float,
+        index_of_refraction: Union[float, IndexOfRefraction],
         mode_volume_inside_resonator: float,
         mode_volume_outside_resonator: float = 0,
     ):
         self.label = label
         self._omega = omega
-        self._index_of_refraction = index_of_refraction
+        self._index_of_refraction = (
+            index_of_refraction
+            if isinstance(index_of_refraction, float)
+            else index_of_refraction(self.wavelength)
+        )
         self._mode_volume_inside_resonator = mode_volume_inside_resonator
         self._mode_volume_outside_resonator = mode_volume_outside_resonator
 
     @property
     def omega(self):
         return self._omega
+
+    @property
+    def frequency(self):
+        return self.omega / u.twopi
+
+    @property
+    def wavelength(self):
+        return u.c / self.frequency
 
     @property
     def index_of_refraction(self):

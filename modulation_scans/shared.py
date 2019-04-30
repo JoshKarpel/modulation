@@ -12,6 +12,7 @@ import simulacra.units as u
 
 import modulation
 from modulation.resonators import microspheres
+from modulation.raman import AUTO_CUTOFF
 
 # CLI
 
@@ -231,13 +232,15 @@ def ask_time_final(parameters):
     )
 
 
-def ask_time_step(parameters,):
+def ask_time_step(parameters):
     parameters.append(
         si.cluster.Parameter(
             "time_step",
             sorted(
                 u.psec
-                * np.array(si.cluster.ask_for_eval("Time step (in ps)?", default="[1]"))
+                * np.array(
+                    si.cluster.ask_for_eval("Time step (in ps)?", default="[10]")
+                )
             ),
             expandable=True,
         )
@@ -255,9 +258,9 @@ def ask_intrinsic_q(parameters):
 
 def ask_four_mode_detuning_cutoff(parameters):
     cutoff = si.cluster.ask_for_eval(
-        "Four-mode Detuning Cutoff (in THz)?", default="[None]"
+        "Four-mode Detuning Cutoff (in THz)?", default="[AUTO_CUTOFF]"
     )
-    cutoff = [c * u.THz if c is not None else c for c in cutoff]
+    cutoff = [c * u.THz if c is not AUTO_CUTOFF else c for c in cutoff]
     parameters.append(
         si.cluster.Parameter("four_mode_detuning_cutoff", cutoff, expandable=True)
     )

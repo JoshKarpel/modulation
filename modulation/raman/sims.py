@@ -36,6 +36,7 @@ class RamanSimulation(si.Simulation):
         self.time_index = 0
         self.time_steps = int(total_time / self.spec.time_step) + 1
         self.real_time_step = total_time / (self.time_steps - 1)
+        self.time_rng_state = np.random.RandomState().get_state()
 
         self.mode_omegas = np.array([m.omega for m in self.spec.modes])
         self.mode_amplitude_decay_rates = self.mode_omegas / (
@@ -87,19 +88,27 @@ class RamanSimulation(si.Simulation):
         self.plot = plotter.RamanSimulationPlotter(self)
 
     def time_at(self, time_index):
-        return self.spec.time_initial + (time_index * self.real_time_step)
-
-    def iter_times(self):
-        for time_index in range(self.time_steps):
-            yield self.time_at(time_index)
-
-    @property
-    def times(self) -> np.ndarray:
-        return np.array(list(self.iter_times()))
+        return self.times[time_index]
 
     @property
     def current_time(self):
         return self.time_at(self.time_index)
+
+    @si.utils.cached_property
+    def times(self):
+        times = np.linspace(
+            self.spec.time_initial, self.spec.time_final, self.time_steps
+        )
+
+        rng = np.random.RandomState()
+        rng.set_state(self.time_rng_state)
+        scatter = rng.uniform(
+            -self.real_time_step / 10, self.real_time_step / 10, size=self.time_steps
+        )
+        scatter[0] = 0
+        scatter[-1] = 0
+
+        return times + scatter
 
     @property
     def available_animation_frames(self) -> int:
@@ -310,6 +319,12 @@ class RamanSimulation(si.Simulation):
 
         return info
 
+    def save(
+        self, target_dir: Optional[str] = None, file_extension: str = "sim", **kwargs
+    ) -> str:
+        del self.times
+        super().save(target_dir=target_dir, file_extension=file_extension, **kwargs)
+
 
 class StimulatedRamanScatteringSimulation(RamanSimulation):
     def _calculate_polarization_sum_factors(self) -> np.ndarray:
@@ -444,11 +459,7 @@ class FourWaveMixingSimulation(RamanSimulation):
                     + self.spec.modes[t_].frequency
                     - self.spec.modes[q_].frequency
                 )
-                under_cutoff = (
-                    self.spec.four_mode_detuning_cutoff is None
-                    or four_mode_detuning < self.spec.four_mode_detuning_cutoff
-                )
-                if under_cutoff:
+                if four_mode_detuning <= self.spec.four_mode_detuning_cutoff:
                     mode_volume_ratios[q_, r_, s_, t_] = volume / self.mode_volumes[q]
 
         return np.einsum(
@@ -481,6 +492,9 @@ class FourWaveMixingSimulation(RamanSimulation):
         return four_wave_polarization(fields, phase, self.polarization_sum_factors)
 
 
+AUTO_CUTOFF = object()
+
+
 class RamanSpecification(si.Specification):
     simulation_type = RamanSimulation
 
@@ -501,7 +515,7 @@ class RamanSpecification(si.Specification):
         material: material.RamanMaterial = None,
         evolution_algorithm: evolve.EvolutionAlgorithm = evolve.RungeKutta4(),
         mode_volume_integrator: volume.ModeVolumeIntegrator = None,
-        four_mode_detuning_cutoff=None,
+        four_mode_detuning_cutoff=AUTO_CUTOFF,
         store_mode_amplitudes_vs_time: bool = False,
         lookback: Optional[lookback.Lookback] = None,
         freeze_lookback: bool = True,
@@ -550,6 +564,9 @@ class RamanSpecification(si.Specification):
                 "mode_volume_integrator cannot be None"
             )
         self.mode_volume_integrator = mode_volume_integrator
+
+        if four_mode_detuning_cutoff is AUTO_CUTOFF:
+            four_mode_detuning_cutoff = 0.5 / time_step
         self.four_mode_detuning_cutoff = four_mode_detuning_cutoff
 
         self.store_mode_amplitudes_vs_time = store_mode_amplitudes_vs_time
@@ -594,6 +611,12 @@ class RamanSpecification(si.Specification):
         )
         info_evolution.add_field(
             "Inverse Time Step", fmt.quantity(1 / self.time_step, fmt.FREQUENCY_UNITS)
+        )
+        info_evolution.add_field(
+            "Four-Mode Detuning Cutoff",
+            fmt.quantity(self.four_mode_detuning_cutoff, fmt.FREQUENCY_UNITS)
+            if self.four_mode_detuning_cutoff is not AUTO_CUTOFF
+            else "AUTO",
         )
         info_evolution.add_info(self.evolution_algorithm.info())
         info.add_info(info_evolution)

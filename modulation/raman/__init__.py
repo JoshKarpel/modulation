@@ -16,6 +16,7 @@ from .sims import (
     RamanSidebandSimulation,
     FourWaveMixingSpecification,
     FourWaveMixingSimulation,
+    AUTO_CUTOFF,
 )
 from .anim import SquareAnimator, PolarComplexAmplitudeAxis
 from .pump import (

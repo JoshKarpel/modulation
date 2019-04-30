@@ -52,7 +52,7 @@ def mode_kwargs(mode, pump_mode, wavelength_bounds):
         i += 1
 
 
-def time_step_scan(path):
+def energy_convergence_time_step_scan(path):
     ps = analysis.ParameterScan.from_file(path)
     print(ps, len(ps))
 
@@ -108,7 +108,7 @@ def time_step_scan(path):
     si.vis.xy_plot(
         f"{path.stem}__time_step_scan__relative",
         x,
-        *[yy / yy[0] for yy in y],
+        *[yy / yy[0] if yy[0] != 0 else np.NaN for yy in y],
         line_labels=[rf"${mode.tex}$" for mode in modes],
         line_kwargs=kwargs,
         x_unit="psec",
@@ -127,7 +127,8 @@ if __name__ == "__main__":
         paths = [
             Path(__file__).parent / "convergence_scan_srs.sims",
             Path(__file__).parent / "convergence_scan_fwm.sims",
+            Path(__file__).parent / "convergence_test_smaller_dt.sims",
         ]
 
         for path in paths:
-            time_step_scan(path)
+            energy_convergence_time_step_scan(path)
