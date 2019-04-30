@@ -492,7 +492,7 @@ class FourWaveMixingSimulation(RamanSimulation):
         return four_wave_polarization(fields, phase, self.polarization_sum_factors)
 
 
-AUTO_CUTOFF = object()
+AUTO_CUTOFF = "AUTO_CUTOFF"
 
 
 class RamanSpecification(si.Specification):
@@ -565,7 +565,7 @@ class RamanSpecification(si.Specification):
             )
         self.mode_volume_integrator = mode_volume_integrator
 
-        if four_mode_detuning_cutoff is AUTO_CUTOFF:
+        if four_mode_detuning_cutoff == AUTO_CUTOFF:
             four_mode_detuning_cutoff = 0.5 / time_step
         self.four_mode_detuning_cutoff = four_mode_detuning_cutoff
 
