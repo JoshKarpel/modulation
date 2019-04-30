@@ -258,9 +258,9 @@ def ask_intrinsic_q(parameters):
 
 def ask_four_mode_detuning_cutoff(parameters):
     cutoff = si.cluster.ask_for_eval(
-        "Four-mode Detuning Cutoff (in THz)?", default="[AUTO_CUTOFF]"
+        "Four-mode Detuning Cutoff (in THz)?", default="[None]"
     )
-    cutoff = [c * u.THz if c is not AUTO_CUTOFF else c for c in cutoff]
+    cutoff = [c * u.THz if c is not None else AUTO_CUTOFF for c in cutoff]
     parameters.append(
         si.cluster.Parameter("four_mode_detuning_cutoff", cutoff, expandable=True)
     )
