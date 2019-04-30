@@ -184,8 +184,8 @@ if __name__ == "__main__":
         # 100 * u.psec,
         # 110 * u.psec,
         1 * u.nsec,
-        1.1 * u.nsec,
+        # 1.1 * u.nsec,
     ]
-    cutoffs = [raman.AUTO_CUTOFF, 10 * u.THz, 20 * u.THz, 50 * u.THz]
+    cutoffs = [raman.AUTO_CUTOFF, 10 * u.THz, np.Inf]
     for time_step, cutoff in itertools.product(time_steps, cutoffs):
         run(time_step=time_step, cutoff=cutoff)

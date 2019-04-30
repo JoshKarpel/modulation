@@ -7,4 +7,3 @@ IMAGE=modulation
 
 docker build --pull --build-arg CACHEBUST=$(date +%s) -t ${USERNAME}/${IMAGE}:$1 .
 docker push ${USERNAME}/${IMAGE}:$1
-singularity build modulation.img docker://${USERNAME}/${IMAGE}:$1
