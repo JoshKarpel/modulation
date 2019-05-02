@@ -27,6 +27,11 @@ class Mode(abc.ABC):
         return self.omega / u.twopi
 
     @property
+    def wavelength(self):
+        """The free-space wavelength of the mode."""
+        return u.c / self.frequency
+
+    @property
     def photon_energy(self):
         return u.hbar * self.omega
 
@@ -63,6 +68,7 @@ class Mode(abc.ABC):
         info = si.Info(header=self.__class__.__name__)
 
         info.add_field("Frequency", fmt.quantity(self.frequency, fmt.FREQUENCY_UNITS))
+        info.add_field("Wavelength", fmt.quantity(self.wavelength, fmt.LENGTH_UNITS))
         info.add_field("Index of Refraction", self.index_of_refraction)
         info.add_field(
             "Mode Volume Inside Resonator",

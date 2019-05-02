@@ -1,4 +1,5 @@
 import datetime
+import itertools
 from pathlib import Path
 
 import numpy as np
@@ -41,26 +42,36 @@ def create_scan(tag):
     shared.ask_laser_parameters("pump", parameters)
     shared.ask_laser_parameters("mixing", parameters)
 
-    parameters.extend(
-        [
-            si.cluster.Parameter(
-                "stokes_mode_detuning",
-                u.MHz
-                * np.array(
-                    si.cluster.ask_for_eval("Stokes mode detunings (in MHz)?", "[0]")
-                ),
-                expandable=True,
-            ),
-            si.cluster.Parameter(
-                "modulated_mode_detuning",
-                u.MHz
-                * np.array(
-                    si.cluster.ask_for_eval("Modulated mode detunings (in MHz)?", "[0]")
-                ),
-                expandable=True,
-            ),
-        ]
+    num_pump_stokes = si.cluster.ask_for_input(
+        "Number of Pump Stokes Orders?", default=1, cast_to=int
     )
+    num_pump_antistokes = si.cluster.ask_for_input(
+        "Number of Pump Antistokes Orders?", default=1, cast_to=int
+    )
+    num_mixing_stokes = si.cluster.ask_for_input(
+        "Number of Mixing Stokes Orders?", default=1, cast_to=int
+    )
+    num_mixing_antistokes = si.cluster.ask_for_input(
+        "Number of Mixing Antistokes Orders?", default=1, cast_to=int
+    )
+
+    orders = [f"pump|{n:+}" for n in range(-num_pump_antistokes, num_pump_stokes + 1)]
+    orders += [
+        f"mixing|{n:+}" for n in range(-num_mixing_antistokes, num_mixing_stokes + 1)
+    ]
+
+    parameters.append(si.cluster.Parameter("orders", orders))
+    for order in orders:
+        parameters.append(
+            si.cluster.Parameter(
+                f"{order}_mode_detuning",
+                u.MHz
+                * np.array(
+                    si.cluster.ask_for_eval(f"{order} mode detuning (in MHz)?", "[0]")
+                ),
+                expandable=True,
+            )
+        )
 
     shared.ask_time_final(parameters)
     shared.ask_time_step(parameters)
@@ -123,75 +134,39 @@ def run(params):
             material = params["material"]
 
             pump_mode_omega = u.twopi * u.c / params["launched_pump_wavelength"]
-            stokes_mode_omega = (
-                pump_mode_omega
-                - material.modulation_omega
-                + (u.twopi * params["stokes_mode_detuning"])
-            )
             mixing_mode_omega = u.twopi * u.c / params["launched_mixing_wavelength"]
-            modulated_mode_omega = (
-                mixing_mode_omega
-                + material.modulation_omega
-                + (u.twopi * params["modulated_mode_detuning"])
-            )
 
-            params["pump_mode_omega"] = pump_mode_omega
-            params["stokes_mode_omega"] = stokes_mode_omega
-            params["mixing_mode_omega"] = mixing_mode_omega
-            params["modulated_mode_omega"] = modulated_mode_omega
+            omega_selector = {"pump": pump_mode_omega, "mixing": mixing_mode_omega}
 
-            pump_mode = modulation.resonators.mock.MockMode(
-                label="Pump",
-                omega=pump_mode_omega,
-                mode_volume_inside_resonator=mode_volume,
-                mode_volume_outside_resonator=0,
-                index_of_refraction=material.index_of_refraction(
-                    u.c / (pump_mode_omega / u.twopi)
-                ),
-            )
-            stokes_mode = modulation.resonators.mock.MockMode(
-                label="Stokes",
-                omega=stokes_mode_omega,
-                mode_volume_inside_resonator=mode_volume,
-                mode_volume_outside_resonator=0,
-                index_of_refraction=material.index_of_refraction(
-                    u.c / (stokes_mode_omega / u.twopi)
-                ),
-            )
-            mixing_mode = modulation.resonators.mock.MockMode(
-                label="Mixing",
-                omega=mixing_mode_omega,
-                mode_volume_inside_resonator=mode_volume,
-                mode_volume_outside_resonator=0,
-                index_of_refraction=material.index_of_refraction(
-                    u.c / (mixing_mode_omega / u.twopi)
-                ),
-            )
-            modulated_mode = modulation.resonators.mock.MockMode(
-                label="Modulated",
-                omega=modulated_mode_omega,
-                mode_volume_inside_resonator=mode_volume,
-                mode_volume_outside_resonator=0,
-                index_of_refraction=material.index_of_refraction(
-                    u.c / (modulated_mode_omega / u.twopi)
-                ),
-            )
+            modes = []
+            for order in params["orders"]:
+                pump_or_mixing, n = order.split("|")
+                base_omega = omega_selector[pump_or_mixing]
+                n = int(n)
 
-            params["pump_mode"] = pump_mode
-            params["stokes_mode"] = stokes_mode
-            params["mixing_mode"] = mixing_mode
-            params["modulated_mode"] = modulated_mode
+                mode = modulation.resonators.mock.MockMode(
+                    label=order,
+                    omega=base_omega
+                    - (material.modulation_omega * n)
+                    + (u.twopi * params[f"{order}_mode_detuning"]),
+                    mode_volume_inside_resonator=mode_volume,
+                    mode_volume_outside_resonator=0,
+                    index_of_refraction=material.index_of_refraction,
+                )
 
-            modes = [pump_mode, stokes_mode, mixing_mode, modulated_mode]
+                modes.append(mode)
+
+            order_to_mode = dict(zip(params["orders"], modes))
+            params["order_to_mode"] = order_to_mode
 
             pumps = [
                 raman.pump.ConstantMonochromaticPump(
-                    frequency=pump_mode.frequency
+                    frequency=order_to_mode["pump|+0"].frequency
                     + params.get(f"launched_pump_detuning", 0),
                     power=params[f"launched_pump_power"],
                 ),
                 raman.pump.ConstantMonochromaticPump(
-                    frequency=mixing_mode.frequency
+                    frequency=order_to_mode["mixing|+0"].frequency
                     + params.get(f"launched_mixing_detuning", 0),
                     power=params[f"launched_mixing_power"],
                 ),
