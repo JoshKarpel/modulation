@@ -37,6 +37,20 @@ COLORS = [
 LINESTYLES = ["-", "-.", "--", ":"]
 
 
+def mode_kwargs(idx, mode):
+    kwargs = {}
+
+    kwargs["color"] = COLORS[idx % len(COLORS)]
+
+    if "+0" in mode.label:
+        kwargs["color"] = "black"
+
+    if "mixing" in mode.label:
+        kwargs["linestyle"] = "--"
+
+    return kwargs
+
+
 def mode_energy_plot_vs_pump_power_per_mixing_power(path):
     ps = analysis.ParameterScan.from_file(path)
 
@@ -61,7 +75,7 @@ def mode_energy_plot_vs_pump_power_per_mixing_power(path):
 
             energy_lines.append(energy)
             power_lines.append(power)
-            # line_kwargs.append(mode_kwargs(idx, mode, pump_mode))
+            line_kwargs.append(mode_kwargs(idx, mode))
             line_labels.append(fr"${mode.tex}$")
 
         postfix = f"mixing={launched_mixing_power / u.mW:.6f}mW"
@@ -187,7 +201,7 @@ def mode_energy_plot_vs_modulated_mode_detuning_per_mixing_power(path):
 
             energy_lines.append(energy)
             power_lines.append(power)
-            # line_kwargs.append(mode_kwargs(idx, mode, pump_mode))
+            line_kwargs.append(mode_kwargs(mode))
             line_labels.append(fr"${mode.tex}$")
 
         postfix = f"mixing={launched_mixing_power / u.mW:.6f}mW"
@@ -304,16 +318,20 @@ def modulation_efficiency_vs_modulated_mode_detuning_by_mixing_power(path):
 
 if __name__ == "__main__":
     with LOGMAN as logger:
-        # names = ["mock_meff.sims"]
-        # paths = (Path(__file__).parent / name for name in names)
-        #
-        # for path in paths:
-        #     mode_energy_plot_vs_pump_power_per_mixing_power(path)
-        #     modulation_efficiency_vs_pump_power_by_mixing_power(path)
-
-        names = ["mock_detuning_scan.sims"]
+        names = [
+            # "test_mock_multiorder.sims",
+            # "mock_multiorder_meff.sims",
+            "just_two_stokes_orders.sims"
+        ]
         paths = (Path(__file__).parent / name for name in names)
 
         for path in paths:
-            mode_energy_plot_vs_modulated_mode_detuning_per_mixing_power(path)
-            modulation_efficiency_vs_modulated_mode_detuning_by_mixing_power(path)
+            mode_energy_plot_vs_pump_power_per_mixing_power(path)
+            # modulation_efficiency_vs_pump_power_by_mixing_power(path)
+
+        # names = ["mock_detuning_scan.sims"]
+        # paths = (Path(__file__).parent / name for name in names)
+        #
+        # for path in paths:
+        #     mode_energy_plot_vs_modulated_mode_detuning_per_mixing_power(path)
+        #     modulation_efficiency_vs_modulated_mode_detuning_by_mixing_power(path)

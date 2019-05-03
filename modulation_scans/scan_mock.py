@@ -55,9 +55,9 @@ def create_scan(tag):
         "Number of Mixing Antistokes Orders?", default=1, cast_to=int
     )
 
-    orders = [f"pump|{n:+}" for n in range(-num_pump_antistokes, num_pump_stokes + 1)]
+    orders = [f"pump|{n:+}" for n in range(-num_pump_stokes, num_pump_antistokes + 1)]
     orders += [
-        f"mixing|{n:+}" for n in range(-num_mixing_antistokes, num_mixing_stokes + 1)
+        f"mixing|{n:+}" for n in range(-num_mixing_stokes, num_mixing_antistokes + 1)
     ]
 
     parameters.append(si.cluster.Parameter("orders", orders))
@@ -147,7 +147,7 @@ def run(params):
                 mode = modulation.resonators.mock.MockMode(
                     label=order,
                     omega=base_omega
-                    - (material.modulation_omega * n)
+                    + (material.modulation_omega * n)
                     + (u.twopi * params[f"{order}_mode_detuning"]),
                     mode_volume_inside_resonator=mode_volume,
                     mode_volume_outside_resonator=0,
