@@ -1,6 +1,7 @@
 from typing import Union
 import logging
 
+import simulacra as si
 import simulacra.units as u
 
 from ...raman import Mode
@@ -64,3 +65,10 @@ class MockMode(Mode):
 
     def __str__(self):
         return f"{self.__class__.__name__}(frequency = {self.frequency / u.THz:.6f} THz, index_of_refraction = {self.index_of_refraction}, mode_volume_inside_resonator = {self.mode_volume_inside_resonator / (u.um ** 3):.3f} µm^3, mode_volume_outside_resonator = {self.mode_volume_outside_resonator / (u.um ** 3):.3f} µm^3)"
+
+    def info(self) -> si.Info:
+        info = super().info()
+
+        info.add_field("Label", self.label)
+
+        return info
