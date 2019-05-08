@@ -26,7 +26,7 @@ class IndexOfRefraction(abc.ABC):
         self.name = name
 
     @abc.abstractmethod
-    def __call__(self, wavelength: FloatOrArray):
+    def __call__(self, wavelength: FloatOrArray, temperature=None):
         """Calculate the index of refraction at the given wavelength."""
         raise NotImplementedError
 
@@ -48,7 +48,7 @@ class ConstantIndex(IndexOfRefraction):
     def __eq__(self, other):
         return self.n == other.n
 
-    def __call__(self, wavelength):
+    def __call__(self, wavelength, temperature=None):
         return self.n * np.ones_like(wavelength)
 
     def __str__(self):
@@ -62,9 +62,14 @@ class ConstantIndex(IndexOfRefraction):
 class SellmeierIndex(IndexOfRefraction):
     """An index of refraction that is calculated using the Sellmeier equation."""
 
-    def __init__(self, B, C, **kwargs):
+    def __init__(
+        self, B, C, thermo_optic_coefficient=None, base_temperature=None, **kwargs
+    ):
         self.B = B
         self.C = C
+
+        self.base_temperature = base_temperature
+        self.thermo_optic_coefficient = thermo_optic_coefficient
 
         super().__init__(**kwargs)
 
@@ -86,20 +91,41 @@ class SellmeierIndex(IndexOfRefraction):
         index
         """
         B, C = SELLMEIER_COEFFICIENTS[name]
-        return cls(B, C, name=name)
+        thermo_optic_coefficient = THERMO_OPTIC_COEFFICIENTS.get(name, None)
+        base_temperature = TEMPERATURES.get(name, None)
+
+        return cls(
+            B,
+            C,
+            thermo_optic_coefficient=thermo_optic_coefficient,
+            base_temperature=base_temperature,
+            name=name,
+        )
 
     def __eq__(self, other):
-        return all((np.array_equal(self.B, other.B), np.array_equal(self.C, other.C)))
+        return all(
+            (
+                np.array_equal(self.B, other.B),
+                np.array_equal(self.C, other.C),
+                self.base_temperature == other.base_temperature,
+                self.thermo_optic_coefficient == other.thermo_optic_coefficient,
+            )
+        )
 
     def __hash__(self):
         return hash((tuple(self.B), tuple(self.C)))
 
-    def __call__(self, wavelength: FloatOrArray):
+    def __call__(self, wavelength: FloatOrArray, temperature=None):
         wavelength_sq = wavelength ** 2
         mod = sum(
             b * wavelength_sq / (wavelength_sq - c) for b, c in zip(self.B, self.C)
         )
-        return np.sqrt(1 + mod)
+        n = np.sqrt(1 + mod)
+
+        if temperature is not None:
+            n += self.thermo_optic_coefficient * (temperature - self.base_temperature)
+
+        return n
 
     def __repr__(self):
         return (
@@ -113,6 +139,16 @@ class SellmeierIndex(IndexOfRefraction):
     def tex(self):
         return str(self)
 
+    def info(self) -> si.Info:
+        info = super().info()
+
+        info.add_field("B", self.B)
+        info.add_field("C", self.C)
+        info.add_field("Base Temperature", f"{self.base_temperature} K")
+        info.add_field("Thermo-Optic Coefficient", self.thermo_optic_coefficient)
+
+        return info
+
 
 silica = (
     np.array([0.696_166_3, 0.407_942_6, 0.897_479_4]),
@@ -120,13 +156,12 @@ silica = (
 )
 
 SELLMEIER_COEFFICIENTS = {
+    "FS": silica,  # i.e., fused silica
+    "SiO2": silica,
+    "silica": silica,
     "BK7": (
         np.array([1.039_612_12, 0.231_792_344, 1.010_469_45]),
         np.array([6.000_698_67e-3, 2.001_791_44e-2, 103.560_653]) * (u.um ** 2),
-    ),
-    "FS": (  # fused silica
-        np.array([0.696_166_300, 0.407_942_600, 0.897_479_400]),
-        (np.array([0.068_404_3, 0.116_241_4, 9.896_161]) ** 2) * (u.um ** 2),
     ),
     "MgF2-o": (
         np.array([0.487_551_08, 0.398_750_31, 2.312_035_3]),
@@ -141,6 +176,18 @@ SELLMEIER_COEFFICIENTS = {
         np.array([0.001_780_278_54, 0.007_885_360_61, 0.012_411_949_1, 2752.28175])
         * (u.um ** 2),
     ),
-    "SiO2": silica,
-    "silica": silica,
+}
+
+silica_thermo_optic = 1.090e-5
+THERMO_OPTIC_COEFFICIENTS = {
+    "FS": silica_thermo_optic,  # i.e., fused silica
+    "SiO2": silica_thermo_optic,
+    "silica": silica_thermo_optic,
+}
+
+silica_temperature = u.zero_celsius + (20 * u.K)  # 20 Celsius
+TEMPERATURES = {
+    "FS": silica_temperature,  # i.e., fused silica
+    "SiO2": silica_temperature,
+    "silica": silica_temperature,
 }

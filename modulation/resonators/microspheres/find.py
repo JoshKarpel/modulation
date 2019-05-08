@@ -1,6 +1,6 @@
 import collections
 import logging
-from typing import List, Iterable, Union, Tuple
+from typing import List, Iterable, Union, Tuple, Optional
 
 import itertools
 from dataclasses import dataclass
@@ -23,26 +23,40 @@ FloatOrArray = Union[float, np.ndarray]
 
 
 class Microsphere:
-    def __init__(self, *, radius: float, index_of_refraction: IndexOfRefraction):
+    def __init__(
+        self,
+        *,
+        radius: float,
+        index_of_refraction: IndexOfRefraction,
+        temperature: Optional[float] = None,
+    ):
         self.radius = radius
         self.index_of_refraction = index_of_refraction
+        self.temperature = temperature
 
     def __eq__(self, other):
         return all(
             (
                 self.radius == other.radius,
                 self.index_of_refraction == other.index_of_refraction,
+                self.temperature == other.temperature,
             )
         )
 
     def __hash__(self):
-        return hash((self.__class__, self.radius, self.index_of_refraction))
+        return hash(
+            (self.__class__, self.radius, self.index_of_refraction, self.temperature)
+        )
 
     def __str__(self):
         return f"{self.__class__.__name__}(radius = {self.radius / u.um:.4g} um, index_of_refraction = {self.index_of_refraction})"
 
     def __repr__(self):
         return f"{self.__class__.__name__}(radius = {self.radius}, index_of_refraction = {self.index_of_refraction})"
+
+    def index(self, wavelength):
+        n = self.index_of_refraction(wavelength, self.temperature)
+        return n
 
     def info(self) -> si.Info:
         info = si.Info(header=self.__class__.__name__)
@@ -204,16 +218,12 @@ class LBound:
         yield from range(self.min, self.max + 1)
 
 
-def TE_P(
-    wavelength: FloatOrArray, index_of_refraction: IndexOfRefraction
-) -> FloatOrArray:
-    return index_of_refraction(wavelength)
+def TE_P(wavelength: FloatOrArray, microsphere: Microsphere) -> FloatOrArray:
+    return microsphere.index(wavelength)
 
 
-def TM_P(
-    wavelength: FloatOrArray, index_of_refraction: IndexOfRefraction
-) -> FloatOrArray:
-    return 1 / index_of_refraction(wavelength)
+def TM_P(wavelength: FloatOrArray, microsphere: Microsphere) -> FloatOrArray:
+    return 1 / microsphere.index(wavelength)
 
 
 P_SELECTOR = {
@@ -225,18 +235,18 @@ P_SELECTOR = {
 def P(
     wavelength: FloatOrArray,
     polarization: mode.MicrosphereModePolarization,
-    index_of_refraction: IndexOfRefraction,
+    microsphere: Microsphere,
 ) -> FloatOrArray:
-    return P_SELECTOR[polarization](wavelength, index_of_refraction=index_of_refraction)
+    return P_SELECTOR[polarization](wavelength, microsphere)
 
 
 def alpha(
     wavelength: FloatOrArray,
     polarization: mode.MicrosphereModePolarization,
-    index_of_refraction: IndexOfRefraction,
+    microsphere: Microsphere,
 ) -> FloatOrArray:
-    n = index_of_refraction(wavelength)
-    p = P(wavelength, polarization, index_of_refraction=index_of_refraction)
+    n = microsphere.index(wavelength)
+    p = P(wavelength, polarization, microsphere)
     return p / (n * np.sqrt((n ** 2) - 1))
 
 
@@ -272,12 +282,8 @@ def modal_equation(
     k_0_R = microsphere.radius * u.twopi / wavelength
     y = spc.yv(lm, k_0_R) / spc.yv(lp, k_0_R)
 
-    k_R = microsphere.index_of_refraction(wavelength) * k_0_R
-    p = P(
-        wavelength=wavelength,
-        polarization=polarization,
-        index_of_refraction=microsphere.index_of_refraction,
-    )
+    k_R = microsphere.index(wavelength) * k_0_R
+    p = P(wavelength=wavelength, polarization=polarization, microsphere=microsphere)
     j = p * spc.jv(lm, k_R) / spc.jv(lp, k_R)
 
     return y - j - (l * ((1 / k_0_R) - (p / k_R)))
@@ -288,12 +294,8 @@ def _l_bounds_from_wavelength(
     microsphere: Microsphere,
     polarization: mode.MicrosphereModePolarization,
 ) -> LBound:
-    n = microsphere.index_of_refraction(wavelength)
-    p = P(
-        wavelength=wavelength,
-        polarization=polarization,
-        index_of_refraction=microsphere.index_of_refraction,
-    )
+    n = microsphere.index(wavelength)
+    p = P(wavelength=wavelength, polarization=polarization, microsphere=microsphere)
     delta_P = wavelength * p / (u.twopi * n * np.sqrt((n ** 2) - 1))
     min = u.twopi * (microsphere.radius + delta_P) / wavelength
     max = n * min
@@ -354,9 +356,7 @@ def find_mode_locations(
                 )
                 wavelength_over_index = (u.twopi * microsphere.radius) / j_asymptotes
                 good_asymptotes = opt.root(
-                    lambda wavelength: (
-                        wavelength / microsphere.index_of_refraction(wavelength)
-                    )
+                    lambda wavelength: (wavelength / microsphere.index(wavelength))
                     - wavelength_over_index,
                     1000 * u.nm * np.ones_like(wavelength_over_index),
                 ).x
