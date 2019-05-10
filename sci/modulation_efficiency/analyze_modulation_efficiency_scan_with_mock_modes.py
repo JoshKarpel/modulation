@@ -207,22 +207,31 @@ if __name__ == "__main__":
         ]
         paths = (BASE / name for name in names)
 
-        # for path in paths:
-        #     mode_energy_plot_vs_pump_power_per_mixing_power(path)
-        # modulation_efficiency_vs_pump_power_by_mixing_power(path)
+        # for func in (
+        #     mode_energy_and_power_plots_vs_attribute_per_mixing_power,
+        #     modulation_efficiency_vs_attribute_by_mixing_power,
+        # ):
+        #     # func(
+        #     #     BASE / "mock_launched_mixing_detuning_scan.sims",
+        #     #     attr="launched_mixing_detuning",
+        #     #     x_unit="Hz",
+        #     # )
+        #     func(
+        #         BASE / "mock_launched_mixing_wavelength_scan.sims",
+        #         attr="launched_mixing_wavelength",
+        #         x_unit="nm",
+        #         x_log=False,
+        #     )
 
-        for func in (
-            mode_energy_and_power_plots_vs_attribute_per_mixing_power,
-            modulation_efficiency_vs_attribute_by_mixing_power,
-        ):
-            # func(
-            #     BASE / "mock_launched_mixing_detuning_scan.sims",
-            #     attr="launched_mixing_detuning",
-            #     x_unit="Hz",
-            # )
-            func(
-                BASE / "mock_launched_mixing_wavelength_scan.sims",
-                attr="launched_mixing_wavelength",
-                x_unit="nm",
-                x_log=False,
-            )
+        mode_energy_and_power_plots_vs_attribute_per_mixing_power(
+            BASE / "mock_cascaded_srs_final_time_scan_using_srs.sims",
+            attr="time_final",
+            x_unit="us",
+            x_log=True,
+        )
+        mode_energy_and_power_plots_vs_attribute_per_mixing_power(
+            BASE / "mock_cascaded_srs_final_time_scan_using_fwm.sims",
+            attr="time_final",
+            x_unit="us",
+            x_log=True,
+        )

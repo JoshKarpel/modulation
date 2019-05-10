@@ -30,7 +30,7 @@ def find_mode(modes, omega: float):
 def compare(dt):
     with LOGMAN as logger:
         pump_wavelength = 1064 * u.nm
-        pump_power = 100 * u.uW
+        pump_power = 5 * u.mW
 
         ###
 
@@ -41,14 +41,13 @@ def compare(dt):
             mock.MockMode(
                 label=f"pump",
                 omega=pump_omega,
-                index_of_refraction=1.45,
+                index_of_refraction=material.index_of_refraction,
                 mode_volume_inside_resonator=1e-20,
             ),
             mock.MockMode(
                 label=f"stokes",
                 omega=pump_omega - material.modulation_omega,
-                # + (0.079_384_839_103 * u.THz),
-                index_of_refraction=1.45,
+                index_of_refraction=material.index_of_refraction,
                 mode_volume_inside_resonator=1e-20,
             ),
         ]
@@ -68,7 +67,7 @@ def compare(dt):
                 volume_integral_result=1e-25
             ),
             modes=modes,
-            mode_initial_amplitudes={stokes_mode: 1},
+            mode_initial_amplitudes={stokes_mode: 1e-15},
             mode_intrinsic_quality_factors=dict(zip(modes, itertools.repeat(1e8))),
             mode_coupling_quality_factors=dict(zip(modes, itertools.repeat(1e8))),
             pumps=pumps,
@@ -99,8 +98,8 @@ def compare(dt):
             line_labels=["srs stokes", "srs pump", "fwm stokes", "fwm pump"],
             line_kwargs=[None, None, {"linestyle": "--"}, {"linestyle": "--"}],
             x_unit="nsec",
-            y_lower_limit=0,
-            y_upper_limit=4e9,
+            # y_lower_limit=0,
+            # y_upper_limit=4e9,
             **PLOT_KWARGS,
         )
 
@@ -113,16 +112,16 @@ if __name__ == "__main__":
             [
                 10,
                 10.1,
-                10.01,
-                10.001,
-                10.0001,
-                10.00001,
+                # 10.01,
+                # 10.001,
+                # 10.0001,
+                # 10.00001,
                 1,
                 1.1,
-                1.01,
-                1.001,
-                1.0001,
-                1.00001,
+                # 1.01,
+                # 1.001,
+                # 1.0001,
+                # 1.00001,
             ]
         )
         * u.psec

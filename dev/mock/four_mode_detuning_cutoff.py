@@ -87,8 +87,7 @@ def mode_kwargs(sim, q, mode, pump_mode, mixing_mode):
     return kwargs
 
 
-def run(time_step, cutoff):
-    pump_power = 1 * u.W
+def run(time_step, cutoff, pump_power):
     mixing_power = 0 * u.uW
     pump_wavelength = 1064 * u.nm
     # mixing_wavelength = 800 * u.nm
@@ -97,7 +96,7 @@ def run(time_step, cutoff):
     material = raman.RamanMaterial.from_name("silica")
 
     pump_start_time = 50 * u.nsec
-    time_final = 500 * u.nsec
+    time_final = 1000 * u.nsec
     intrinsic_q = 1e8
     coupling_q = 1e8
 
@@ -105,8 +104,7 @@ def run(time_step, cutoff):
         material,
         pump_wavelength=pump_wavelength,
         mixing_wavelength=mixing_wavelength,
-        pump_stokes_orders=1,
-        mixing_antistokes_orders=1,
+        pump_stokes_orders=5,
     )
 
     for l, m in modes.items():
@@ -139,8 +137,8 @@ def run(time_step, cutoff):
         else "cutoff=AUTO"
     )
     mode_list = list(modes.values())
-    spec = raman.FourWaveMixingSpecification(
-        f"pump={pump_power / u.mW:.3f}mW_mixing={mixing_power / u.uW:.3f}uW_dt={time_step / u.psec:.3f}ps_{cutoff_str}",
+    spec = raman.StimulatedRamanScatteringSpecification(
+        f"pump={pump_power / u.mW:.3f}mW_mixing={mixing_power / u.uW:.3f}uW_dt={time_step / u.psec:.3f}ps_{cutoff_str}_SRS",
         material=material,
         modes=mode_list,
         mode_volume_integrator=mock.MockVolumeIntegrator(volume_integral_result=1e-25),
@@ -177,15 +175,16 @@ def run(time_step, cutoff):
 
 if __name__ == "__main__":
     time_steps = [
-        # 1 * u.psec,
+        1 * u.psec,
         # 1.1 * u.psec,
-        # 10 * u.psec,
+        10 * u.psec,
         # 11 * u.psec,
         # 100 * u.psec,
         # 110 * u.psec,
-        1 * u.nsec,
+        # 1 * u.nsec,
         # 1.1 * u.nsec,
     ]
-    cutoffs = [raman.AUTO_CUTOFF, 10 * u.THz, np.Inf]
-    for time_step, cutoff in itertools.product(time_steps, cutoffs):
-        run(time_step=time_step, cutoff=cutoff)
+    cutoffs = [raman.AUTO_CUTOFF, np.Inf]
+    pump_powers = [2 * u.mW, 5 * u.mW, 10 * u.mW, 100 * u.mW]
+    for time_step, cutoff, pp in itertools.product(time_steps, cutoffs, pump_powers):
+        run(time_step=time_step, cutoff=cutoff, pump_power=pp)
