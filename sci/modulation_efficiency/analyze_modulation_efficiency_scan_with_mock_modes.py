@@ -53,11 +53,14 @@ def mode_kwargs(idx, mode):
     return kwargs
 
 
-def mode_energy_and_power_plots_vs_attribute_per_mixing_power(
-    path, attr, x_unit=None, x_label=None, x_log=True
+def mode_energy_and_power_plots_vs_attribute(
+    path, attr, x_unit=None, x_label=None, x_log=True, per_attrs=None
 ):
     if x_label is None:
         x_label = attr.replace("_", " ").title()
+
+    if per_attrs is None:
+        per_attrs = []
 
     get_attr_from_sim = lambda s: getattr(s.spec, attr)
 
@@ -67,12 +70,11 @@ def mode_energy_and_power_plots_vs_attribute_per_mixing_power(
     modes = s.modes
     idxs = [ps[0].mode_to_index[mode] for mode in modes]
 
-    for launched_mixing_power in ps.parameter_set("launched_mixing_power"):
-        postfix = f"mixing={launched_mixing_power / u.mW:.6f}mW"
-        sims = sorted(
-            ps.select(launched_mixing_power=launched_mixing_power),
-            key=get_attr_from_sim,
-        )
+    per_attr_sets = [ps.parameter_set(attr) for attr in per_attrs]
+    for per_attr_values in itertools.product(*per_attr_sets):
+        per_attr_key_value = dict(zip(per_attrs, per_attr_values))
+        postfix = "_".join(f"{k}={v:.1g}" for k, v in per_attr_key_value.items())
+        sims = sorted(ps.select(**per_attr_key_value), key=get_attr_from_sim)
 
         scan_variable = np.array([get_attr_from_sim(sim) for sim in sims])
         means = [sim.mode_energies(sim.lookback.mean) for sim in sims]
@@ -103,7 +105,7 @@ def mode_energy_and_power_plots_vs_attribute_per_mixing_power(
             y_unit="pJ",
             x_log_axis=x_log,
             y_log_axis=True,
-            y_lower_limit=1e-8 * u.pJ,
+            y_lower_limit=1e-10 * u.pJ,
             y_upper_limit=1e3 * u.pJ,
             legend_on_right=True,
             font_size_legend=6,
@@ -196,17 +198,18 @@ def modulation_efficiency_vs_attribute_by_mixing_power(
 if __name__ == "__main__":
     with LOGMAN as logger:
         BASE = Path(__file__).parent
-        names = [
-            # "test_mock_multiorder.sims",
-            # "mock_multiorder_meff.sims",
-            # "just_two_stokes_orders.sims",
-            # "mock_cascaded_srs.sims",
-            # "mock_cascaded_srs_using_fwm.sims",
-            "mock_launched_mixing_detuning_scan.sims",
-            "mock_launched_mixing_wavelength_scan.sims",
-        ]
-        paths = (BASE / name for name in names)
 
+        # names = [
+        #     # "test_mock_multiorder.sims",
+        #     # "mock_multiorder_meff.sims",
+        #     # "just_two_stokes_orders.sims",
+        #     # "mock_cascaded_srs.sims",
+        #     # "mock_cascaded_srs_using_fwm.sims",
+        #     "mock_launched_mixing_detuning_scan.sims",
+        #     "mock_launched_mixing_wavelength_scan.sims",
+        # ]
+        # paths = (BASE / name for name in names)
+        #
         # for func in (
         #     mode_energy_and_power_plots_vs_attribute_per_mixing_power,
         #     modulation_efficiency_vs_attribute_by_mixing_power,
@@ -223,15 +226,23 @@ if __name__ == "__main__":
         #         x_log=False,
         #     )
 
-        mode_energy_and_power_plots_vs_attribute_per_mixing_power(
-            BASE / "mock_cascaded_srs_final_time_scan_using_srs.sims",
-            attr="time_final",
-            x_unit="us",
+        # mode_energy_and_power_plots_vs_attribute_per_mixing_power(
+        #     BASE / "mock_cascaded_srs_final_time_scan_using_srs.sims",
+        #     attr="time_final",
+        #     x_unit="us",
+        #     x_log=True,
+        # )
+        # mode_energy_and_power_plots_vs_attribute_per_mixing_power(
+        #     BASE / "mock_cascaded_srs_final_time_scan_using_fwm.sims",
+        #     attr="time_final",
+        #     x_unit="us",
+        #     x_log=True,
+        # )
+
+        mode_energy_and_power_plots_vs_attribute(
+            BASE / "mock_cascaded_srs_p1_detuning.sims",
+            attr="pump|-1_mode_detuning",
+            x_unit="Hz",
             x_log=True,
-        )
-        mode_energy_and_power_plots_vs_attribute_per_mixing_power(
-            BASE / "mock_cascaded_srs_final_time_scan_using_fwm.sims",
-            attr="time_final",
-            x_unit="us",
-            x_log=True,
+            per_attrs=["time_final", "launched_pump_power", "launched_mixing_power"],
         )
