@@ -28,9 +28,8 @@ def create_scan(tag):
     parameters.append(
         si.cluster.Parameter(
             "mode_volume",
-            si.cluster.ask_for_input(
-                "Mode volume inside resonator?", default=1e-20, cast_to=float
-            ),
+            si.cluster.ask_for_eval("Mode volume inside resonator?", default="[1e-20]"),
+            expandable=True,
         )
     )
     mvi = modulation.resonators.mock.MockVolumeIntegrator(
@@ -77,6 +76,14 @@ def create_scan(tag):
     shared.ask_time_step(parameters)
 
     shared.ask_intrinsic_q(parameters)
+    parameters.append(
+        si.cluster.Parameter(
+            "use_scaling_coupling_quality_factor",
+            si.cluster.ask_for_bool(
+                "Use Scaling Coupling Quality Factor (critical at pump)?", default=True
+            ),
+        )
+    )
 
     shared.ask_four_mode_detuning_cutoff(parameters)
 
@@ -172,14 +179,24 @@ def run(params):
                 ),
             ]
 
+            intrinsic_q = {m: params["intrinsic_q"] for m in modes}
+
+            if params["use_scaling_coupling_quality_factor"]:
+                pump_mode = order_to_mode["pump|+0"]
+                coupling_q = {
+                    m: intrinsic_q[pump_mode]
+                    * ((pump_mode.wavelength / m.wavelength) ** 4.5)
+                    for m in modes
+                }
+            else:
+                coupling_q = intrinsic_q
+
             spec = params["spec_type"](
                 params["component"],
                 modes=modes,
                 pumps=pumps,
-                mode_intrinsic_quality_factors={
-                    m: params["intrinsic_q"] for m in modes
-                },
-                mode_coupling_quality_factors={m: params["intrinsic_q"] for m in modes},
+                mode_intrinsic_quality_factors=intrinsic_q,
+                mode_coupling_quality_factors=coupling_q,
                 mode_initial_amplitudes={m: 1e-15 for m in modes},
                 **params,
             )

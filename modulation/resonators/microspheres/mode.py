@@ -37,7 +37,7 @@ class MicrosphereMode(Mode):
         self.l = l
         self.m = m
 
-        self.wavelength = wavelength
+        self._wavelength = wavelength
         self.radial_mode_number = radial_mode_number
         self.microsphere = microsphere
         self.polarization = polarization
@@ -84,6 +84,10 @@ class MicrosphereMode(Mode):
     @property
     def tex(self):
         return fr"u^{{{self.polarization}, \ell={self.l}, m = {self.m}, n = {self.radial_mode_number}}}_{{\lambda={self.wavelength / u.nm:.3f} \, \mathrm{{nm}}, f={self.frequency / u.THz:.3f} \, \mathrm{{THz}}}}"
+
+    @property
+    def wavelength(self):
+        return self._wavelength
 
     @property
     def omega(self):

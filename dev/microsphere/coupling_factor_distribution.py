@@ -36,24 +36,35 @@ def find_modes(wavelength_bounds, microsphere, max_radial_mode_number):
     return modes
 
 
-def run(postfix, pump_power, time_step):
+def run():
     R = 50 * u.um
     max_radial_mode_number = 5
     material = raman.RamanMaterial.from_name("silica")
-    pump_wavelength = 800 * u.nm
+    pump_wavelength = 1064 * u.nm
     pump_start_time = 1 * u.usec
     time_final = 10 * u.usec
-    stokes_orders = 2
-    antistokes_orders = 0  # you won't see any amplitude on these unless you have fwm
+    stokes_orders = 1
+    antistokes_orders = 1  # you won't see any amplitude on these unless you have fwm
     intrinsic_q = 1e8
     coupling_q = 1e8
+    pump_power = 10 * u.mW
+    time_step = 10 * u.psec
+
+    mixing_wavelength = 800 * u.nm
 
     wavelength_bounds = microspheres.sideband_bounds(
         center_wavelength=pump_wavelength,
         stokes_orders=stokes_orders,
         antistokes_orders=antistokes_orders,
         sideband_frequency=material.modulation_frequency,
-        bandwidth_frequency=0.2 * material.raman_linewidth,
+        bandwidth_frequency=0.1 * material.raman_linewidth / u.twopi,
+    )
+    wavelength_bounds += microspheres.sideband_bounds(
+        center_wavelength=mixing_wavelength,
+        stokes_orders=stokes_orders,
+        antistokes_orders=antistokes_orders,
+        sideband_frequency=material.modulation_frequency,
+        bandwidth_frequency=0.1 * material.raman_linewidth / u.twopi,
     )
 
     # for b in wavelength_bounds:
@@ -69,15 +80,22 @@ def run(postfix, pump_power, time_step):
     )
 
     for m in modes:
-        print(m)
+        print(m, m.mode_volume_inside_resonator)
+
+    mode_volumes = np.array([m.mode_volume_inside_resonator for m in modes])
 
     print(f"found {len(modes)} modes")
+    print("min", np.min(mode_volumes))
+    print("max", np.max(mode_volumes))
+    print("median", np.median(mode_volumes))
+    print("mean", np.mean(mode_volumes))
+    print("std", np.std(mode_volumes))
 
     pump_mode = microspheres.find_mode_with_closest_wavelength(modes, pump_wavelength)
     # print(f'pump mode is {pump_mode}')
 
     spec = raman.FourWaveMixingSpecification(
-        f"pump={pump_power / u.mW:.3f}mW_dt={time_step / u.psec:.3f}ps__{postfix}",
+        f"pump={pump_power / u.mW:.3f}mW_dt={time_step / u.psec:.3f}ps",
         material=material,
         modes=modes,
         mode_volume_integrator=microspheres.FixedGridSimpsonMicrosphereVolumeIntegrator(
@@ -102,11 +120,11 @@ def run(postfix, pump_power, time_step):
     sim = spec.to_sim()
     print(sim.info())
 
-    print(sim.polarization_sum_factors.shape)
-    print(sim.polarization_sum_factors.shape[0] ** 4)
+    # print(sim.polarization_sum_factors.shape)
+    # print(sim.polarization_sum_factors.shape[0] ** 4)
 
-    all_factors = np.abs(sim.polarization_sum_factors.flatten())
-    print(all_factors)
+    all_factors = np.abs(sim.mode_volume_coupling_factors.flatten())
+    # print(all_factors)
 
     print("min", np.min(all_factors))
     print("max", np.max(all_factors))
@@ -187,4 +205,4 @@ if __name__ == "__main__":
     # for power, time_step in itertools.product(powers, time_steps):
     #     run(postfix, power, time_step)
 
-    run("TEST", 1 * u.mW, 1 * u.psec)
+    run()
