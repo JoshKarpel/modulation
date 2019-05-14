@@ -203,8 +203,8 @@ def run(params):
             if params["use_scaling_coupling_quality_factor"]:
                 pump_mode = order_to_mode["pump|+0"]
                 kwargs_for_coupling_q = dict(
-                    microsphere_index_of_refraction=params["index_of_refraction"],
-                    fiber_index_of_refraction=params["index_of_refraction"],
+                    microsphere_index_of_refraction=material.index_of_refraction,
+                    fiber_index_of_refraction=material.index_of_refraction,
                     microsphere_radius=params["microsphere_radius"],
                     fiber_taper_radius=params["fiber_taper_radius"],
                 )
