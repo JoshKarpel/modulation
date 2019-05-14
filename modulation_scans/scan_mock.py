@@ -207,14 +207,14 @@ def run(params):
                     fiber_index_of_refraction=material.index_of_refraction,
                     microsphere_radius=params["microsphere_radius"],
                     fiber_taper_radius=params["fiber_taper_radius"],
+                    l=0,
+                    m=0,
                 )
                 separation = opt.brentq(
                     lambda x: intrinsic_q[pump_mode]
                     - microspheres.coupling_quality_factor_for_tapered_fiber(
                         separation=x,
                         wavelength=pump_mode.wavelength,
-                        l=0,
-                        m=0,
                         **kwargs_for_coupling_q,
                     ),
                     0,
@@ -227,8 +227,6 @@ def run(params):
                     m: microspheres.coupling_quality_factor_for_tapered_fiber(
                         separation=separation,
                         wavelength=m.wavelength,
-                        l=m.l,
-                        m=m.m,
                         **kwargs_for_coupling_q,
                     )
                     for m in modes
