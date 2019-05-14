@@ -25,6 +25,25 @@ def create_scan(tag):
 
     material = shared.ask_material()
 
+    parameters.extend(
+        [
+            si.cluster.Parameter(
+                "microsphere_radius",
+                u.um
+                * si.cluster.ask_for_input(
+                    "Microsphere radius (in um)?", default=50, cast_to=float
+                ),
+            ),
+            si.cluster.Parameter(
+                "fiber_taper_radius",
+                u.um
+                * si.cluster.ask_for_input(
+                    "Fiber taper radius (in um)?", default=1, cast_to=float
+                ),
+            ),
+        ]
+    )
+
     parameters.append(
         si.cluster.Parameter(
             "mode_volume",
@@ -37,8 +56,6 @@ def create_scan(tag):
             "Four-mode overlap integral result?", default=1e-25, cast_to=float
         )
     )
-
-    shared.ask_fiber_parameters(parameters)
 
     shared.ask_laser_parameters("pump", parameters)
     shared.ask_laser_parameters("mixing", parameters)
@@ -186,13 +203,9 @@ def run(params):
             if params["use_scaling_coupling_quality_factor"]:
                 pump_mode = order_to_mode["pump|+0"]
                 kwargs_for_coupling_q = dict(
-                    microsphere_index_of_refraction=params[
-                        "microsphere"
-                    ].index_of_refraction,
-                    fiber_index_of_refraction=params[
-                        "microsphere"
-                    ].index_of_refraction,  # assume fiber is made of same material as microsphere
-                    microsphere_radius=params["microsphere"].radius,
+                    microsphere_index_of_refraction=params["index_of_refraction"],
+                    fiber_index_of_refraction=params["index_of_refraction"],
+                    microsphere_radius=params["microsphere_radius"],
                     fiber_taper_radius=params["fiber_taper_radius"],
                 )
                 separation = opt.brentq(
