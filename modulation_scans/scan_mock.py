@@ -11,7 +11,7 @@ import simulacra.units as u
 
 import modulation
 from modulation import raman
-from modulation.resonators import mock
+from modulation.resonators import mock, microspheres
 
 from . import shared
 
@@ -37,6 +37,8 @@ def create_scan(tag):
             "Four-mode overlap integral result?", default=1e-25, cast_to=float
         )
     )
+
+    shared.ask_fiber_parameters(parameters)
 
     shared.ask_laser_parameters("pump", parameters)
     shared.ask_laser_parameters("mixing", parameters)
@@ -183,9 +185,39 @@ def run(params):
 
             if params["use_scaling_coupling_quality_factor"]:
                 pump_mode = order_to_mode["pump|+0"]
+                kwargs_for_coupling_q = dict(
+                    microsphere_index_of_refraction=params[
+                        "microsphere"
+                    ].index_of_refraction,
+                    fiber_index_of_refraction=params[
+                        "microsphere"
+                    ].index_of_refraction,  # assume fiber is made of same material as microsphere
+                    microsphere_radius=params["microsphere"].radius,
+                    fiber_taper_radius=params["fiber_taper_radius"],
+                )
+                separation = opt.brentq(
+                    lambda x: intrinsic_q[pump_mode]
+                    - microspheres.coupling_quality_factor_for_tapered_fiber(
+                        separation=x,
+                        wavelength=pump_mode.wavelength,
+                        l=pump_mode.l,
+                        m=pump_mode.m,
+                        **kwargs_for_coupling_q,
+                    ),
+                    0,
+                    10 * u.um,
+                )
+                logger.info(
+                    f"fiber-microsphere separation is {separation / u.nm:.3f} nm"
+                )
                 coupling_q = {
-                    m: intrinsic_q[pump_mode]
-                    * ((pump_mode.wavelength / m.wavelength) ** 4.5)
+                    m: microspheres.coupling_quality_factor_for_tapered_fiber(
+                        separation=separation,
+                        wavelength=m.wavelength,
+                        l=m.l,
+                        m=m.m,
+                        **kwargs_for_coupling_q,
+                    )
                     for m in modes
                 }
             else:
