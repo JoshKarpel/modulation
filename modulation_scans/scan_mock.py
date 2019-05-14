@@ -220,6 +220,7 @@ def run(params):
                     0,
                     10 * u.um,
                 )
+                params["fiber_separation"] = separation
                 logger.info(
                     f"fiber-microsphere separation is {separation / u.nm:.3f} nm"
                 )
