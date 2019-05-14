@@ -239,10 +239,23 @@ if __name__ == "__main__":
         #     x_log=True,
         # )
 
-        mode_energy_and_power_plots_vs_attribute(
-            BASE / "mock_cascaded_srs_p1_detuning.sims",
-            attr="pump|-1_mode_detuning",
-            x_unit="Hz",
-            x_log=True,
-            per_attrs=["time_final", "launched_pump_power", "launched_mixing_power"],
-        )
+        # mode_energy_and_power_plots_vs_attribute(
+        #     BASE / "mock_cascaded_srs_p1_detuning.sims",
+        #     attr="pump|-1_mode_detuning",
+        #     x_unit="Hz",
+        #     x_log=True,
+        #     per_attrs=["time_final", "launched_pump_power", "launched_mixing_power"],
+        # )
+
+        broken_ladder = [
+            "mock_cascaded_srs_detuned_ladder.sims",
+            "mock_cascaded_srs_more_detuned.sims",
+        ]
+        for x in broken_ladder:
+            mode_energy_and_power_plots_vs_attribute(
+                BASE / x,
+                attr="launched_pump_power",
+                x_unit="mW",
+                x_log=True,
+                per_attrs=["time_final"],
+            )

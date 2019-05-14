@@ -189,7 +189,7 @@ def run(params):
                     for m in modes
                 }
             else:
-                coupling_q = intrinsic_q
+                coupling_q = intrinsic_q  # all modes critically coupled
 
             spec = params["spec_type"](
                 params["component"],
