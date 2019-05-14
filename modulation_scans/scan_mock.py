@@ -213,8 +213,8 @@ def run(params):
                     - microspheres.coupling_quality_factor_for_tapered_fiber(
                         separation=x,
                         wavelength=pump_mode.wavelength,
-                        l=pump_mode.l,
-                        m=pump_mode.m,
+                        l=0,
+                        m=0,
                         **kwargs_for_coupling_q,
                     ),
                     0,
