@@ -248,10 +248,8 @@ def ask_time_step(parameters):
 
 
 def ask_intrinsic_q(parameters):
-    q = si.cluster.ask_for_input(
-        "Mode Intrinsic Quality Factor?", cast_to=float, default=1e8
-    )
-    parameters.append(si.cluster.Parameter("intrinsic_q", q))
+    q = si.cluster.ask_for_eval("Mode Intrinsic Quality Factor?", default="[1e8]")
+    parameters.append(si.cluster.Parameter("intrinsic_q", q, expandable=True))
 
     return q
 
