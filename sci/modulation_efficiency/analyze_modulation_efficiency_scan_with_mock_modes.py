@@ -71,9 +71,9 @@ def mode_energy_and_power_plots_vs_attribute(
     idxs = [ps[0].mode_to_index[mode] for mode in modes]
 
     per_attr_sets = [ps.parameter_set(attr) for attr in per_attrs]
-    for per_attr_values in itertools.product(*per_attr_sets):
+    for per_attr_values in tqdm(list(itertools.product(*per_attr_sets))):
         per_attr_key_value = dict(zip(per_attrs, per_attr_values))
-        postfix = "_".join(f"{k}={v:.1g}" for k, v in per_attr_key_value.items())
+        postfix = "_".join(f"{k}={v:.3e}" for k, v in per_attr_key_value.items())
         sims = sorted(ps.select(**per_attr_key_value), key=get_attr_from_sim)
 
         scan_variable = np.array([get_attr_from_sim(sim) for sim in sims])
@@ -106,7 +106,7 @@ def mode_energy_and_power_plots_vs_attribute(
             x_log_axis=x_log,
             y_log_axis=True,
             y_lower_limit=1e-10 * u.pJ,
-            y_upper_limit=1e3 * u.pJ,
+            y_upper_limit=1e4 * u.pJ,
             legend_on_right=True,
             font_size_legend=6,
             target_dir=OUT_DIR / path.stem,
@@ -125,7 +125,7 @@ def mode_energy_and_power_plots_vs_attribute(
             x_log_axis=x_log,
             y_log_axis=True,
             y_upper_limit=1 * u.W,
-            y_lower_limit=1 * u.pW,
+            y_lower_limit=1e-1 * u.pW,
             legend_on_right=True,
             font_size_legend=6,
             target_dir=OUT_DIR / path.stem,
@@ -247,15 +247,43 @@ if __name__ == "__main__":
         #     per_attrs=["time_final", "launched_pump_power", "launched_mixing_power"],
         # )
 
-        broken_ladder = [
-            "mock_cascaded_srs_detuned_ladder.sims",
-            "mock_cascaded_srs_more_detuned.sims",
-        ]
-        for x in broken_ladder:
-            mode_energy_and_power_plots_vs_attribute(
-                BASE / x,
-                attr="launched_pump_power",
-                x_unit="mW",
-                x_log=True,
-                per_attrs=["time_final"],
-            )
+        # broken_ladder = [
+        #     "mock_cascaded_srs_detuned_ladder.sims",
+        #     "mock_cascaded_srs_more_detuned.sims",
+        # ]
+        # for x in broken_ladder:
+        #     mode_energy_and_power_plots_vs_attribute(
+        #         BASE / x,
+        #         attr="launched_pump_power",
+        #         x_unit="mW",
+        #         x_log=True,
+        #         per_attrs=["time_final"],
+        #     )
+
+        mode_energy_and_power_plots_vs_attribute(
+            BASE / "paper__modeff_vs_launched_pump_power.sims",
+            attr="launched_pump_power",
+            x_unit="mW",
+            x_log=True,
+            per_attrs=["launched_mixing_wavelength", "launched_mixing_power"],
+        )
+
+        mode_energy_and_power_plots_vs_attribute(
+            BASE / "paper__modeff_vs_mixing_wavelength.sims",
+            attr="launched_mixing_wavelength",
+            x_unit="nm",
+            x_log=False,
+            per_attrs=["launched_pump_power", "launched_mixing_power"],
+        )
+
+        mode_energy_and_power_plots_vs_attribute(
+            BASE / "paper__modeff_vs_target_detuning.sims",
+            attr="mixing|+1_mode_detuning",
+            x_unit="Hz",
+            x_log=True,
+            per_attrs=[
+                "launched_mixing_wavelength",
+                "launched_pump_power",
+                "launched_mixing_power",
+            ],
+        )
