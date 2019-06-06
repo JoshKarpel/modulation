@@ -38,14 +38,18 @@ COLORS = [
 
 LINESTYLES = ["-", "-.", "--", ":"]
 
+ORDER_COLORS = ["#1b9e77", "#66a61e", "#d95f02", "#7570b3", "#e7298a", "#e6ab02"]
+ORDERS = ["pump|+0", "pump|+1", "pump|-1", "mixing|+0", "mixing|-1", "mixing|+1"]
+ORDER_TO_COLOR = dict(zip(ORDERS, ORDER_COLORS))
+
 
 def mode_kwargs(idx, mode):
     kwargs = {}
 
-    kwargs["color"] = COLORS[idx % len(COLORS)]
+    kwargs["color"] = ORDER_TO_COLOR[mode.label]
 
-    if "+0" in mode.label:
-        kwargs["color"] = "black"
+    # if "+0" in mode.label:
+    #     kwargs["color"] = "black"
 
     if "mixing" in mode.label:
         kwargs["linestyle"] = "--"
@@ -133,6 +137,154 @@ def mode_energy_and_power_plots_vs_attribute(
         )
 
 
+def mode_energy_and_power_differential_against_zero_mixing_plots_vs_attribute(
+    path, attr, x_unit=None, x_label=None, x_log=True, per_attrs=None
+):
+    if x_label is None:
+        x_label = attr.replace("_", " ").title()
+
+    if per_attrs is None:
+        per_attrs = []
+
+    get_attr_from_sim = lambda s: getattr(s.spec, attr)
+
+    ps = analysis.ParameterScan.from_file(path)
+
+    s = ps[0].spec
+    modes = s.modes
+    idxs = [ps[0].mode_to_index[mode] for mode in modes]
+
+    per_attr_sets = [ps.parameter_set(attr) for attr in per_attrs]
+    for per_attr_values in tqdm(list(itertools.product(*per_attr_sets))):
+        per_attr_key_value = dict(zip(per_attrs, per_attr_values))
+        postfix = "_".join(f"{k}={v:.3e}" for k, v in per_attr_key_value.items())
+        sims = sorted(ps.select(**per_attr_key_value), key=get_attr_from_sim)
+        no_mixing_sims = sorted(
+            ps.select(**{**per_attr_key_value, **dict(launched_mixing_power=0)}),
+            key=get_attr_from_sim,
+        )
+
+        assert len(sims) == len(no_mixing_sims)
+
+        scan_variable = np.array([get_attr_from_sim(sim) for sim in sims])
+
+        energies = [sim.mode_energies(sim.lookback.mean) for sim in sims]
+        powers = [sim.mode_output_powers(sim.lookback.mean) for sim in sims]
+
+        no_mixing_means = [
+            sim.mode_energies(sim.lookback.mean) for sim in no_mixing_sims
+        ]
+        no_mixing_powers = [
+            sim.mode_output_powers(sim.lookback.mean) for sim in no_mixing_sims
+        ]
+
+        energy_lines = []
+        power_lines = []
+        energy_diff_lines = []
+        power_diff_lines = []
+        line_kwargs = []
+        line_labels = []
+        for idx, mode in zip(idxs, modes):
+            energy = np.array([energy[idx] for energy in energies])
+            power = np.array([pow[idx] for pow in powers])
+
+            energy_diff = np.array(
+                [
+                    energy[idx] - no_mixing_energy[idx]
+                    for energy, no_mixing_energy in zip(energies, no_mixing_means)
+                ]
+            )
+            power_diff = np.array(
+                [
+                    pow[idx] - no_mixing_pow[idx]
+                    for pow, no_mixing_pow in zip(powers, no_mixing_powers)
+                ]
+            )
+
+            energy_lines.append(energy)
+            power_lines.append(power)
+            energy_diff_lines.append(energy_diff)
+            power_diff_lines.append(power_diff)
+            line_kwargs.append(mode_kwargs(idx, mode))
+            line_labels.append(fr"${mode.tex}$")
+
+        si.vis.xy_plot(
+            f"mode_energies__{postfix}",
+            scan_variable,
+            *energy_lines,
+            line_kwargs=line_kwargs,
+            line_labels=line_labels,
+            x_label=x_label,
+            y_label="Steady-State Mode Energy",
+            x_unit=x_unit,
+            y_unit="pJ",
+            x_log_axis=x_log,
+            y_log_axis=True,
+            y_lower_limit=1e-10 * u.pJ,
+            y_upper_limit=1e4 * u.pJ,
+            legend_on_right=True,
+            font_size_legend=6,
+            target_dir=OUT_DIR / path.stem,
+            **PLOT_KWARGS,
+        )
+        si.vis.xy_plot(
+            f"mode_powers__{postfix}",
+            scan_variable,
+            *power_lines,
+            line_kwargs=line_kwargs,
+            line_labels=line_labels,
+            x_label=x_label,
+            y_label="Steady-State Mode Output Power",
+            x_unit=x_unit,
+            y_unit="uW",
+            x_log_axis=x_log,
+            y_log_axis=True,
+            y_upper_limit=1 * u.W,
+            y_lower_limit=1e-1 * u.pW,
+            legend_on_right=True,
+            font_size_legend=6,
+            target_dir=OUT_DIR / path.stem,
+            **PLOT_KWARGS,
+        )
+
+        si.vis.xy_plot(
+            f"mode_energy_diff__{postfix}",
+            scan_variable,
+            *energy_diff_lines,
+            line_kwargs=line_kwargs,
+            line_labels=line_labels,
+            x_label=x_label,
+            y_label="Steady-State Mode Energy",
+            x_unit=x_unit,
+            y_unit="pJ",
+            x_log_axis=x_log,
+            y_log_axis=True,
+            sym_log_linear_threshold=1e-3,
+            legend_on_right=True,
+            font_size_legend=6,
+            target_dir=OUT_DIR / path.stem,
+            **PLOT_KWARGS,
+        )
+        si.vis.xy_plot(
+            f"mode_power_diff__{postfix}",
+            scan_variable,
+            *power_diff_lines,
+            line_kwargs=line_kwargs,
+            line_labels=line_labels,
+            x_label=x_label,
+            y_label="Steady-State Mode Output Power",
+            x_unit=x_unit,
+            y_unit="uW",
+            x_log_axis=x_log,
+            y_log_axis=True,
+            sym_log_linear_threshold=1e-3,
+            legend_on_right=True,
+            font_size_legend=6,
+            target_dir=OUT_DIR / path.stem,
+            **PLOT_KWARGS,
+        )
+
+
 def modulation_efficiency_vs_attribute_by_mixing_power(
     path, attr, x_unit=None, x_label=None, modulated_mode_order="mixing|+1", x_log=True
 ):
@@ -190,6 +342,74 @@ def modulation_efficiency_vs_attribute_by_mixing_power(
         font_size_legend=8,
         y_lower_limit=1e-10,
         y_upper_limit=1,
+        target_dir=OUT_DIR / path.stem,
+        **PLOT_KWARGS,
+    )
+
+
+def mode_energy_2d(path, mode="mixing|+1"):
+    ps = analysis.ParameterScan.from_file(path)
+
+    launched_pump = np.array(sorted(ps.parameter_set("launched_pump_power")))
+    launched_mixing = np.array(sorted(ps.parameter_set("launched_mixing_power")))
+
+    x_mesh, y_mesh = np.meshgrid(launched_pump, launched_mixing, indexing="xy")
+
+    sims = {
+        (sim.spec.launched_pump_power, sim.spec.launched_mixing_power): sim
+        for sim in ps
+    }
+
+    get_energy = lambda sim: sim.mode_energies(sim.lookback.mean)[
+        sim.spec.modes.index(sim.spec.order_to_mode[mode])
+    ]
+    get_efficiency = (
+        lambda sim: sim.mode_output_powers(sim.lookback.mean)[
+            sim.spec.modes.index(sim.spec.order_to_mode[mode])
+        ]
+        / sim.spec.launched_mixing_power
+    )
+
+    energy_mesh = np.empty_like(x_mesh)
+    efficiency_mesh = np.empty_like(x_mesh)
+    for i, x in enumerate(launched_pump):
+        for j, y in enumerate(launched_mixing):
+            energy_mesh[i, j] = get_energy(sims[(x, y)])
+            efficiency_mesh[i, j] = get_efficiency(sims[(x, y)])
+
+    si.vis.xyz_plot(
+        f"mode_energy__{mode}",
+        x_mesh,
+        y_mesh,
+        energy_mesh,
+        x_label="Launched Pump Power",
+        x_unit="mW",
+        y_label="Launched Mixing Power",
+        y_unit="mW",
+        z_unit="pJ",
+        x_log_axis=True,
+        y_log_axis=True,
+        z_log_axis=True,
+        z_lower_limit=1e-6 * u.pJ,
+        # z_upper_limit=1e-2 * u.pJ,
+        target_dir=OUT_DIR / path.stem,
+        **PLOT_KWARGS,
+    )
+
+    si.vis.xyz_plot(
+        f"modulation_efficiency__{mode}",
+        x_mesh,
+        y_mesh,
+        efficiency_mesh,
+        x_label="Launched Pump Power",
+        x_unit="mW",
+        y_label="Launched Mixing Power",
+        y_unit="mW",
+        x_log_axis=True,
+        y_log_axis=True,
+        z_log_axis=True,
+        z_lower_limit=1e-6,
+        z_upper_limit=1e-2,
         target_dir=OUT_DIR / path.stem,
         **PLOT_KWARGS,
     )
@@ -260,30 +480,55 @@ if __name__ == "__main__":
         #         per_attrs=["time_final"],
         #     )
 
-        mode_energy_and_power_plots_vs_attribute(
-            BASE / "paper__modeff_vs_launched_pump_power.sims",
-            attr="launched_pump_power",
-            x_unit="mW",
-            x_log=True,
-            per_attrs=["launched_mixing_wavelength", "launched_mixing_power"],
-        )
+        # mode_energy_and_power_plots_vs_attribute(
+        #     BASE / "paper__modeff_vs_launched_pump_power.sims",
+        #     attr="launched_pump_power",
+        #     x_unit="mW",
+        #     x_log=True,
+        #     per_attrs=["launched_mixing_wavelength", "launched_mixing_power"],
+        # )
+        #
+        # mode_energy_and_power_plots_vs_attribute(
+        #     BASE / "paper__modeff_vs_mixing_wavelength.sims",
+        #     attr="launched_mixing_wavelength",
+        #     x_unit="nm",
+        #     x_log=False,
+        #     per_attrs=["launched_pump_power", "launched_mixing_power"],
+        # )
+        #
+        # mode_energy_and_power_plots_vs_attribute(
+        #     BASE / "paper__modeff_vs_target_detuning.sims",
+        #     attr="mixing|+1_mode_detuning",
+        #     x_unit="Hz",
+        #     x_log=True,
+        #     per_attrs=[
+        #         "launched_mixing_wavelength",
+        #         "launched_pump_power",
+        #         "launched_mixing_power",
+        #     ],
+        # )
 
-        mode_energy_and_power_plots_vs_attribute(
-            BASE / "paper__modeff_vs_mixing_wavelength.sims",
-            attr="launched_mixing_wavelength",
-            x_unit="nm",
-            x_log=False,
-            per_attrs=["launched_pump_power", "launched_mixing_power"],
-        )
+        # mode_energy_and_power_differential_against_zero_mixing_plots_vs_attribute(
+        #     BASE / "paper__modeff_vs_launched_pump_power__6_modes.sims",
+        #     attr="launched_pump_power",
+        #     x_unit="mW",
+        #     x_log=True,
+        #     per_attrs=["launched_mixing_wavelength", "launched_mixing_power"],
+        # )
+        #
+        # mode_energy_and_power_differential_against_zero_mixing_plots_vs_attribute(
+        #     BASE / "paper__modeff_vs_launched_pump_power__4_modes.sims",
+        #     attr="launched_pump_power",
+        #     x_unit="mW",
+        #     x_log=True,
+        #     per_attrs=["launched_mixing_wavelength", "launched_mixing_power"],
+        # )
 
-        mode_energy_and_power_plots_vs_attribute(
-            BASE / "paper__modeff_vs_target_detuning.sims",
-            attr="mixing|+1_mode_detuning",
-            x_unit="Hz",
-            x_log=True,
-            per_attrs=[
-                "launched_mixing_wavelength",
-                "launched_pump_power",
-                "launched_mixing_power",
-            ],
-        )
+        # mode_energy_2d(
+        #     BASE / "test_2d_modeff_vs_launched_pump_and_mixing__6_modes.sims"
+        # )
+
+        for mode in ["mixing|+1", "mixing|-1"]:
+            mode_energy_2d(
+                BASE / "paper__2d_modeff_vs_launched_powers__6_modes.sims", mode=mode
+            )

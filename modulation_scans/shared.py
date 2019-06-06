@@ -348,7 +348,7 @@ def ask_htmap_settings():
 def ask_map_options() -> (dict, dict):
     opts = {
         "request_memory": si.cluster.ask_for_input("Memory?", default="500MB"),
-        "request_disk": si.cluster.ask_for_input("Disk?", default="10GB"),
+        "request_disk": si.cluster.ask_for_input("Disk?", default="1GB"),
     }
     custom_opts = {
         "wantflocking": str(
