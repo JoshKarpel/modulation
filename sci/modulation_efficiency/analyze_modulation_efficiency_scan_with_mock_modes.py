@@ -38,7 +38,7 @@ COLORS = [
 
 LINESTYLES = ["-", "-.", "--", ":"]
 
-ORDER_COLORS = ["#1b9e77", "#66a61e", "#d95f02", "#7570b3", "#e7298a", "#e6ab02"]
+ORDER_COLORS = ["#1b9e77", "#66a61e", "#d95f02", "#7570b3", "#e6ab02", "#e7298a"]
 ORDERS = ["pump|+0", "pump|+1", "pump|-1", "mixing|+0", "mixing|-1", "mixing|+1"]
 ORDER_TO_COLOR = dict(zip(ORDERS, ORDER_COLORS))
 
@@ -353,7 +353,7 @@ def mode_energy_2d(path, mode="mixing|+1"):
     launched_pump = np.array(sorted(ps.parameter_set("launched_pump_power")))
     launched_mixing = np.array(sorted(ps.parameter_set("launched_mixing_power")))
 
-    x_mesh, y_mesh = np.meshgrid(launched_pump, launched_mixing, indexing="xy")
+    x_mesh, y_mesh = np.meshgrid(launched_pump, launched_mixing, indexing="ij")
 
     sims = {
         (sim.spec.launched_pump_power, sim.spec.launched_mixing_power): sim
@@ -410,6 +410,9 @@ def mode_energy_2d(path, mode="mixing|+1"):
         z_log_axis=True,
         z_lower_limit=1e-6,
         z_upper_limit=1e-2,
+        contours=[1e-5, 1e-4, 1e-3],
+        contour_kwargs={"colors": "white"},
+        contour_label_kwargs={"fmt": "%.1e", "colors": "white", "inline_spacing": 50},
         target_dir=OUT_DIR / path.stem,
         **PLOT_KWARGS,
     )
@@ -528,7 +531,37 @@ if __name__ == "__main__":
         #     BASE / "test_2d_modeff_vs_launched_pump_and_mixing__6_modes.sims"
         # )
 
-        for mode in ["mixing|+1", "mixing|-1"]:
-            mode_energy_2d(
-                BASE / "paper__2d_modeff_vs_launched_powers__6_modes.sims", mode=mode
+        # for mode in ["mixing|+1", "mixing|-1"]:
+        #     mode_energy_2d(
+        #         BASE / "paper__2d_modeff_vs_launched_powers__6_modes.sims", mode=mode
+        #     )
+        #     mode_energy_2d(BASE / "2d_modeff_unequal.sims", mode=mode)
+
+        # mode_energy_2d(
+        #     BASE / "paper__2d_modeff_vs_launched_powers__4_modes.sims", mode="mixing|+1"
+        # )
+
+        for scan in (
+            "test_launched_pump_power_no_scaling_q__4_modes.sims",
+            "test_launched_pump_power_no_scaling_q__6_modes.sims",
+        ):
+            mode_energy_and_power_plots_vs_attribute(
+                BASE / scan,
+                attr="launched_pump_power",
+                x_unit="mW",
+                x_log=True,
+                per_attrs=["launched_mixing_wavelength", "launched_mixing_power"],
             )
+
+        mode_energy_and_power_plots_vs_attribute(
+            BASE / "test_6_modes_detune_pump+1_and_mixing-1.sims",
+            attr="launched_pump_power",
+            x_unit="mW",
+            x_log=True,
+            per_attrs=[
+                "mixing|-1_mode_detuning",
+                "pump|+1_mode_detuning",
+                "launched_mixing_wavelength",
+                "launched_mixing_power",
+            ],
+        )

@@ -12,7 +12,11 @@ logger = logging.getLogger(__name__)
 
 class PolarComplexAmplitudeAxis(anim.AxisManager):
     def __init__(
-        self, trail_length=100 * u.nsec, r_log_lower_limit=5, r_log_upper_limit=10
+        self,
+        trail_length=100 * u.nsec,
+        r_log_lower_limit=5,
+        r_log_upper_limit=10,
+        mode_colors=None,
     ):
         super().__init__()
 
@@ -21,6 +25,8 @@ class PolarComplexAmplitudeAxis(anim.AxisManager):
 
         self.r_log_lower_limit = r_log_lower_limit
         self.r_log_upper_limit = r_log_upper_limit
+
+        self.mode_colors = mode_colors
 
     def initialize(self, simulation):
         super().initialize(simulation)
@@ -32,10 +38,17 @@ class PolarComplexAmplitudeAxis(anim.AxisManager):
         self.axis.set_theta_direction("clockwise")
         self.axis.set_rlabel_position(30)
 
-        prop_cycle = plt.rcParams["axes.prop_cycle"]
-        colors = prop_cycle.by_key()["color"]
         r, theta = self._get_r_theta(self.sim.mode_amplitudes)
         self.r_theta = np.vstack((theta, r)).T
+
+        if self.mode_colors is None:
+            prop_cycle = plt.rcParams["axes.prop_cycle"]
+            colors = prop_cycle.by_key()["color"]
+            if len(colors) > len(r):
+                colors = colors[: len(r)]
+        else:
+            colors = self.mode_colors
+
         self.amplitude_scatter = self.axis.scatter(
             np.zeros_like(theta), np.zeros_like(r), color=colors
         )
@@ -49,6 +62,7 @@ class PolarComplexAmplitudeAxis(anim.AxisManager):
                 ),
                 np.angle(self.sim.mode_amplitudes_vs_time[: self.sim.time_index, q]),
                 color=color,
+                label=rf"${mode.label}$",
                 animated=True,
             )[0]
             self.lines.append(line)
@@ -69,6 +83,8 @@ class PolarComplexAmplitudeAxis(anim.AxisManager):
 
         self.axis.set_ylim(self.r_log_lower_limit, self.r_log_upper_limit)
         self.axis.grid(True)
+
+        self.axis.legend(loc="lower right")
 
         super().initialize_axis()
 

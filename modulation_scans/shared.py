@@ -223,7 +223,7 @@ def ask_time_final(parameters):
             sorted(
                 u.usec
                 * np.array(
-                    si.cluster.ask_for_eval("Final time (in us)?", default="[1]")
+                    si.cluster.ask_for_eval("Final time (in us)?", default="[10]")
                 ),
                 key=lambda x: -x,
             ),
