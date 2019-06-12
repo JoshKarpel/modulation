@@ -349,6 +349,7 @@ def ask_map_options() -> (dict, dict):
     opts = {
         "request_memory": si.cluster.ask_for_input("Memory?", default="500MB"),
         "request_disk": si.cluster.ask_for_input("Disk?", default="1GB"),
+        "max_idle": "1000",
     }
     custom_opts = {
         "wantflocking": str(

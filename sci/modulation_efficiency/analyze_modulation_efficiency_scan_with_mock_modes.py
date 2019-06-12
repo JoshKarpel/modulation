@@ -541,27 +541,31 @@ if __name__ == "__main__":
         #     BASE / "paper__2d_modeff_vs_launched_powers__4_modes.sims", mode="mixing|+1"
         # )
 
-        for scan in (
-            "test_launched_pump_power_no_scaling_q__4_modes.sims",
-            "test_launched_pump_power_no_scaling_q__6_modes.sims",
-        ):
-            mode_energy_and_power_plots_vs_attribute(
-                BASE / scan,
-                attr="launched_pump_power",
-                x_unit="mW",
-                x_log=True,
-                per_attrs=["launched_mixing_wavelength", "launched_mixing_power"],
-            )
+        # for scan in (
+        #     "test_launched_pump_power_no_scaling_q__4_modes.sims",
+        #     "test_launched_pump_power_no_scaling_q__6_modes.sims",
+        # ):
+        #     mode_energy_and_power_plots_vs_attribute(
+        #         BASE / scan,
+        #         attr="launched_pump_power",
+        #         x_unit="mW",
+        #         x_log=True,
+        #         per_attrs=["launched_mixing_wavelength", "launched_mixing_power"],
+        #     )
+        #
+        # mode_energy_and_power_plots_vs_attribute(
+        #     BASE / "test_6_modes_detune_pump+1_and_mixing-1.sims",
+        #     attr="launched_pump_power",
+        #     x_unit="mW",
+        #     x_log=True,
+        #     per_attrs=[
+        #         "mixing|-1_mode_detuning",
+        #         "pump|+1_mode_detuning",
+        #         "launched_mixing_wavelength",
+        #         "launched_mixing_power",
+        #     ],
+        # )
 
-        mode_energy_and_power_plots_vs_attribute(
-            BASE / "test_6_modes_detune_pump+1_and_mixing-1.sims",
-            attr="launched_pump_power",
-            x_unit="mW",
-            x_log=True,
-            per_attrs=[
-                "mixing|-1_mode_detuning",
-                "pump|+1_mode_detuning",
-                "launched_mixing_wavelength",
-                "launched_mixing_power",
-            ],
+        mode_energy_2d(
+            BASE / "2d_modeff__4_modes__very_asymmetric.sims", mode="mixing|+1"
         )
