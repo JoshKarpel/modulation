@@ -264,6 +264,18 @@ def ask_four_mode_detuning_cutoff(parameters):
     )
 
 
+def ask_ignore_self_interaction(parameters):
+    parameters.append(
+        si.cluster.Parameter(
+            "ignore_self_interaction",
+            si.cluster.ask_for_eval(
+                "Ignore Self-Interaction Terms?", default="[False]"
+            ),
+            expandable=True,
+        )
+    )
+
+
 def ask_lookback_time():
     return u.nsec * si.cluster.ask_for_input(
         "Lookback time (in ns)?", default=10, cast_to=float

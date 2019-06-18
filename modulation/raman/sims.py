@@ -454,6 +454,9 @@ class FourWaveMixingSimulation(RamanSimulation):
             modes = (mode_q, mode_r, mode_s, mode_t)
             volume = self.spec.mode_volume_integrator.mode_volume_integral(modes)
 
+            if self.spec.ignore_self_interaction and len(set(modes)) == 1:
+                continue
+
             for q_, r_, s_, t_ in itertools.permutations((q, r, s, t)):
                 four_mode_detuning = np.abs(
                     self.spec.modes[r_].frequency
@@ -461,8 +464,10 @@ class FourWaveMixingSimulation(RamanSimulation):
                     + self.spec.modes[t_].frequency
                     - self.spec.modes[q_].frequency
                 )
-                if four_mode_detuning <= self.spec.four_mode_detuning_cutoff:
-                    mode_volume_ratios[q_, r_, s_, t_] = volume / self.mode_volumes[q]
+                if four_mode_detuning > self.spec.four_mode_detuning_cutoff:
+                    continue
+
+                mode_volume_ratios[q_, r_, s_, t_] = volume / self.mode_volumes[q]
 
         return np.einsum(
             "q,st,qrst->qrst",
@@ -518,6 +523,7 @@ class RamanSpecification(si.Specification):
         evolution_algorithm: evolve.EvolutionAlgorithm = evolve.RungeKutta4(),
         mode_volume_integrator: volume.ModeVolumeIntegrator = None,
         four_mode_detuning_cutoff=AUTO_CUTOFF,
+        ignore_self_interaction=False,
         store_mode_amplitudes_vs_time: bool = False,
         lookback: Optional[lookback.Lookback] = None,
         freeze_lookback: bool = True,
@@ -570,6 +576,7 @@ class RamanSpecification(si.Specification):
         if four_mode_detuning_cutoff == AUTO_CUTOFF:
             four_mode_detuning_cutoff = 0.5 / time_step
         self.four_mode_detuning_cutoff = four_mode_detuning_cutoff
+        self.ignore_self_interaction = ignore_self_interaction
 
         self.store_mode_amplitudes_vs_time = store_mode_amplitudes_vs_time
         self.lookback = lookback

@@ -17,7 +17,7 @@ SIM_LIB = OUT_DIR / "SIMLIB"
 LOGMAN = si.utils.LogManager("simulacra", "modulation", stdout_level=logging.INFO)
 
 PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
-ANIM_KWARGS = dict(target_dir=OUT_DIR, length=30, fps=60)
+ANIM_KWARGS = dict(target_dir=OUT_DIR, length=30, fps=30)
 
 
 def make_modes(
@@ -100,7 +100,7 @@ def mode_kwargs(sim, q, mode, pump_mode, mixing_mode):
     return kwargs
 
 
-def run(pump_power, mixing_power):
+def run(pump_power, mixing_power, **kwargs):
     pump_wavelength = 1064 * u.nm
 
     mixing_wavelength = 800 * u.nm
@@ -149,9 +149,13 @@ def run(pump_power, mixing_power):
             )
         )
 
+    postfix = "_".join(f"{k}={v}" for k, v in kwargs.items())
+    if len(postfix) > 0:
+        postfix = "__" + postfix
+
     mode_list = list(modes.values())
     spec = raman.FourWaveMixingSpecification(
-        f"pump={pump_power / u.mW:.3f}mW_mixing={mixing_power / u.uW:.3f}uW",
+        f"pump={pump_power / u.mW:.3f}mW_mixing={mixing_power / u.uW:.3f}uW{postfix}",
         material=material,
         modes=mode_list,
         mode_volume_integrator=mock.MockVolumeIntegrator(volume_integral_result=1e-25),
@@ -175,6 +179,7 @@ def run(pump_power, mixing_power):
                 **ANIM_KWARGS,
             )
         ],
+        **kwargs,
     )
 
     sim = spec.to_sim()
@@ -199,5 +204,6 @@ def run(pump_power, mixing_power):
 if __name__ == "__main__":
     pump_powers = [1 * u.mW, 10 * u.mW, 100 * u.mW, 1 * u.W]
     mixing_powers = [1 * u.uW]
-    for pp, mp in itertools.product(pump_powers, mixing_powers):
-        run(pump_power=pp, mixing_power=mp)
+    ignore = [False, True]
+    for pp, mp, ig in itertools.product(pump_powers, mixing_powers, ignore):
+        run(pump_power=pp, mixing_power=mp, ignore_self_interaction=ig)
