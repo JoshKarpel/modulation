@@ -34,13 +34,5 @@ setup(
             if x.stem.startswith(("scan", "export"))
         ]
     },
-    install_requires=[
-        "numpy",
-        "scipy",
-        "matplotlib",
-        "cython",
-        "click>=7.0.0",
-        "halo",
-        "simulacra",
-    ],
+    install_requires=Path("requirements.txt").read_text().splitlines(),
 )

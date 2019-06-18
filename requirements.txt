@@ -6,4 +6,6 @@ paramiko
 psutil
 scipy
 tqdm
-simulacra
+click
+halo
+htmap

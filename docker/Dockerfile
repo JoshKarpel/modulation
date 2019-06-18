@@ -16,17 +16,11 @@ RUN conda install -y python=3.7 \
                      psutil \
                      tqdm \
                      cloudpickle=0.6.1 \
-    && \
-    conda update -y --all && \
-    conda clean -y --all
+ && conda clean -y --all
 
 ARG CACHEBUST=1
 
 # my packages
-RUN pip install htcondor \
-                git+https://github.com/JoshKarpel/htmap.git \
-                git+https://github.com/JoshKarpel/simulacra.git \
-                git+https://github.com/JoshKarpel/modulation.git
-
-# pre-compile cython code via pyximport
-RUN python3 -c "import modulation"
+RUN pip install git+https://github.com/JoshKarpel/simulacra.git \
+                git+https://github.com/JoshKarpel/modulation.git \
+ && python3 -c "import modulation"
