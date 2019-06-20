@@ -454,14 +454,14 @@ class FourWaveMixingSimulation(RamanSimulation):
             modes = (mode_q, mode_r, mode_s, mode_t)
             volume = self.spec.mode_volume_integrator.mode_volume_integral(modes)
 
-            if self.spec.ignore_self_interaction and len(set(modes)) == 1:
-                continue
-
-            if self.spec.ignore_triplets and len(set(modes)) == 3:
-                continue
-
-            if self.spec.ignore_doublets and len(set(modes)) == 2:
-                continue
+            # if self.spec.ignore_self_interaction and len(set(modes)) == 1:
+            #     continue
+            #
+            # if self.spec.ignore_triplets and len(set(modes)) == 3:
+            #     continue
+            #
+            # if self.spec.ignore_doublets and len(set(modes)) == 2:
+            #     continue
 
             for q_, r_, s_, t_ in itertools.permutations((q, r, s, t)):
                 four_mode_detuning = np.abs(
@@ -472,7 +472,6 @@ class FourWaveMixingSimulation(RamanSimulation):
                 )
                 if four_mode_detuning > self.spec.four_mode_detuning_cutoff:
                     continue
-
                 mode_volume_ratios[q_, r_, s_, t_] = volume / self.mode_volumes[q]
 
         return np.einsum(
@@ -503,6 +502,28 @@ class FourWaveMixingSimulation(RamanSimulation):
         phase = self._calculate_phase_array(time)
         fields = mode_amplitudes * phase
         return four_wave_polarization(fields, phase, self.polarization_sum_factors)
+
+    def extract_derivatives(self, mode_amplitudes: np.ndarray, time: float):
+        phase = self._calculate_phase_array(time)
+        fields = mode_amplitudes * phase
+        pol = (
+            np.einsum(
+                "r,s,t,q,qrst->qrst",
+                fields,
+                np.conj(fields),
+                fields,
+                np.conj(phase),
+                self.polarization_sum_factors,
+            )
+            * self.spec.time_step
+        )
+        decay = -self.mode_amplitude_decay_rates * mode_amplitudes * self.spec.time_step
+        pump = (
+            self.evolve_pump(mode_amplitudes, time, time + self.spec.time_step)
+            - mode_amplitudes
+        )
+
+        return decay, pump, pol
 
 
 AUTO_CUTOFF = "AUTO_CUTOFF"

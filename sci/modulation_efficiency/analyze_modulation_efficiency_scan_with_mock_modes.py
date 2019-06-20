@@ -116,25 +116,26 @@ def mode_energy_and_power_plots_vs_attribute(
             target_dir=OUT_DIR / path.stem,
             **PLOT_KWARGS,
         )
-        si.vis.xy_plot(
-            f"mode_powers__{postfix}",
-            scan_variable,
-            *power_lines,
-            line_kwargs=line_kwargs,
-            line_labels=line_labels,
-            x_label=x_label,
-            y_label="Steady-State Mode Output Power",
-            x_unit=x_unit,
-            y_unit="uW",
-            x_log_axis=x_log,
-            y_log_axis=True,
-            y_upper_limit=1 * u.W,
-            y_lower_limit=1e-1 * u.pW,
-            legend_on_right=True,
-            font_size_legend=6,
-            target_dir=OUT_DIR / path.stem,
-            **PLOT_KWARGS,
-        )
+
+        # si.vis.xy_plot(
+        #     f"mode_powers__{postfix}",
+        #     scan_variable,
+        #     *power_lines,
+        #     line_kwargs=line_kwargs,
+        #     line_labels=line_labels,
+        #     x_label=x_label,
+        #     y_label="Steady-State Mode Output Power",
+        #     x_unit=x_unit,
+        #     y_unit="uW",
+        #     x_log_axis=x_log,
+        #     y_log_axis=True,
+        #     y_upper_limit=1 * u.W,
+        #     y_lower_limit=1e-1 * u.pW,
+        #     legend_on_right=True,
+        #     font_size_legend=6,
+        #     target_dir=OUT_DIR / path.stem,
+        #     **PLOT_KWARGS,
+        # )
 
 
 def mode_energy_and_power_differential_against_zero_mixing_plots_vs_attribute(
@@ -418,9 +419,129 @@ def mode_energy_2d(path, mode="mixing|+1"):
     )
 
 
+def derivatives(path, attr, x_unit=None, x_label=None, x_log=True, per_attrs=None):
+    if x_label is None:
+        x_label = attr.replace("_", " ").title()
+
+    if per_attrs is None:
+        per_attrs = []
+
+    get_attr_from_sim = lambda s: getattr(s.spec, attr)
+
+    ps = analysis.ParameterScan.from_file(path)
+
+    s = ps[0].spec
+    modes = s.modes
+    idxs = [ps[0].mode_to_index[mode] for mode in modes]
+
+    sum_factors = ps[0]._calculate_polarization_sum_factors()
+
+    per_attr_sets = [ps.parameter_set(attr) for attr in per_attrs]
+    for per_attr_values in tqdm(list(itertools.product(*per_attr_sets))):
+        per_attr_key_value = dict(zip(per_attrs, per_attr_values))
+        postfix = "_".join(f"{k}={v:.3e}" for k, v in per_attr_key_value.items())
+        sims = sorted(ps.select(**per_attr_key_value), key=get_attr_from_sim)
+
+        scan_variable = np.array([get_attr_from_sim(sim) for sim in sims])
+        # means = [sim.mode_energies(sim.lookback.mean) for sim in sims]
+        # powers = [sim.mode_output_powers(sim.lookback.mean) for sim in sims]
+
+        for mode_idx, mode in zip(idxs, modes):
+            line_kwargs = [
+                {"linestyle": "-", "color": "#1b9e77"},
+                {"linestyle": "-", "color": "#d95f02"},
+                {"linestyle": "-", "color": "#7570b3"},
+                {"linestyle": "--", "color": "#1b9e77"},
+                {"linestyle": "--", "color": "#d95f02"},
+                {"linestyle": "--", "color": "#7570b3"},
+                {"linestyle": "-", "color": "black"},
+                {"linestyle": "--", "color": "black"},
+            ]
+            line_labels = [
+                "re decay",
+                "re pump",
+                "re total polarization",
+                "im decay",
+                "im pump",
+                "im total polarization",
+                "re combined",
+                "im combined",
+            ]
+            decays = []
+            pumps = []
+            total_pols = []
+            # largest_pols = {}
+
+            for sim_idx, sim in enumerate(sims):
+                sim.polarization_sum_factors = sum_factors
+                decay, pump, pol = sim.extract_derivatives(
+                    sim.mode_amplitudes, sim.current_time
+                )
+                decays.append(decay[mode_idx] / sim.mode_amplitudes[mode_idx])
+                pumps.append(pump[mode_idx] / sim.mode_amplitudes[mode_idx])
+                total_pols.append(
+                    np.einsum("qrst->q", pol)[mode_idx] / sim.mode_amplitudes[mode_idx]
+                )
+
+                # pols_by_mode_idx = {
+                #     (mode_idx, r, s, t): pol[mode_idx, r, s, t]
+                #     for r, s, t in itertools.product(list(range(len(modes))), repeat=3)
+                # }
+                # largest_mode_idxs_and_pols = dict(
+                #     sorted(
+                #         ((k, v) for k, v in pols_by_mode_idx.items()),
+                #         key=lambda kv: kv[1],
+                #     )[:5]
+                # )
+                #
+                # line_labels.extend(largest_mode_idxs_and_pols.keys())
+
+            decays = np.array(decays)
+            pumps = np.array(pumps)
+            total_pols = np.array(total_pols)
+
+            si.vis.xy_plot(
+                f"derivatives__mode_{mode.label}__{postfix}",
+                scan_variable,
+                np.real(decays),
+                np.real(pumps),
+                np.real(total_pols),
+                np.imag(decays),
+                np.imag(pumps),
+                np.imag(total_pols),
+                np.real(decays + pumps + total_pols),
+                np.imag(decays + pumps + total_pols),
+                line_kwargs=line_kwargs,
+                line_labels=line_labels,
+                legend_on_right=True,
+                sym_log_linear_threshold=1e-6,
+                x_label=x_label,
+                x_unit=x_unit,
+                x_log_axis=x_log,
+                y_log_axis=True,
+                target_dir=OUT_DIR / path.stem,
+                **PLOT_KWARGS,
+            )
+
+
 if __name__ == "__main__":
     with LOGMAN as logger:
         BASE = Path(__file__).parent
+
+        derivatives(
+            BASE / "test_launched_pump_power_no_scaling_q__4_modes.sims",
+            attr="launched_pump_power",
+            x_unit="mW",
+            x_log=True,
+            per_attrs=["launched_mixing_wavelength", "launched_mixing_power"],
+        )
+        mode_energy_and_power_plots_vs_attribute(
+            BASE / "test_launched_pump_power_no_scaling_q__4_modes.sims",
+            attr="launched_pump_power",
+            x_unit="mW",
+            x_log=True,
+            per_attrs=["launched_mixing_wavelength", "launched_mixing_power"],
+        )
 
         # names = [
         #     # "test_mock_multiorder.sims",
@@ -541,17 +662,17 @@ if __name__ == "__main__":
         #     BASE / "paper__2d_modeff_vs_launched_powers__4_modes.sims", mode="mixing|+1"
         # )
 
-        # for scan in (
-        #     "test_launched_pump_power_no_scaling_q__4_modes.sims",
-        #     "test_launched_pump_power_no_scaling_q__6_modes.sims",
-        # ):
-        #     mode_energy_and_power_plots_vs_attribute(
-        #         BASE / scan,
-        #         attr="launched_pump_power",
-        #         x_unit="mW",
-        #         x_log=True,
-        #         per_attrs=["launched_mixing_wavelength", "launched_mixing_power"],
-        #     )
+        for scan in (
+            "test_launched_pump_power_no_scaling_q__4_modes.sims",
+            # "test_launched_pump_power_no_scaling_q__6_modes.sims",
+        ):
+            mode_energy_and_power_plots_vs_attribute(
+                BASE / scan,
+                attr="launched_pump_power",
+                x_unit="mW",
+                x_log=True,
+                per_attrs=["launched_mixing_wavelength", "launched_mixing_power"],
+            )
         #
         # mode_energy_and_power_plots_vs_attribute(
         #     BASE / "test_6_modes_detune_pump+1_and_mixing-1.sims",
@@ -570,10 +691,10 @@ if __name__ == "__main__":
         #     BASE / "2d_modeff__4_modes__very_asymmetric.sims", mode="mixing|+1"
         # )
 
-        mode_energy_and_power_plots_vs_attribute(
-            BASE / "no_self_interaction_pump_power_scan.sims",
-            attr="launched_pump_power",
-            x_unit="mW",
-            x_log=True,
-            per_attrs=["ignore_self_interaction"],
-        )
+        # mode_energy_and_power_plots_vs_attribute(
+        #     BASE / "no_self_interaction_pump_power_scan.sims",
+        #     attr="launched_pump_power",
+        #     x_unit="mW",
+        #     x_log=True,
+        #     per_attrs=["ignore_self_interaction"],
+        # )
