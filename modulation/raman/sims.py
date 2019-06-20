@@ -457,6 +457,12 @@ class FourWaveMixingSimulation(RamanSimulation):
             if self.spec.ignore_self_interaction and len(set(modes)) == 1:
                 continue
 
+            if self.spec.ignore_triplets and len(set(modes)) == 3:
+                continue
+
+            if self.spec.ignore_doublets and len(set(modes)) == 2:
+                continue
+
             for q_, r_, s_, t_ in itertools.permutations((q, r, s, t)):
                 four_mode_detuning = np.abs(
                     self.spec.modes[r_].frequency
@@ -524,6 +530,8 @@ class RamanSpecification(si.Specification):
         mode_volume_integrator: volume.ModeVolumeIntegrator = None,
         four_mode_detuning_cutoff=AUTO_CUTOFF,
         ignore_self_interaction=False,
+        ignore_triplets=False,
+        ignore_doublets=False,
         store_mode_amplitudes_vs_time: bool = False,
         lookback: Optional[lookback.Lookback] = None,
         freeze_lookback: bool = True,
@@ -577,6 +585,8 @@ class RamanSpecification(si.Specification):
             four_mode_detuning_cutoff = 0.5 / time_step
         self.four_mode_detuning_cutoff = four_mode_detuning_cutoff
         self.ignore_self_interaction = ignore_self_interaction
+        self.ignore_triplets = ignore_triplets
+        self.ignore_doublets = ignore_doublets
 
         self.store_mode_amplitudes_vs_time = store_mode_amplitudes_vs_time
         self.lookback = lookback

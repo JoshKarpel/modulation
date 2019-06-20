@@ -5,6 +5,7 @@ numpy
 paramiko
 psutil
 scipy
+mpmath
 tqdm
 click
 halo

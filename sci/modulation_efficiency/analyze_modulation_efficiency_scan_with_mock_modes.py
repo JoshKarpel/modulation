@@ -566,6 +566,14 @@ if __name__ == "__main__":
         #     ],
         # )
 
-        mode_energy_2d(
-            BASE / "2d_modeff__4_modes__very_asymmetric.sims", mode="mixing|+1"
+        # mode_energy_2d(
+        #     BASE / "2d_modeff__4_modes__very_asymmetric.sims", mode="mixing|+1"
+        # )
+
+        mode_energy_and_power_plots_vs_attribute(
+            BASE / "no_self_interaction_pump_power_scan.sims",
+            attr="launched_pump_power",
+            x_unit="mW",
+            x_log=True,
+            per_attrs=["ignore_self_interaction"],
         )

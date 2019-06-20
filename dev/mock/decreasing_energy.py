@@ -108,12 +108,15 @@ def run(pump_power, mixing_power, **kwargs):
 
     material = raman.RamanMaterial.from_name("silica")
 
-    time_step = 100 * u.psec
+    time_step = 10 * u.psec
     pump_start_time = 100 * u.nsec
     mixing_start_time = 5 * u.usec
     time_final = 10 * u.usec
     intrinsic_q = 1e8
     coupling_q = 1e8
+
+    stokes_start_time = 1 * u.usec
+    stokes_power = pump_power
 
     modes = make_modes(
         material,
@@ -129,6 +132,7 @@ def run(pump_power, mixing_power, **kwargs):
         print(l, m)
 
     pump_mode = modes.get("pump_0", None)
+    stokes_mode = modes.get("pump_1", None)
     mixing_mode = modes.get("mixing_0", None)
 
     pumps = []
@@ -138,6 +142,13 @@ def run(pump_power, mixing_power, **kwargs):
                 start_time=pump_start_time,
                 frequency=pump_mode.frequency,
                 power=pump_power,
+            )
+        )
+        pumps.append(
+            raman.RectangularMonochromaticPump(
+                start_time=stokes_start_time,
+                frequency=stokes_mode.frequency,
+                power=stokes_power,
             )
         )
     if mixing_mode is not None:
@@ -204,6 +215,27 @@ def run(pump_power, mixing_power, **kwargs):
 if __name__ == "__main__":
     pump_powers = [1 * u.mW, 10 * u.mW, 100 * u.mW, 1 * u.W]
     mixing_powers = [1 * u.uW]
-    ignore = [False, True]
-    for pp, mp, ig in itertools.product(pump_powers, mixing_powers, ignore):
-        run(pump_power=pp, mixing_power=mp, ignore_self_interaction=ig)
+    ignore_self_interactions = [False]
+    ignore_tripletss = [False]
+    ignore_doubletss = [True]
+
+    for (
+        pp,
+        mp,
+        ignore_self_interaction,
+        ignore_triplets,
+        ignore_doublets,
+    ) in itertools.product(
+        pump_powers,
+        mixing_powers,
+        ignore_self_interactions,
+        ignore_tripletss,
+        ignore_doubletss,
+    ):
+        run(
+            pump_power=pp,
+            mixing_power=mp,
+            ignore_self_interaction=ignore_self_interaction,
+            ignore_triplets=ignore_triplets,
+            ignore_doublets=ignore_doublets,
+        )

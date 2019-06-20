@@ -24,7 +24,13 @@ from .pump import (
     ConstantMonochromaticPump,
     RectangularMonochromaticPump,
 )
-from .evolve import EvolutionAlgorithm, ForwardEuler, RungeKutta4
+from .evolve import (
+    EvolutionAlgorithm,
+    ForwardEuler,
+    BackwardEuler,
+    TrapezoidRule,
+    RungeKutta4,
+)
 from .volume import ModeVolumeIntegrator
 from .mode import Mode
 from .material import RamanMaterial

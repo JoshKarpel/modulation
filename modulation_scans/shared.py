@@ -276,6 +276,26 @@ def ask_ignore_self_interaction(parameters):
     )
 
 
+def ask_ignore_triplets(parameters):
+    parameters.append(
+        si.cluster.Parameter(
+            "ignore_triplets",
+            si.cluster.ask_for_eval("Ignore Triplet Terms?", default="[False]"),
+            expandable=True,
+        )
+    )
+
+
+def ask_ignore_doublets(parameters):
+    parameters.append(
+        si.cluster.Parameter(
+            "ignore_doublets",
+            si.cluster.ask_for_eval("Ignore Doublet Terms?", default="[False]"),
+            expandable=True,
+        )
+    )
+
+
 def ask_lookback_time():
     return u.nsec * si.cluster.ask_for_input(
         "Lookback time (in ns)?", default=10, cast_to=float
