@@ -454,14 +454,14 @@ class FourWaveMixingSimulation(RamanSimulation):
             modes = (mode_q, mode_r, mode_s, mode_t)
             volume = self.spec.mode_volume_integrator.mode_volume_integral(modes)
 
-            # if self.spec.ignore_self_interaction and len(set(modes)) == 1:
-            #     continue
-            #
-            # if self.spec.ignore_triplets and len(set(modes)) == 3:
-            #     continue
-            #
-            # if self.spec.ignore_doublets and len(set(modes)) == 2:
-            #     continue
+            if self.spec.ignore_self_interaction and len(set(modes)) == 1:
+                continue
+
+            if self.spec.ignore_triplets and len(set(modes)) == 3:
+                continue
+
+            if self.spec.ignore_doublets and len(set(modes)) == 2:
+                continue
 
             for q_, r_, s_, t_ in itertools.permutations((q, r, s, t)):
                 four_mode_detuning = np.abs(

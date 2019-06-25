@@ -17,7 +17,7 @@ SIM_LIB = OUT_DIR / "SIMLIB"
 LOGMAN = si.utils.LogManager("simulacra", "modulation", stdout_level=logging.INFO)
 
 PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
-ANIM_KWARGS = dict(target_dir=OUT_DIR, length=30, fps=60)
+ANIM_KWARGS = dict(target_dir=OUT_DIR, length=20, fps=30)
 
 
 def make_modes(
@@ -104,19 +104,18 @@ def run(pump_power, mixing_power, **kwargs):
     pump_wavelength = 1064 * u.nm
 
     mixing_wavelength = 800 * u.nm
-    # mixing_wavelength = None
 
     material = raman.RamanMaterial.from_name("silica")
 
     time_step = 50 * u.psec
     pump_start_time = 100 * u.nsec
-    mixing_start_time = 5 * u.usec
-    time_final = 10 * u.usec
+    mixing_start_time = 2 * u.usec
+    time_final = 5 * u.usec
     intrinsic_q = 1e8
     coupling_q = 1e8
 
-    stokes_start_time = 1 * u.usec
-    stokes_power = pump_power
+    # stokes_start_time = 1 * u.usec
+    # stokes_power = pump_power
 
     modes = make_modes(
         material,
@@ -132,7 +131,7 @@ def run(pump_power, mixing_power, **kwargs):
         print(l, m)
 
     pump_mode = modes.get("pump_0", None)
-    stokes_mode = modes.get("pump_1", None)
+    # stokes_mode = modes.get("pump_1", None)
     mixing_mode = modes.get("mixing_0", None)
 
     pumps = []
@@ -144,13 +143,13 @@ def run(pump_power, mixing_power, **kwargs):
                 power=pump_power,
             )
         )
-        pumps.append(
-            raman.RectangularMonochromaticPump(
-                start_time=stokes_start_time,
-                frequency=stokes_mode.frequency,
-                power=stokes_power,
-            )
-        )
+        # pumps.append(
+        #     raman.RectangularMonochromaticPump(
+        #         start_time=stokes_start_time,
+        #         frequency=stokes_mode.frequency,
+        #         power=stokes_power,
+        #     )
+        # )
     if mixing_mode is not None:
         pumps.append(
             raman.RectangularMonochromaticPump(
@@ -166,7 +165,7 @@ def run(pump_power, mixing_power, **kwargs):
 
     mode_list = list(modes.values())
     spec = raman.FourWaveMixingSpecification(
-        f"pump={pump_power / u.mW:.3f}mW_mixing={mixing_power / u.uW:.3f}uW{postfix}",
+        f"pump={pump_power / u.mW:.3f}mW_mixing={mixing_power / u.mW:.3f}mW{postfix}__dt={time_step / u.psec:.3f}ps",
         material=material,
         modes=mode_list,
         mode_volume_integrator=mock.MockVolumeIntegrator(volume_integral_result=1e-25),
@@ -201,7 +200,7 @@ def run(pump_power, mixing_power, **kwargs):
     print(sim.info())
 
     sim.plot.mode_energies_vs_time(
-        y_lower_limit=1e-12 * u.pJ,
+        y_lower_limit=1e-20 * u.pJ,
         y_upper_limit=1e4 * u.pJ,
         average_over=5 * u.nsec,
         y_log_pad=1,
@@ -214,11 +213,11 @@ def run(pump_power, mixing_power, **kwargs):
 
 
 if __name__ == "__main__":
-    pump_powers = [1 * u.mW, 10 * u.mW, 100 * u.mW, 1 * u.W]
-    mixing_powers = [1 * u.uW]
-    ignore_self_interactions = [True]
+    pump_powers = [1 * u.mW, 2 * u.mW, 10 * u.mW, 40 * u.mW, 100 * u.mW]
+    mixing_powers = [1 * u.mW]
+    ignore_self_interactions = [False]
     ignore_tripletss = [False]
-    ignore_doubletss = [True]
+    ignore_doubletss = [False]
 
     for (
         pp,

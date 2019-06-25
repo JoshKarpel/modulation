@@ -528,20 +528,29 @@ if __name__ == "__main__":
     with LOGMAN as logger:
         BASE = Path(__file__).parent
 
-        derivatives(
-            BASE / "test_launched_pump_power_no_scaling_q__4_modes.sims",
-            attr="launched_pump_power",
-            x_unit="mW",
-            x_log=True,
-            per_attrs=["launched_mixing_wavelength", "launched_mixing_power"],
-        )
-        mode_energy_and_power_plots_vs_attribute(
-            BASE / "test_launched_pump_power_no_scaling_q__4_modes.sims",
-            attr="launched_pump_power",
-            x_unit="mW",
-            x_log=True,
-            per_attrs=["launched_mixing_wavelength", "launched_mixing_power"],
-        )
+        for func in [derivatives]:
+            func(
+                BASE / "very_long_pump_power_scan.sims",
+                attr="launched_pump_power",
+                x_unit="mW",
+                x_log=True,
+                per_attrs=["launched_mixing_wavelength", "launched_mixing_power"],
+            )
+
+        # derivatives(
+        #     BASE / "test_launched_pump_power_no_scaling_q__4_modes.sims",
+        #     attr="launched_pump_power",
+        #     x_unit="mW",
+        #     x_log=True,
+        #     per_attrs=["launched_mixing_wavelength", "launched_mixing_power"],
+        # )
+        # mode_energy_and_power_plots_vs_attribute(
+        #     BASE / "test_launched_pump_power_no_scaling_q__4_modes.sims",
+        #     attr="launched_pump_power",
+        #     x_unit="mW",
+        #     x_log=True,
+        #     per_attrs=["launched_mixing_wavelength", "launched_mixing_power"],
+        # )
 
         # names = [
         #     # "test_mock_multiorder.sims",
@@ -662,17 +671,17 @@ if __name__ == "__main__":
         #     BASE / "paper__2d_modeff_vs_launched_powers__4_modes.sims", mode="mixing|+1"
         # )
 
-        for scan in (
-            "test_launched_pump_power_no_scaling_q__4_modes.sims",
-            # "test_launched_pump_power_no_scaling_q__6_modes.sims",
-        ):
-            mode_energy_and_power_plots_vs_attribute(
-                BASE / scan,
-                attr="launched_pump_power",
-                x_unit="mW",
-                x_log=True,
-                per_attrs=["launched_mixing_wavelength", "launched_mixing_power"],
-            )
+        # for scan in (
+        #     "test_launched_pump_power_no_scaling_q__4_modes.sims",
+        #     # "test_launched_pump_power_no_scaling_q__6_modes.sims",
+        # ):
+        #     mode_energy_and_power_plots_vs_attribute(
+        #         BASE / scan,
+        #         attr="launched_pump_power",
+        #         x_unit="mW",
+        #         x_log=True,
+        #         per_attrs=["launched_mixing_wavelength", "launched_mixing_power"],
+        #     )
         #
         # mode_energy_and_power_plots_vs_attribute(
         #     BASE / "test_6_modes_detune_pump+1_and_mixing-1.sims",
