@@ -115,24 +115,7 @@ def mode_energy_and_power_plots_vs_attribute(
             font_size_legend=6,
             target_dir=OUT_DIR / path.stem,
             **PLOT_KWARGS,
-            save=False,
-            close=False,
         )
-
-        ax = fm.elements["axis"]
-
-        mixing_amp = np.array([sim.mode_amplitudes[2] for sim in ps])
-        print(mixing_amp)
-
-        re_part_pos = np.real(mixing_amp) > 0
-        print(re_part_pos)
-
-        ax.fill_between(
-            scan_variable / u.mW, 1e-11, 1e5, where=re_part_pos, alpha=0.4, color="grey"
-        )
-
-        fm.save()
-        fm.cleanup()
 
         # si.vis.xy_plot(
         #     f"mode_powers__{postfix}",
@@ -574,7 +557,7 @@ if __name__ == "__main__":
         # for func in [derivatives, mode_energy_and_power_plots_vs_attribute]:
         for func in [mode_energy_and_power_plots_vs_attribute]:
             func(
-                BASE / "de_dense_pump_power_scan.sims",
+                BASE / "pump_power_scan_redux.sims",
                 attr="launched_pump_power",
                 x_unit="mW",
                 x_log=True,

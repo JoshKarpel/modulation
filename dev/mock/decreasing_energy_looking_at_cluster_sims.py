@@ -206,20 +206,20 @@ def make_phase_plot(ps):
     phi_st = np.angle(amplitudes[:, 0] * amplitudes[:, 3])
     phi_m = np.angle(amplitudes[:, 2])
 
-    phi_p_interp = interp.interp1d(launched_powers, phi_p)
-    phi_st_interp = interp.interp1d(launched_powers, phi_st)
-    phi_m_interp = interp.interp1d(launched_powers, phi_m)
-    interps = {"p": phi_p_interp, "st": phi_st_interp, "m": phi_m_interp}
-
-    intersections = {}
-    for (a, a_interp), (b, b_interp) in itertools.combinations(interps.items(), 2):
-        print(a, b)
-        intersections[a, b] = opt.root_scalar(
-            lambda x: a_interp(x) - b_interp(x), bracket=(10 * u.mW, 100 * u.mW)
-        ).root
-
-    for k, v in intersections.items():
-        print(f"{'-'.join(k):<5} -> {v / u.mW:.3f} mW")
+    # phi_p_interp = interp.interp1d(launched_powers, phi_p)
+    # phi_st_interp = interp.interp1d(launched_powers, phi_st)
+    # phi_m_interp = interp.interp1d(launched_powers, phi_m)
+    # interps = {"p": phi_p_interp, "st": phi_st_interp, "m": phi_m_interp}
+    #
+    # intersections = {}
+    # for (a, a_interp), (b, b_interp) in itertools.combinations(interps.items(), 2):
+    #     print(a, b)
+    #     intersections[a, b] = opt.root_scalar(
+    #         lambda x: a_interp(x) - b_interp(x), bracket=(10 * u.mW, 100 * u.mW)
+    #     ).root
+    #
+    # for k, v in intersections.items():
+    #     print(f"{'-'.join(k):<5} -> {v / u.mW:.3f} mW")
 
     sim = ps[0]
     pol_sum_factors = sim._calculate_polarization_sum_factors()
@@ -232,6 +232,9 @@ def make_phase_plot(ps):
     phi_MTPS = np.angle(MTPS)
     print("2013 MSPT", MSPT, phi_MSPT / u.pi)
     print("2310 MTPS", MTPS, phi_MTPS / u.pi)
+    print(
+        "2222 MMMM", pol_sum_factors[2, 2, 2, 2], np.angle(pol_sum_factors[2, 2, 2, 2])
+    )
 
     si.vis.xy_plot(
         "phases",
@@ -264,12 +267,10 @@ def make_phase_plot(ps):
         x_unit="mW",
         x_label="Launched Pump Power",
         x_log_axis=True,
-        x_lower_limit=1 * u.mW,
-        x_upper_limit=400 * u.mW,
+        # x_lower_limit=1 * u.mW,
+        # x_upper_limit=400 * u.mW,
         y_unit="rad",
         y_label="Phase",
-        y_lower_limit=-u.pi,
-        y_upper_limit=+u.pi,
         legend_on_right=True,
         **PLOT_KWARGS,
     )
@@ -283,8 +284,10 @@ def make_pump_and_pol(ps):
 
     # MSPT -> 2013 and MTPS -> 2310 are the two terms that should enter
     MSPT = pol_sum_factors[2, 0, 1, 3]
-    phi_MSPT = np.angle(MSPT)
     MTPS = pol_sum_factors[2, 3, 1, 0]
+    MMMM = pol_sum_factors[2, 2, 2, 2]
+    MMSS = pol_sum_factors[2, 2, 0, 0]
+    MMPP = pol_sum_factors[2, 2, 1, 1]
 
     launched_powers = np.array(sorted(ps.parameter_set("launched_pump_power")))
     sims = sorted(ps, key=lambda s: s.spec.launched_pump_power)
@@ -292,6 +295,7 @@ def make_pump_and_pol(ps):
     pump_term = np.array(
         [
             sim.pump_prefactor[mixing_idx]
+            * 0.5
             * np.sqrt(sim.spec.launched_mixing_power)
             / sim.mode_amplitude_decay_rates[mixing_idx]
             for sim in sims
@@ -322,37 +326,84 @@ def make_pump_and_pol(ps):
             for sim in sims
         ]
     )
+    mmmm_term = np.array(
+        [
+            MMMM
+            * (
+                sim.mode_amplitudes[2]
+                * np.conj(sim.mode_amplitudes[2])
+                * sim.mode_amplitudes[2]
+            )
+            / sim.mode_amplitude_decay_rates[mixing_idx]
+            for sim in sims
+        ]
+    )
+    mmss_term = np.array(
+        [
+            MMSS
+            * (
+                sim.mode_amplitudes[2]
+                * np.conj(sim.mode_amplitudes[0])
+                * sim.mode_amplitudes[0]
+            )
+            / sim.mode_amplitude_decay_rates[mixing_idx]
+            for sim in sims
+        ]
+    )
+    mmpp_term = np.array(
+        [
+            MMSS
+            * (
+                sim.mode_amplitudes[2]
+                * np.conj(sim.mode_amplitudes[1])
+                * sim.mode_amplitudes[1]
+            )
+            / sim.mode_amplitude_decay_rates[mixing_idx]
+            for sim in sims
+        ]
+    )
+
+    actual = [sim.mode_amplitudes[2] for sim in sims]
 
     si.vis.xy_plot(
         "pump_and_pol",
         launched_powers,
         np.real(pump_term),
-        np.real(mspt_term),
-        np.imag(mspt_term),
+        np.abs(pump_term + mtps_term + mmss_term + mmpp_term),
+        np.abs(actual),
         np.real(mtps_term),
         np.imag(mtps_term),
-        np.abs(pump_term + mtps_term),
+        np.real(mmss_term),
+        np.imag(mmss_term),
+        np.real(mmpp_term),
+        np.imag(mmpp_term),
         line_kwargs=[
             {"color": "black", "linestyle": "-"},
+            {"color": "purple", "linestyle": "--"},
+            {"color": "purple", "linestyle": "-"},
             {"color": "blue", "linestyle": "-"},
             {"color": "blue", "linestyle": "--"},
             {"color": "red", "linestyle": "-"},
             {"color": "red", "linestyle": "--"},
-            {"color": "purple", "linestyle": "-"},
+            {"color": "green", "linestyle": "-"},
+            {"color": "green", "linestyle": "--"},
         ],
         line_labels=[
             "re pump",
-            "re MSPT",
-            "im MSPT",
+            "abs sum",
+            "abs actual",
             "re MTPS",
             "im MTPS",
-            "abs pump + MTPS",
+            "re MMSS",
+            "im MMSS",
+            "re MMPP",
+            "im MMPP",
         ],
         x_unit="mW",
         x_label="Launched Pump Power",
         x_log_axis=True,
-        x_lower_limit=1 * u.mW,
-        x_upper_limit=400 * u.mW,
+        # x_lower_limit=1 * u.mW,
+        # x_upper_limit=400 * u.mW,
         y_pad=0.2,
         legend_on_right=True,
         **PLOT_KWARGS,
@@ -364,7 +415,7 @@ def make_pump_and_pol(ps):
     for idx, sim in enumerate(sorted(ps, key=lambda sim: sim.spec.launched_pump_power)):
         amplitudes[idx] = sim.mode_amplitudes
 
-    r = np.log10(np.abs(amplitudes))
+    r = np.abs(amplitudes)
     theta = np.angle(amplitudes)
 
     with si.vis.FigureManager("complex_amplitudes_with_terms", **PLOT_KWARGS) as figman:
@@ -373,16 +424,46 @@ def make_pump_and_pol(ps):
         ax.set_theta_zero_location("E")
         ax.set_theta_direction("counterclockwise")
 
+        ax.scatter(np.zeros_like(pump_term), (pump_term), color="purple", label="Pump")
+
         ax.plot(
-            np.angle(pump_term + mtps_term),
-            np.log10(np.abs(pump_term + mtps_term)),
-            label="theory",
-            linewidth=0.5,
+            np.angle(mtps_term),
+            (np.abs(mtps_term)),
+            label="MTPS",
+            linewidth=1,
+            color="blue",
+            linestyle=":",
+        )
+
+        ax.plot(
+            np.angle(mmss_term),
+            (np.abs(mmss_term)),
+            label="MMSS",
+            linewidth=1,
+            color="red",
+            linestyle=":",
+        )
+
+        ax.plot(
+            np.angle(mmpp_term),
+            (np.abs(mmpp_term)),
+            label="MMPP",
+            linewidth=1,
+            color="green",
+            linestyle=":",
+        )
+
+        ax.plot(
+            np.angle(pump_term + mtps_term + mmss_term + mmpp_term),
+            (np.abs(pump_term + mtps_term + mmss_term + mmpp_term)),
+            label="Sum",
+            linewidth=1,
             color="black",
+            linestyle="--",
         )
 
         for mode_idx, mode in enumerate(modes):
-            if mode_idx in (0, 3):  # skip stokes and target, which rotate
+            if mode_idx in (0, 1, 3):  # skip stokes and target, which rotate
                 continue
 
             ax.plot(
@@ -390,7 +471,7 @@ def make_pump_and_pol(ps):
                 r[:, mode_idx],
                 color=MODE_COLORS[mode_idx],
                 label=mode.label,
-                linewidth=0.5,
+                linewidth=1,
             )
 
             ax.scatter(
@@ -400,16 +481,16 @@ def make_pump_and_pol(ps):
                 alpha=0.5,
             )
 
-        ax.set_ylim(7.5, 10)
+        # ax.set_ylim(7.25, 8.75)
 
         ax.grid(True)
-        ax.legend(loc="lower right")
+        ax.legend(loc="upper left", bbox_to_anchor=(1.1, 1))
 
 
 if __name__ == "__main__":
-    ps = analysis.ParameterScan.from_file(Path.cwd() / "de_dense_pump_power_scan.sims")
+    ps = analysis.ParameterScan.from_file(Path.cwd() / "pump_power_scan_redux.sims")
 
-    # make_animations(ps)
     # make_final_amp_plot(ps)
     make_phase_plot(ps)
     make_pump_and_pol(ps)
+    # make_animations(ps)

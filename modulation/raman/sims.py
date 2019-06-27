@@ -474,6 +474,8 @@ class FourWaveMixingSimulation(RamanSimulation):
                 )
                 if four_mode_detuning > self.spec.four_mode_detuning_cutoff:
                     continue
+                # if q_ == 2:
+                #     print(q_, r_, s_, t_)
                 mode_volume_ratios[q_, r_, s_, t_] = volume / self.mode_volumes[q]
 
         return np.einsum(
