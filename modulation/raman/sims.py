@@ -186,15 +186,17 @@ class RamanSimulation(si.Simulation):
             dw = self.mode_omegas - pump.omega
             freq_part = np.where(
                 dw != 0,
-                (np.exp(1j * dw * time_final) - np.exp(1j * dw * time_initial)) / dw,
+                -1j
+                * (np.exp(1j * dw * time_final) - np.exp(1j * dw * time_initial))
+                / dw,
                 time_final - time_initial,
             )
 
-            change += (
+            change += 0.5 * (
                 np.sqrt(pump.get_power((time_initial + time_final) / 2)) * freq_part
             )
 
-        return mode_amplitudes - 0.5j * self.pump_prefactor * change
+        return mode_amplitudes + (self.pump_prefactor * change)
 
     @abc.abstractmethod
     def _calculate_polarization_sum_factors(self) -> np.ndarray:
