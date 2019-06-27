@@ -85,17 +85,13 @@ def make_modes(
 
 linestyles = ["-", "-.", "--", ":"]
 
+MODE_COLORS = ["#1b9e77", "#d95f02", "#7570b3", "#e7298a"]
+
 
 def mode_kwargs(sim, q, mode, pump_mode, mixing_mode):
     kwargs = {}
 
-    if "pump" in mode.label:
-        kwargs["linestyle"] = "-"
-    elif "mixing" in mode.label:
-        kwargs["linestyle"] = "--"
-
-    if mode == pump_mode or mode == mixing_mode:
-        kwargs["color"] = "black"
+    kwargs["color"] = MODE_COLORS[q]
 
     return kwargs
 
@@ -108,7 +104,7 @@ def run(pump_power, mixing_power, **kwargs):
     material = raman.RamanMaterial.from_name("silica")
 
     time_step = 50 * u.psec
-    pump_start_time = 100 * u.nsec
+    pump_start_time = 50 * u.nsec
     mixing_start_time = 2 * u.usec
     time_final = 5 * u.usec
     intrinsic_q = 1e8
@@ -163,13 +159,14 @@ def run(pump_power, mixing_power, **kwargs):
     if len(postfix) > 0:
         postfix = "__" + postfix
 
+    tag = f"pump={pump_power / u.mW:.3f}mW_mixing={mixing_power / u.mW:.3f}mW{postfix}__dt={time_step / u.psec:.3f}ps"
     mode_list = list(modes.values())
     spec = raman.FourWaveMixingSpecification(
-        f"pump={pump_power / u.mW:.3f}mW_mixing={mixing_power / u.mW:.3f}mW{postfix}__dt={time_step / u.psec:.3f}ps",
+        tag,
         material=material,
         modes=mode_list,
         mode_volume_integrator=mock.MockVolumeIntegrator(volume_integral_result=1e-25),
-        mode_initial_amplitudes={m: 1 for m in mode_list},  # very important!
+        mode_initial_amplitudes={m: 1e-15 for m in mode_list},  # very important!
         pumps=pumps,
         mode_intrinsic_quality_factors={m: intrinsic_q for m in mode_list},
         mode_coupling_quality_factors={m: coupling_q for m in mode_list},
@@ -183,9 +180,7 @@ def run(pump_power, mixing_power, **kwargs):
         animators=[
             raman.anim.SquareAnimator(
                 axman=raman.anim.PolarComplexAmplitudeAxis(
-                    r_log_lower_limit=5,
-                    r_log_upper_limit=12,
-                    mode_colors=["#1b9e77", "#d95f02", "#7570b3", "#e7298a"],
+                    r_log_lower_limit=5, r_log_upper_limit=12, mode_colors=MODE_COLORS
                 ),
                 **ANIM_KWARGS,
             )
@@ -199,6 +194,17 @@ def run(pump_power, mixing_power, **kwargs):
     sim.run(progress_bar=True)
     print(sim.info())
 
+    sim.plot.mode_complex_amplitudes_vs_time(
+        # y_lower_limit=1e-20 * u.pJ,
+        # y_upper_limit=1e4 * u.pJ,
+        average_over=5 * u.nsec,
+        y_log_pad=1,
+        mode_kwargs=lambda s, q, mode: mode_kwargs(
+            s, q, mode, sim.spec.pump_mode, sim.spec.mixing_mode
+        ),
+        font_size_legend=8,
+        **PLOT_KWARGS,
+    )
     sim.plot.mode_energies_vs_time(
         y_lower_limit=1e-20 * u.pJ,
         y_upper_limit=1e4 * u.pJ,
@@ -211,9 +217,69 @@ def run(pump_power, mixing_power, **kwargs):
         **PLOT_KWARGS,
     )
 
+    line_kwargs = [
+        {"linestyle": "-", "color": "#1b9e77"},
+        {"linestyle": "-", "color": "#d95f02"},
+        {"linestyle": "-", "color": "#7570b3"},
+        {"linestyle": "--", "color": "#1b9e77"},
+        {"linestyle": "--", "color": "#d95f02"},
+        {"linestyle": "--", "color": "#7570b3"},
+        {"linestyle": "-", "color": "black"},
+        {"linestyle": "--", "color": "black"},
+    ]
+    line_labels = [
+        "re decay",
+        "re pump",
+        "re total polarization",
+        "im decay",
+        "im pump",
+        "im total polarization",
+        "re combined",
+        "im combined",
+    ]
+
+    skip = 100
+    for q, mode in enumerate(spec.modes):
+        times = sim.times[::skip]
+        amps = sim.mode_amplitudes_vs_time[::skip]
+
+        decays = np.empty_like(times, dtype=np.complex128)
+        pumps = np.empty_like(times, dtype=np.complex128)
+        pols = np.empty_like(times, dtype=np.complex128)
+
+        for idx, (time, amp) in enumerate(zip(times, amps)):
+            decay, pump, pol = sim.extract_derivatives(amp, time)
+
+            decays[idx] = decay[q] / amp[q]
+            pumps[idx] = pump[q] / amp[q]
+            pols[idx] = np.einsum("qrst->q", pol)[q] / amp[q]
+
+        si.vis.xy_plot(
+            f"{tag}__derivative_terms_mode_{mode.label}",
+            times,
+            np.real(decays),
+            np.real(pumps),
+            np.real(pols),
+            np.imag(decays),
+            np.imag(pumps),
+            np.imag(pols),
+            np.real(decays + pumps + pols),
+            np.imag(decays + pumps + pols),
+            title=rf"${mode.label}$ Relative Derivative Terms",
+            x_label="Time $t$",
+            x_unit="nsec",
+            y_log_axis=True,
+            y_upper_limit=10,
+            sym_log_linear_threshold=1e-6,
+            line_kwargs=line_kwargs,
+            line_labels=line_labels,
+            legend_on_right=True,
+            **PLOT_KWARGS,
+        )
+
 
 if __name__ == "__main__":
-    pump_powers = [1 * u.mW, 2 * u.mW, 10 * u.mW, 40 * u.mW, 100 * u.mW]
+    pump_powers = [2 * u.mW, 10 * u.mW, 40 * u.mW, 100 * u.mW]
     mixing_powers = [1 * u.mW]
     ignore_self_interactions = [False]
     ignore_tripletss = [False]

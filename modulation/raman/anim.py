@@ -34,8 +34,8 @@ class PolarComplexAmplitudeAxis(anim.AxisManager):
         self.trail_index_offset = int(self.trail_length / simulation.spec.time_step)
 
     def initialize_axis(self):
-        self.axis.set_theta_zero_location("N")
-        self.axis.set_theta_direction("clockwise")
+        self.axis.set_theta_zero_location("E")
+        self.axis.set_theta_direction("counterclockwise")
         self.axis.set_rlabel_position(30)
 
         r, theta = self._get_r_theta(self.sim.mode_amplitudes)
@@ -56,11 +56,11 @@ class PolarComplexAmplitudeAxis(anim.AxisManager):
 
         self.lines = []
         for q, (mode, color) in enumerate(zip(self.sim.spec.modes, colors)):
-            line = plt.plot(
+            line = self.axis.plot(
+                np.angle(self.sim.mode_amplitudes_vs_time[: self.sim.time_index, q]),
                 np.log10(
                     np.abs(self.sim.mode_amplitudes_vs_time[: self.sim.time_index, q])
                 ),
-                np.angle(self.sim.mode_amplitudes_vs_time[: self.sim.time_index, q]),
                 color=color,
                 label=rf"${mode.label}$",
                 animated=True,
@@ -70,7 +70,7 @@ class PolarComplexAmplitudeAxis(anim.AxisManager):
 
         self.circles = []
         for q, (mode, color) in enumerate(zip(self.sim.spec.modes, colors)):
-            circle = plt.plot(
+            circle = self.axis.plot(
                 self.theta,
                 np.log10(np.abs(self.sim.mode_amplitudes[q]))
                 * np.ones_like(self.theta),

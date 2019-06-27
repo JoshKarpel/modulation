@@ -97,7 +97,7 @@ def mode_energy_and_power_plots_vs_attribute(
             line_kwargs.append(mode_kwargs(idx, mode))
             line_labels.append(fr"${mode.tex}$")
 
-        si.vis.xy_plot(
+        fm = si.vis.xy_plot(
             f"mode_energies__{postfix}",
             scan_variable,
             *energy_lines,
@@ -115,7 +115,24 @@ def mode_energy_and_power_plots_vs_attribute(
             font_size_legend=6,
             target_dir=OUT_DIR / path.stem,
             **PLOT_KWARGS,
+            save=False,
+            close=False,
         )
+
+        ax = fm.elements["axis"]
+
+        mixing_amp = np.array([sim.mode_amplitudes[2] for sim in ps])
+        print(mixing_amp)
+
+        re_part_pos = np.real(mixing_amp) > 0
+        print(re_part_pos)
+
+        ax.fill_between(
+            scan_variable / u.mW, 1e-11, 1e5, where=re_part_pos, alpha=0.4, color="grey"
+        )
+
+        fm.save()
+        fm.cleanup()
 
         # si.vis.xy_plot(
         #     f"mode_powers__{postfix}",
@@ -467,42 +484,64 @@ def derivatives(path, attr, x_unit=None, x_label=None, x_log=True, per_attrs=Non
                 "re combined",
                 "im combined",
             ]
+            amps = []
             decays = []
+            rel_decays = []
             pumps = []
+            rel_pumps = []
             total_pols = []
-            # largest_pols = {}
+            rel_total_pols = []
 
             for sim_idx, sim in enumerate(sims):
                 sim.polarization_sum_factors = sum_factors
                 decay, pump, pol = sim.extract_derivatives(
                     sim.mode_amplitudes, sim.current_time
                 )
-                decays.append(decay[mode_idx] / sim.mode_amplitudes[mode_idx])
-                pumps.append(pump[mode_idx] / sim.mode_amplitudes[mode_idx])
-                total_pols.append(
+                amps.append(sim.mode_amplitudes[mode_idx])
+                decays.append(decay[mode_idx])
+                rel_decays.append(decay[mode_idx] / sim.mode_amplitudes[mode_idx])
+                pumps.append(pump[mode_idx])
+                rel_pumps.append(pump[mode_idx] / sim.mode_amplitudes[mode_idx])
+                total_pols.append(np.einsum("qrst->q", pol)[mode_idx])
+                rel_total_pols.append(
                     np.einsum("qrst->q", pol)[mode_idx] / sim.mode_amplitudes[mode_idx]
                 )
 
-                # pols_by_mode_idx = {
-                #     (mode_idx, r, s, t): pol[mode_idx, r, s, t]
-                #     for r, s, t in itertools.product(list(range(len(modes))), repeat=3)
-                # }
-                # largest_mode_idxs_and_pols = dict(
-                #     sorted(
-                #         ((k, v) for k, v in pols_by_mode_idx.items()),
-                #         key=lambda kv: kv[1],
-                #     )[:5]
-                # )
-                #
-                # line_labels.extend(largest_mode_idxs_and_pols.keys())
-
+            amps = np.array(amps)
             decays = np.array(decays)
             pumps = np.array(pumps)
             total_pols = np.array(total_pols)
+            rel_decays = np.array(rel_decays)
+            rel_pumps = np.array(rel_pumps)
+            rel_total_pols = np.array(rel_total_pols)
 
+            si.vis.xy_plot(
+                f"relative_derivatives__mode_{mode.label}__{postfix}",
+                scan_variable,
+                np.real(rel_decays),
+                np.real(rel_pumps),
+                np.real(rel_total_pols),
+                np.imag(rel_decays),
+                np.imag(rel_pumps),
+                np.imag(rel_total_pols),
+                np.real(rel_decays + rel_pumps + rel_total_pols),
+                np.imag(rel_decays + rel_pumps + rel_total_pols),
+                line_kwargs=line_kwargs,
+                line_labels=line_labels,
+                legend_on_right=True,
+                sym_log_linear_threshold=1e-6,
+                x_label=x_label,
+                x_unit=x_unit,
+                x_log_axis=x_log,
+                y_log_axis=True,
+                target_dir=OUT_DIR / path.stem,
+                **PLOT_KWARGS,
+            )
             si.vis.xy_plot(
                 f"derivatives__mode_{mode.label}__{postfix}",
                 scan_variable,
+                np.real(amps),
+                np.imag(amps),
                 np.real(decays),
                 np.real(pumps),
                 np.real(total_pols),
@@ -511,10 +550,14 @@ def derivatives(path, attr, x_unit=None, x_label=None, x_log=True, per_attrs=Non
                 np.imag(total_pols),
                 np.real(decays + pumps + total_pols),
                 np.imag(decays + pumps + total_pols),
-                line_kwargs=line_kwargs,
-                line_labels=line_labels,
+                line_kwargs=[
+                    {"linestyle": "-", "color": "grey"},
+                    {"linestyle": "--", "color": "grey"},
+                ]
+                + line_kwargs,
+                line_labels=["re amplitude", "im amplitude"] + line_labels,
                 legend_on_right=True,
-                sym_log_linear_threshold=1e-6,
+                # sym_log_linear_threshold = 1e-6,
                 x_label=x_label,
                 x_unit=x_unit,
                 x_log_axis=x_log,
@@ -528,13 +571,13 @@ if __name__ == "__main__":
     with LOGMAN as logger:
         BASE = Path(__file__).parent
 
-        for func in [derivatives]:
+        # for func in [derivatives, mode_energy_and_power_plots_vs_attribute]:
+        for func in [mode_energy_and_power_plots_vs_attribute]:
             func(
-                BASE / "very_long_pump_power_scan.sims",
+                BASE / "de_dense_pump_power_scan.sims",
                 attr="launched_pump_power",
                 x_unit="mW",
                 x_log=True,
-                per_attrs=["launched_mixing_wavelength", "launched_mixing_power"],
             )
 
         # derivatives(
