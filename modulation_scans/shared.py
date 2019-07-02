@@ -137,7 +137,7 @@ def ask_laser_parameters(name, parameters):
     selection_method = si.cluster.ask_for_choices(
         f"{name.title()} Wavelength Selection Method?",
         choices={"raw": "raw", "offset": "offset", "symmetric": "symmetric"},
-        default="offset",
+        default="raw",
     )
 
     if selection_method == "raw":
