@@ -73,6 +73,7 @@ def mode_energy_and_power_plots_vs_attribute(
     s = ps[0].spec
     modes = s.modes
     idxs = [ps[0].mode_to_index[mode] for mode in modes]
+    print(s.info())
 
     per_attr_sets = [ps.parameter_set(attr) for attr in per_attrs]
     for per_attr_values in tqdm(list(itertools.product(*per_attr_sets))):
@@ -555,9 +556,9 @@ if __name__ == "__main__":
         BASE = Path(__file__).parent
 
         for scan in [
-            "cascaded_pump_power_scan.sims",
-            "more_cascaded_pump_power_scan.sims",
-            "test_narrow_raman_linewidth.sims",
+            # "cascaded_pump_power_scan.sims",
+            # "more_cascaded_pump_power_scan.sims",
+            "test_narrow_raman_linewidth_v2.sims"
         ]:
             mode_energy_and_power_plots_vs_attribute(
                 BASE / scan, attr="launched_pump_power", x_unit="mW", x_log=True
