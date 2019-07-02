@@ -18,7 +18,22 @@ MATERIAL_DATA = {
         / (5e22 / (u.cm ** 3) * (u.twopi * u.c / (1064 * u.nm))),
         number_density=5e22 / (u.cm ** 3),
         index_of_refraction=refraction.SellmeierIndex.from_name("silica"),
-    )
+    ),
+    "silica-narrow": dict(
+        modulation_omega=u.twopi * 14 * u.THz,
+        raman_linewidth=u.twopi * 2 * u.MHz,
+        coupling_prefactor_squared=2
+        * (u.c ** 2)
+        * (u.epsilon_0 ** 2)
+        * (u.hbar ** 3)
+        * (1.4496 ** 2)
+        * u.twopi
+        * (2 * u.THz)
+        * (1e-11 * u.cm / u.W)
+        / (5e22 / (u.cm ** 3) * (u.twopi * u.c / (1064 * u.nm))),
+        number_density=5e22 / (u.cm ** 3),
+        index_of_refraction=refraction.SellmeierIndex.from_name("silica"),
+    ),
 }
 
 
