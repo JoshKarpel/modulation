@@ -557,6 +557,7 @@ if __name__ == "__main__":
         for scan in [
             "cascaded_pump_power_scan.sims",
             "more_cascaded_pump_power_scan.sims",
+            "test_narrow_raman_linewidth.sims",
         ]:
             mode_energy_and_power_plots_vs_attribute(
                 BASE / scan, attr="launched_pump_power", x_unit="mW", x_log=True

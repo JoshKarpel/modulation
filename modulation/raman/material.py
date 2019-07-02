@@ -28,7 +28,7 @@ MATERIAL_DATA = {
         * (u.hbar ** 3)
         * (1.4496 ** 2)
         * u.twopi
-        * (2 * u.THz)
+        * (2 * u.MHz)
         * (1e-11 * u.cm / u.W)
         / (5e22 / (u.cm ** 3) * (u.twopi * u.c / (1064 * u.nm))),
         number_density=5e22 / (u.cm ** 3),
