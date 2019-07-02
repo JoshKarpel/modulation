@@ -46,7 +46,7 @@ ORDER_TO_COLOR = dict(zip(ORDERS, ORDER_COLORS))
 def mode_kwargs(idx, mode):
     kwargs = {}
 
-    kwargs["color"] = ORDER_TO_COLOR[mode.label]
+    kwargs["color"] = ORDER_TO_COLOR.get(mode.label, "black")
 
     # if "+0" in mode.label:
     #     kwargs["color"] = "black"
@@ -554,14 +554,22 @@ if __name__ == "__main__":
     with LOGMAN as logger:
         BASE = Path(__file__).parent
 
-        # for func in [derivatives, mode_energy_and_power_plots_vs_attribute]:
-        for func in [mode_energy_and_power_plots_vs_attribute]:
-            func(
-                BASE / "pump_power_scan_redux.sims",
-                attr="launched_pump_power",
-                x_unit="mW",
-                x_log=True,
+        for scan in [
+            "cascaded_pump_power_scan.sims",
+            "more_cascaded_pump_power_scan.sims",
+        ]:
+            mode_energy_and_power_plots_vs_attribute(
+                BASE / scan, attr="launched_pump_power", x_unit="mW", x_log=True
             )
+
+        # for func in [derivatives, mode_energy_and_power_plots_vs_attribute]:
+        # for func in [mode_energy_and_power_plots_vs_attribute]:
+        #     func(
+        #         BASE / "pump_power_scan_redux.sims",
+        #         attr="launched_pump_power",
+        #         x_unit="mW",
+        #         x_log=True,
+        #     )
 
         # derivatives(
         #     BASE / "test_launched_pump_power_no_scaling_q__4_modes.sims",
