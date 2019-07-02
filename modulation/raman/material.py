@@ -23,6 +23,20 @@ MATERIAL_DATA = {
     ),
     "silica-narrow": dict(
         modulation_omega=SILICA_MODULATION_OMEGA,
+        raman_linewidth=SILICA_RAMAN_LINEWIDTH / 1e3,
+        coupling_prefactor_squared=2
+        * (u.c ** 2)
+        * (u.epsilon_0 ** 2)
+        * (u.hbar ** 3)
+        * (1.4496 ** 2)
+        * (SILICA_RAMAN_LINEWIDTH / 1e3)
+        * (1e-11 * u.cm / u.W)
+        / (5e22 / (u.cm ** 3) * (u.twopi * u.c / (1064 * u.nm))),
+        number_density=5e22 / (u.cm ** 3),
+        index_of_refraction=refraction.SellmeierIndex.from_name("silica"),
+    ),
+    "silica-very-narrow": dict(
+        modulation_omega=SILICA_MODULATION_OMEGA,
         raman_linewidth=SILICA_RAMAN_LINEWIDTH / 1e6,
         coupling_prefactor_squared=2
         * (u.c ** 2)
