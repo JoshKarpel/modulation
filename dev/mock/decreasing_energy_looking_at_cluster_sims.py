@@ -22,7 +22,6 @@ LOGMAN = si.utils.LogManager("simulacra", "modulation", stdout_level=logging.INF
 PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 ANIM_KWARGS = dict(target_dir=OUT_DIR, length=20, fps=30)
 
-
 MODE_COLORS = ["#1b9e77", "#d95f02", "#7570b3", "#e7298a"]
 
 
@@ -116,7 +115,7 @@ def make_plots(sim):
         )
 
 
-def make_animations(ps):
+def make_animations(ps, scan):
     available = np.array(sorted(ps.parameter_set("launched_pump_power")))
 
     sims_by_launched_pump_power = {s.spec.launched_pump_power: s for s in ps}
@@ -139,6 +138,7 @@ def make_animations(ps):
         spec.store_mode_amplitudes_vs_time = True
         spec.animators = [
             raman.anim.SquareAnimator(
+                postfix=f"_{scan}",
                 axman=raman.anim.PolarComplexAmplitudeAxis(
                     r_log_lower_limit=5, r_log_upper_limit=12, mode_colors=MODE_COLORS
                 ),
@@ -154,7 +154,7 @@ def make_animations(ps):
         make_plots(new_sim)
 
 
-def make_final_amp_plot(ps):
+def make_final_amp_plot_for_mixing(ps):
     amplitudes = np.empty((len(ps), 4), dtype=np.complex128)
     modes = ps[0].spec.modes
 
@@ -195,7 +195,7 @@ def make_final_amp_plot(ps):
         ax.legend(loc="lower right")
 
 
-def make_phase_plot(ps):
+def make_phase_plot_for_mixing(ps, scan):
     amplitudes = np.empty((len(ps), 4), dtype=np.complex128)
     for idx, sim in enumerate(sorted(ps, key=lambda sim: sim.spec.launched_pump_power)):
         amplitudes[idx] = sim.mode_amplitudes
@@ -237,7 +237,7 @@ def make_phase_plot(ps):
     )
 
     si.vis.xy_plot(
-        "phases",
+        f"{scan}__phases",
         launched_powers,
         phi_m,
         phi_p,
@@ -276,7 +276,7 @@ def make_phase_plot(ps):
     )
 
 
-def make_pump_and_pol(ps):
+def make_pump_and_pol_for_mixing(ps, scan):
     mixing_idx = 2
 
     sim = ps[0]
@@ -288,6 +288,7 @@ def make_pump_and_pol(ps):
     MMMM = pol_sum_factors[2, 2, 2, 2]
     MMSS = pol_sum_factors[2, 2, 0, 0]
     MMPP = pol_sum_factors[2, 2, 1, 1]
+    MMTT = pol_sum_factors[2, 2, 3, 3]
 
     launched_powers = np.array(sorted(ps.parameter_set("launched_pump_power")))
     sims = sorted(ps, key=lambda s: s.spec.launched_pump_power)
@@ -352,7 +353,7 @@ def make_pump_and_pol(ps):
     )
     mmpp_term = np.array(
         [
-            MMSS
+            MMPP
             * (
                 sim.mode_amplitudes[2]
                 * np.conj(sim.mode_amplitudes[1])
@@ -362,11 +363,23 @@ def make_pump_and_pol(ps):
             for sim in sims
         ]
     )
+    mmtt_term = np.array(
+        [
+            MMTT
+            * (
+                sim.mode_amplitudes[2]
+                * np.conj(sim.mode_amplitudes[3])
+                * sim.mode_amplitudes[3]
+            )
+            / sim.mode_amplitude_decay_rates[mixing_idx]
+            for sim in sims
+        ]
+    )
 
     actual = [sim.mode_amplitudes[2] for sim in sims]
 
     si.vis.xy_plot(
-        "pump_and_pol",
+        f"{scan}__pump_and_pol",
         launched_powers,
         np.real(pump_term),
         np.abs(pump_term + mtps_term + mmss_term + mmpp_term),
@@ -377,6 +390,8 @@ def make_pump_and_pol(ps):
         np.imag(mmss_term),
         np.real(mmpp_term),
         np.imag(mmpp_term),
+        np.real(mmtt_term),
+        np.imag(mmtt_term),
         line_kwargs=[
             {"color": "black", "linestyle": "-"},
             {"color": "purple", "linestyle": "--"},
@@ -387,6 +402,8 @@ def make_pump_and_pol(ps):
             {"color": "red", "linestyle": "--"},
             {"color": "green", "linestyle": "-"},
             {"color": "green", "linestyle": "--"},
+            {"color": "pink", "linestyle": "-"},
+            {"color": "pink", "linestyle": "--"},
         ],
         line_labels=[
             "re pump",
@@ -398,6 +415,8 @@ def make_pump_and_pol(ps):
             "im MMSS",
             "re MMPP",
             "im MMPP",
+            "im MMTT",
+            "im MMTT",
         ],
         x_unit="mW",
         x_label="Launched Pump Power",
@@ -418,7 +437,9 @@ def make_pump_and_pol(ps):
     r = np.abs(amplitudes)
     theta = np.angle(amplitudes)
 
-    with si.vis.FigureManager("complex_amplitudes_with_terms", **PLOT_KWARGS) as figman:
+    with si.vis.FigureManager(
+        f"{scan}__complex_amplitudes_with_terms", **PLOT_KWARGS
+    ) as figman:
         fig = figman.fig
         ax = fig.add_axes([0.05, 0.05, 0.9, 0.9], projection="polar")
         ax.set_theta_zero_location("E")
@@ -450,6 +471,15 @@ def make_pump_and_pol(ps):
             label="MMPP",
             linewidth=1,
             color="green",
+            linestyle=":",
+        )
+
+        ax.plot(
+            np.angle(mmtt_term),
+            (np.abs(mmtt_term)),
+            label="MMTT",
+            linewidth=1,
+            color="pink",
             linestyle=":",
         )
 
@@ -487,10 +517,280 @@ def make_pump_and_pol(ps):
         ax.legend(loc="upper left", bbox_to_anchor=(1.1, 1))
 
 
-if __name__ == "__main__":
-    ps = analysis.ParameterScan.from_file(Path.cwd() / "pump_power_scan_redux.sims")
+def make_pump_and_pol_for_target(ps, scan):
+    target_idx = 3
 
-    # make_final_amp_plot(ps)
-    make_phase_plot(ps)
-    make_pump_and_pol(ps)
-    # make_animations(ps)
+    sim = ps[0]
+    pol_sum_factors = sim._calculate_polarization_sum_factors()
+
+    # MSPT -> 2013 and MTPS -> 2310 are the two terms that should enter
+    TPSM = pol_sum_factors[3, 1, 0, 2]
+    TMSP = pol_sum_factors[3, 3, 0, 1]
+
+    launched_powers = np.array(sorted(ps.parameter_set("launched_pump_power")))
+    sims = sorted(ps, key=lambda s: s.spec.launched_pump_power)
+
+    def term(r, s, t):
+        return np.array(
+            [
+                pol_sum_factors[target_idx, r, s, t]
+                * (
+                    sim.mode_amplitudes[r]
+                    * np.conj(sim.mode_amplitudes[s])
+                    * sim.mode_amplitudes[t]
+                )
+                / sim.mode_amplitude_decay_rates[target_idx]
+                for sim in sims
+            ]
+        )
+
+    tpsm_term = term(1, 0, 2)
+    tmsp_term = term(2, 0, 1)
+
+    actual = [sim.mode_amplitudes[target_idx] for sim in sims]
+
+    si.vis.xy_plot(
+        f"{scan}__pump_and_pol__for_target",
+        launched_powers,
+        np.abs(tpsm_term + tmsp_term),
+        np.abs(actual),
+        np.real(tpsm_term),
+        np.imag(tpsm_term),
+        np.real(tmsp_term),
+        np.imag(tmsp_term),
+        line_kwargs=[
+            {"color": "black", "linestyle": "-"},
+            {"color": "purple", "linestyle": "--"},
+            {"color": "blue", "linestyle": "-"},
+            {"color": "blue", "linestyle": "--"},
+            {"color": "red", "linestyle": "-"},
+            {"color": "red", "linestyle": "--"},
+        ],
+        line_labels=[
+            "abs sum",
+            "abs actual",
+            "re TPSM",
+            "im TPSM",
+            "re TMSP",
+            "im TMSP",
+        ],
+        x_unit="mW",
+        x_label="Launched Pump Power",
+        x_log_axis=True,
+        # x_lower_limit=1 * u.mW,
+        # x_upper_limit=400 * u.mW,
+        y_pad=0.2,
+        legend_on_right=True,
+        **PLOT_KWARGS,
+    )
+
+    amplitudes = np.empty((len(ps), 4), dtype=np.complex128)
+    modes = ps[0].spec.modes
+
+    for idx, sim in enumerate(sorted(ps, key=lambda sim: sim.spec.launched_pump_power)):
+        amplitudes[idx] = sim.mode_amplitudes
+
+    r = np.abs(amplitudes)
+    theta = np.angle(amplitudes)
+
+    with si.vis.FigureManager(
+        f"{scan}__complex_amplitudes_with_terms__for_target", **PLOT_KWARGS
+    ) as figman:
+        fig = figman.fig
+        ax = fig.add_axes([0.05, 0.05, 0.9, 0.9], projection="polar")
+        ax.set_theta_zero_location("E")
+        ax.set_theta_direction("counterclockwise")
+
+        ax.plot(
+            np.angle(tpsm_term),
+            (np.abs(tpsm_term)),
+            label="TPSM",
+            linewidth=1,
+            color="blue",
+            linestyle=":",
+        )
+
+        ax.plot(
+            np.angle(tmsp_term),
+            (np.abs(tmsp_term)),
+            label="TMSP",
+            linewidth=1,
+            color="red",
+            linestyle=":",
+        )
+
+        ax.plot(
+            np.angle(tpsm_term + tmsp_term),
+            (np.abs(tpsm_term + tmsp_term)),
+            label="Sum",
+            linewidth=1,
+            color="black",
+            linestyle="--",
+        )
+
+        for mode_idx, mode in enumerate(modes):
+            if mode_idx in (0, 1, 3):  # skip stokes and target, which rotate
+                continue
+
+            ax.plot(
+                theta[:, mode_idx],
+                r[:, mode_idx],
+                color=MODE_COLORS[mode_idx],
+                label=mode.label,
+                linewidth=1,
+            )
+
+            ax.scatter(
+                theta[0, mode_idx],
+                r[0, mode_idx],
+                color=MODE_COLORS[mode_idx],
+                alpha=0.5,
+            )
+
+        # ax.set_ylim(7.25, 8.75)
+
+        ax.grid(True)
+        ax.legend(loc="upper left", bbox_to_anchor=(1.1, 1))
+
+
+def plot_final_amplitudes(ps, scan):
+    amplitudes = np.empty((len(ps), 4), dtype=np.complex128)
+    modes = ps[0].spec.modes
+
+    x = np.array(sorted(s.spec.launched_pump_power for s in ps))
+    for idx, sim in enumerate(sorted(ps, key=lambda sim: sim.spec.launched_pump_power)):
+        amplitudes[idx] = sim.mode_amplitudes
+
+    y = amplitudes[:, 2] * np.conj(amplitudes[:, 0]) * amplitudes[:, 1]
+    si.vis.xy_plot(
+        f"{scan}__MSP_product",
+        x,
+        np.abs(y),
+        # np.real(y),
+        # np.imag(y),
+        # line_labels=["abs", "re", "im"],
+        # y_log_axis=True,
+        x_log_axis=True,
+        **PLOT_KWARGS,
+    )
+
+
+def foobar(ps, scan):
+    print(ps)
+
+    with_mixing = [sim for sim in ps if sim.spec.launched_mixing_power != 0]
+    without_mixing = [sim for sim in ps if sim.spec.launched_mixing_power == 0]
+
+    print(len(with_mixing))
+    print(len(without_mixing))
+
+    x = np.array(sorted(s.spec.launched_pump_power for s in with_mixing))
+
+    amplitudes_with_mixing = np.empty((len(x), 4), dtype=np.complex128)
+    for idx, sim in enumerate(
+        sorted(with_mixing, key=lambda sim: sim.spec.launched_pump_power)
+    ):
+        amplitudes_with_mixing[idx] = sim.mode_amplitudes
+
+    amplitudes_without_mixing = np.empty_like(amplitudes_with_mixing)
+    for idx, sim in enumerate(
+        sorted(without_mixing, key=lambda sim: sim.spec.launched_pump_power)
+    ):
+        amplitudes_without_mixing[idx] = sim.mode_amplitudes
+
+    amplitudes_with_mixing = np.abs(amplitudes_with_mixing)
+    energies_with_mixing = np.abs(amplitudes_with_mixing) ** 2
+    amplitudes_without_mixing = np.abs(amplitudes_without_mixing)
+    energies_without_mixing = np.abs(amplitudes_without_mixing) ** 2
+
+    STOKES = 0
+    PUMP = 1
+    MIXING = 2
+    TARGET = 3
+
+    si.vis.xy_plot(
+        "foobar_1",
+        x,
+        energies_with_mixing[:, PUMP] - energies_without_mixing[:, PUMP],
+        energies_with_mixing[:, STOKES] - energies_without_mixing[:, STOKES],
+        energies_with_mixing[:, MIXING] - energies_with_mixing[0, MIXING],
+        line_labels=[
+            "Pump with mixing - Pump no mixing",
+            "Stokes with mixing - Stokes no mixing",
+            "Mixing with pump - Mixing no pump",
+        ],
+        x_log_axis=True,
+        x_label="Launched Pump Power",
+        x_unit="mW",
+        legend_on_right=True,
+        **PLOT_KWARGS,
+    )
+
+
+def wizbang(ps, scan):
+    x = np.array(sorted(ps.parameter_set("launched_pump_power")))
+
+    STOKES = 0
+    PUMP = 1
+    MIXING = 2
+    TARGET = 3
+
+    sim = ps[0]
+    pol_sum_factors = sim._calculate_polarization_sum_factors()
+
+    amplitudes = np.empty((len(x), 4), dtype=np.complex128)
+    mixing_amp = np.empty(len(x), dtype=np.complex128)
+    for idx, sim in enumerate(sorted(ps, key=lambda sim: sim.spec.launched_pump_power)):
+        amplitudes[idx] = sim.mode_amplitudes
+
+        num = sim.pump_prefactor[MIXING] * 0.5 * np.sqrt(sim.spec.launched_mixing_power)
+        den_var = (
+            pol_sum_factors[TARGET, MIXING, STOKES, PUMP]
+            * pol_sum_factors[MIXING, TARGET, PUMP, STOKES]  # order matters!
+            * (np.abs(sim.mode_amplitudes[STOKES]) ** 2)
+            * (np.abs(sim.mode_amplitudes[PUMP]) ** 2)
+            / (sim.mode_amplitude_decay_rates[TARGET])
+        )
+        den_fixed = sim.mode_amplitude_decay_rates[MIXING]
+        print(den_fixed, den_var)
+        mixing_amp[idx] = num / (den_var + den_fixed)
+
+    amplitudes = np.abs(amplitudes)
+    mixing_amp = np.abs(mixing_amp)
+
+    # print(amplitudes[:, MIXING])
+    # print(mixing_amp)
+
+    si.vis.xy_plot(
+        "wizbang",
+        x,
+        amplitudes[:, MIXING],
+        mixing_amp,
+        line_labels=["Simulation", "Theory"],
+        x_log_axis=True,
+        x_label="Launched Pump Power",
+        x_unit="mW",
+        y_label=r"$\mathcal{E}_M$",
+        legend_on_right=True,
+        # y_pad=0.1,
+        y_log_axis=True,
+        **PLOT_KWARGS,
+    )
+
+
+if __name__ == "__main__":
+    # for scan in ["narrow", "very-narrow", "pump_power_scan_redux"]:
+    #     ps = analysis.ParameterScan.from_file(Path.cwd() / f"{scan}.sims")
+    #
+    #     # make_final_amp_plot(ps)
+    #     # make_phase_plot_for_mixing(ps, scan)
+    #     # make_pump_and_pol_for_mixing(ps, scan)
+    #     # make_pump_and_pol_for_target(ps, scan)
+    #     plot_final_amplitudes(ps, scan)
+    #     # make_animations(ps, scan)
+
+    # ps = analysis.ParameterScan.from_file(Path.cwd() / "narrow_v2.sims")
+    # foobar(ps, "narrow_v2")
+
+    ps = analysis.ParameterScan.from_file(Path.cwd() / "narrow.sims")
+    wizbang(ps, "narrow")

@@ -166,6 +166,8 @@ def mode_energy_and_power_differential_against_zero_mixing_plots_vs_attribute(
             key=get_attr_from_sim,
         )
 
+        print(len(sims))
+        print(len(no_mixing_sims))
         assert len(sims) == len(no_mixing_sims)
 
         scan_variable = np.array([get_attr_from_sim(sim) for sim in sims])
@@ -260,7 +262,7 @@ def mode_energy_and_power_differential_against_zero_mixing_plots_vs_attribute(
             x_unit=x_unit,
             y_unit="pJ",
             x_log_axis=x_log,
-            y_log_axis=True,
+            # y_log_axis=True,
             sym_log_linear_threshold=1e-3,
             legend_on_right=True,
             font_size_legend=6,
@@ -278,7 +280,7 @@ def mode_energy_and_power_differential_against_zero_mixing_plots_vs_attribute(
             x_unit=x_unit,
             y_unit="uW",
             x_log_axis=x_log,
-            y_log_axis=True,
+            # y_log_axis=True,
             sym_log_linear_threshold=1e-3,
             legend_on_right=True,
             font_size_legend=6,
@@ -558,11 +560,20 @@ if __name__ == "__main__":
         for scan in [
             # "cascaded_pump_power_scan.sims",
             # "more_cascaded_pump_power_scan.sims",
-            "test_narrow_raman_linewidth_v3.sims"
+            "narrow.sims",
+            # "very-narrow.sims",
         ]:
             mode_energy_and_power_plots_vs_attribute(
                 BASE / scan, attr="launched_pump_power", x_unit="mW", x_log=True
             )
+
+        mode_energy_and_power_differential_against_zero_mixing_plots_vs_attribute(
+            BASE / "narrow_v2.sims",
+            attr="launched_pump_power",
+            x_unit="mW",
+            x_log=True,
+            per_attrs=["launched_mixing_power"],
+        )
 
         # for func in [derivatives, mode_energy_and_power_plots_vs_attribute]:
         # for func in [mode_energy_and_power_plots_vs_attribute]:
