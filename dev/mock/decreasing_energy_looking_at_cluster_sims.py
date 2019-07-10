@@ -740,6 +740,7 @@ def wizbang(ps, scan):
 
     amplitudes = np.empty((len(x), 4), dtype=np.complex128)
     mixing_amp = np.empty(len(x), dtype=np.complex128)
+    target_amp = np.empty(len(x), dtype=np.complex128)
     for idx, sim in enumerate(sorted(ps, key=lambda sim: sim.spec.launched_pump_power)):
         amplitudes[idx] = sim.mode_amplitudes
 
@@ -752,11 +753,20 @@ def wizbang(ps, scan):
             / (sim.mode_amplitude_decay_rates[TARGET])
         )
         den_fixed = sim.mode_amplitude_decay_rates[MIXING]
-        print(den_fixed, den_var)
         mixing_amp[idx] = num / (den_var + den_fixed)
+
+        target_amp[idx] = (
+            -pol_sum_factors[TARGET, MIXING, STOKES, PUMP]
+            * sim.mode_amplitudes[MIXING]
+            * sim.mode_amplitudes[STOKES]
+            * sim.mode_amplitudes[PUMP]
+            / sim.mode_amplitude_decay_rates[TARGET]
+        )
+        print(target_amp[idx])
 
     amplitudes = np.abs(amplitudes)
     mixing_amp = np.abs(mixing_amp)
+    target_amp = np.abs(target_amp)
 
     # print(amplitudes[:, MIXING])
     # print(mixing_amp)
@@ -766,12 +776,26 @@ def wizbang(ps, scan):
         x,
         amplitudes[:, MIXING],
         mixing_amp,
-        line_labels=["Simulation", "Theory"],
+        amplitudes[:, TARGET],
+        target_amp,
+        line_kwargs=[
+            {"color": "blue", "linestyle": "-"},
+            {"color": "green", "linestyle": "--"},
+            {"color": "red", "linestyle": "-"},
+            {"color": "purple", "linestyle": "--"},
+        ],
+        line_labels=[
+            "Mixing (Simulation)",
+            "Mixing (Theory)",
+            "Target (Simulation)",
+            "Target (Theory)",
+        ],
         x_log_axis=True,
         x_label="Launched Pump Power",
         x_unit="mW",
-        y_label=r"$\mathcal{E}_M$",
-        legend_on_right=True,
+        y_label=r"$ \left| \mathcal{E}_q \right| $",
+        title="Mode Magnitude for Narrow Raman Linewidth",
+        # legend_on_right=True,
         # y_pad=0.1,
         y_log_axis=True,
         **PLOT_KWARGS,

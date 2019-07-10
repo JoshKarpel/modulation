@@ -11,6 +11,8 @@ import simulacra as si
 
 logger = logging.getLogger(__name__)
 
+CACHE = {}
+
 
 class ParameterScan:
     def __init__(self, tag: str, sims: Iterable[si.Simulation]):
@@ -18,19 +20,26 @@ class ParameterScan:
         self.sims = list(sims)
 
     @classmethod
-    def from_file(cls, path: Path):
-        path = Path(path)
+    def from_file(cls, path: Path, show_progress=False):
+        path = Path(path).absolute()
+
+        if path in CACHE:
+            return CACHE[path]
 
         sims = []
         with gzip.open(path, mode="rb") as f:
-            for _ in tqdm(
-                range(pickle.load(f))
-            ):  # first entry is the number of entries
+            # first entry is the number of entries
+            it = range(pickle.load(f))
+            if show_progress:
+                it = tqdm(it)
+            for _ in it:
                 sims.append(pickle.load(f))
 
         ps = cls(path.stem, sims)
 
         logger.debug(f"loaded {len(ps)} simulations from {path}")
+
+        CACHE[path] = ps
 
         return ps
 
