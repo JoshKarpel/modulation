@@ -335,36 +335,32 @@ def find_mode_nearest_omega(modes, omega: float):
     return sorted(modes, key=lambda m: abs(m.omega - omega))[0]
 
 
-# MAP CREATION
-
 # JUST A TEMPLATE
+# FOR A CHECKPOINTING RUN FUNCTION
+@htmap.mapped
+def run(spec):
+    sim_path = Path.cwd() / f"{spec.file_name}.sim"
 
-# @htmap.mapped
-# def _run(spec):
-#     sim_path = Path.cwd() / f"{spec.file_name}.sim"
-#
-#     try:
-#         sim = si.Simulation.load(str(sim_path))
-#         print(f"Recovered checkpoint from {sim_path}")
-#     except (FileNotFoundError, EOFError):
-#         sim = spec.to_sim()
-#         print("No checkpoint found")
-#
-#     print(sim.info())
-#
-#     sim.run(checkpoint_callback=htmap.checkpoint)
-#
-#     print(sim.info())
-#
-#     return sim
+    try:
+        sim = si.Simulation.load(str(sim_path))
+        print(f"Recovered checkpoint from {sim_path}")
+    except (FileNotFoundError, EOFError):
+        sim = spec.to_sim()
+        print("No checkpoint found")
+
+    print(sim.info())
+
+    sim.run(checkpoint_callback=htmap.checkpoint)
+
+    print(sim.info())
+
+    return sim
 
 
 def ask_htmap_settings():
-    docker_image_version = si.cluster.ask_for_input("Docker image version?")
-    htmap.settings["DOCKER.IMAGE"] = f"maventree/modulation:{docker_image_version}"
-    htmap.settings[
-        "SINGULARITY.IMAGE"
-    ] = f"docker://maventree/modulation:{docker_image_version}"
+    docker_image = si.cluster.ask_for_input("Docker image (repository:tag)?")
+    htmap.settings["DOCKER.IMAGE"] = docker_image
+    htmap.settings["SINGULARITY.IMAGE"] = f"docker://{docker_image}"
 
     delivery_method = si.cluster.ask_for_choices(
         "Use Docker or Singularity?",
