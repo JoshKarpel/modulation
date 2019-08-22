@@ -217,7 +217,7 @@ class RamanSimulation(si.Simulation):
     def run(
         self,
         progress_bar: bool = False,
-        checkpoint_callback: Callable[[Path], None] = None,
+        checkpoint_callback: Optional[Callable[[Path], None]] = None,
     ) -> None:
         self.status = si.Status.RUNNING
 
@@ -291,8 +291,11 @@ class RamanSimulation(si.Simulation):
         self.status = si.Status.FINISHED
 
     def do_checkpoint(
-        self, now: datetime.datetime, callback: Callable[[Path], None]
+        self, now: datetime.datetime, callback: Optional[Callable[[Path], None]]
     ) -> None:
+        if callback is None:
+            callback = lambda _: None
+
         self.status = si.Status.PAUSED
         path = self.save(target_dir=self.spec.checkpoint_dir)
         callback(path)
@@ -323,7 +326,7 @@ class RamanSimulation(si.Simulation):
 
     def save(
         self, target_dir: Optional[str] = None, file_extension: str = "sim", **kwargs
-    ) -> str:
+    ) -> Path:
         del self.times
         return super().save(
             target_dir=target_dir, file_extension=file_extension, **kwargs
@@ -401,7 +404,7 @@ class RamanSidebandSimulation(StimulatedRamanScatteringSimulation):
             enumerate(self.spec.modes), r=2
         )
         if is_interactive_session():
-            mode_pairs = list(tqdm(mode_pairs))
+            mode_pairs = tqdm(list(mode_pairs))
         for (r, mode_r), (s, mode_s) in mode_pairs:
             if r == s or not (r == s + 1 or r == s - 1):
                 mode_volume_ratios[r, s] = 0
@@ -550,9 +553,9 @@ class RamanSpecification(si.Specification):
         time_initial: float = 0 * u.nsec,
         time_final: float = 100 * u.nsec,
         time_step: float = 1 * u.nsec,
-        material: material.RamanMaterial = None,
+        material: material.RamanMaterial,
         evolution_algorithm: evolve.EvolutionAlgorithm = evolve.RungeKutta4(),
-        mode_volume_integrator: volume.ModeVolumeIntegrator = None,
+        mode_volume_integrator: volume.ModeVolumeIntegrator,
         four_mode_detuning_cutoff=AUTO_CUTOFF,
         ignore_self_interaction=False,
         ignore_triplets=False,

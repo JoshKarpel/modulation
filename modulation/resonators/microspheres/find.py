@@ -1,6 +1,6 @@
 import collections
 import logging
-from typing import List, Iterable, Union, Tuple, Optional
+from typing import List, Iterable, Union, Tuple, Optional, Iterator
 
 import itertools
 from dataclasses import dataclass
@@ -149,7 +149,7 @@ def merge_wavelength_bounds(bounds: Iterable[WavelengthBound]) -> List[Wavelengt
 
 
 def pairwise(iterable):
-    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+    """s -> (s0,s1), (s1,s2), (s2, s3), ..."""
     a, b = itertools.tee(iterable)
     next(b, None)
     return zip(a, b)
@@ -166,7 +166,7 @@ def sideband_bounds(
     antistokes_orders: int = 0,
     sideband_frequency: float,
     bandwidth_frequency: float,
-) -> Tuple[WavelengthBound]:
+) -> Tuple[WavelengthBound, ...]:
     pump_frequency = wavelength_to_frequency(center_wavelength)
     center_frequencies = (
         pump_frequency - (order * sideband_frequency)
@@ -214,7 +214,7 @@ class LBound:
     def __repr__(self):
         return f"{self.__class__.__name__}(min = {self.min}, max = {self.max})"
 
-    def __iter__(self) -> Iterable[int]:
+    def __iter__(self) -> Iterator[int]:
         yield from range(self.min, self.max + 1)
 
 
@@ -335,7 +335,7 @@ def find_mode_locations(
     all of the modes in the microsphere in the given wavelength bounds.
     """
     wavelength_bounds = merge_wavelength_bounds(wavelength_bounds)
-    mode_locations = []
+    mode_locations: List[MicrosphereModeLocation] = []
 
     for polarization in mode.MicrosphereModePolarization:
         for wavelength_bound in wavelength_bounds:
@@ -424,7 +424,7 @@ def _jacobian_of_z_from_zeta(z, xi):
     )
 
 
-def find_bessel_zeros(order: int, num_zeros: int) -> (np.ndarray, np.ndarray):
+def find_bessel_zeros(order: int, num_zeros: int) -> Tuple[np.ndarray, np.ndarray]:
     """
     Find the zeros of high-order spherical Bessel functions
     using a uniformly-accurate asymptotic approximation.
@@ -446,13 +446,13 @@ def find_bessel_zeros(order: int, num_zeros: int) -> (np.ndarray, np.ndarray):
     j_zeros, y_zeros
         The first ``num_zeros`` zeros of the Bessel functions of the first and second kind with the given ``order``.
     """
-    order += 0.5
+    order_plus_half = order + 0.5
     airy_zeros, *_ = spc.ai_zeros(num_zeros)
     bairy_zeros, *_ = spc.bi_zeros(num_zeros)
 
     all_zeros = np.concatenate((airy_zeros, bairy_zeros))
 
-    zeta = (order ** (-2 / 3)) * all_zeros
+    zeta = (order_plus_half ** (-2 / 3)) * all_zeros
 
     z = opt.root(
         _z_from_zeta,
@@ -469,13 +469,6 @@ def find_bessel_zeros(order: int, num_zeros: int) -> (np.ndarray, np.ndarray):
     U = (1 / 24) * ((3 * p) - 5 * (p ** 3))
     B_0 = np.real(1j * ((-zeta) ** (-1 / 2)) * U)
 
-    zeros = (order * z) + ((z * (h ** 2) * B_0) / (2 * order))
+    zeros = (order_plus_half * z) + ((z * (h ** 2) * B_0) / (2 * order_plus_half))
 
     return zeros[:num_zeros], zeros[num_zeros:]
-
-
-def pairwise(iterable):
-    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
-    a, b = itertools.tee(iterable)
-    next(b, None)
-    return zip(a, b)

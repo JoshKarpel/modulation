@@ -1,4 +1,4 @@
-from typing import Set, Any, Iterable, List
+from typing import Set, Any, Iterable, List, Dict
 import logging
 
 from pathlib import Path
@@ -11,7 +11,7 @@ import simulacra as si
 
 logger = logging.getLogger(__name__)
 
-CACHE = {}
+CACHE: "Dict[Path, ParameterScan]" = {}
 
 
 class ParameterScan:
