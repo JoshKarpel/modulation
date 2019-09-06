@@ -121,7 +121,7 @@ class RectangularMonochromaticPump(MonochromaticPump):
         return f"{self.__class__.__name__}(frequency = {self.frequency}, power = {self.power}, start_time = {self.start_time}, end_time = {self.end_time})"
 
     def __str__(self):
-        return f"{self.__class__.__name__}(frequency = {self.frequency / u.THz:.9f} THz, power = {u.uround(self.power, u.mW)} mW, start_time = {u.uround(self.start_time, u.nsec)} ns, end_time = {u.uround(self.end_time, u.nsec)} ns)"
+        return f"{self.__class__.__name__}(frequency = {self.frequency / u.THz:.9f} THz, power = {self.power/ u.mW:.3f} mW, start_time = {self.start_time/u.nsec:3f} ns, end_time = {self.end_time/ u.nsec:3f} ns)"
 
     def info(self) -> si.Info:
         info = super().info()
@@ -174,7 +174,7 @@ class ConstantMonochromaticPump(MonochromaticPump):
         return f"{self.__class__.__name__}(frequency = {self.frequency}, power = {self.power})"
 
     def __str__(self):
-        return f"{self.__class__.__name__}(frequency = {self.frequency / u.THz:.9f} THz, power = {u.uround(self.power, u.mW)} mW)"
+        return f"{self.__class__.__name__}(frequency = {self.frequency / u.THz:.9f} THz, power = {self.power/ u.mW:.3f} mW)"
 
     def info(self) -> si.Info:
         info = super().info()

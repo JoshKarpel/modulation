@@ -135,7 +135,7 @@ class SquareAnimator(anim.Animator):
         self.axman = axman
         self.axis_managers.append(self.axman)
 
-        self.time_text_unit, self.time_text_unit_tex = u.get_unit_value_and_latex_from_unit(
+        self.time_text_unit, self.time_text_unit_tex = u.get_unit_value_and_latex(
             time_text_unit
         )
 

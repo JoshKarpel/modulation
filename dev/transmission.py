@@ -23,10 +23,18 @@ ANIM_KWARGS = dict(target_dir=OUT_DIR)
 
 if __name__ == "__main__":
     with LOGMAN as logger:
-        q = np.geomspace(1e2, 1e10, 10000)
+        q_c = np.geomspace(1e2, 1e10, 10000)
         q_i = 1e6
 
-        r = q / q_i
+        r = q_c / q_i
         t = ((1 - r) / (1 + r)) ** 2
 
-        si.vis.xy_plot("transmission", r, t, x_log_axis=True, **PLOT_KWARGS)
+        si.vis.xy_plot(
+            "transmission",
+            r,
+            t,
+            x_label=r"$r = Q^{\mathrm{Coupling}} / Q^{\mathrm{Intrinsic}}$",
+            y_label=r"Transmission $= \left(\frac{1-r}{1+r}\right)^2$",
+            x_log_axis=True,
+            **PLOT_KWARGS
+        )
