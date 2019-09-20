@@ -219,8 +219,6 @@ class RamanSimulation(si.Simulation):
         progress_bar: bool = False,
         checkpoint_callback: Optional[Callable[[Path], None]] = None,
     ) -> None:
-        self.status = si.Status.RUNNING
-
         try:
             for animator in self.spec.animators:
                 animator.initialize(self)
@@ -287,8 +285,6 @@ class RamanSimulation(si.Simulation):
 
         if self.spec.lookback is not None and self.spec.freeze_lookback:
             self.lookback.freeze()
-
-        self.status = si.Status.FINISHED
 
     def do_checkpoint(
         self, now: datetime.datetime, callback: Optional[Callable[[Path], None]]
