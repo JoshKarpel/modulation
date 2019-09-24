@@ -39,7 +39,15 @@ COLORS = [
 LINESTYLES = ["-", "-.", "--", ":"]
 
 ORDER_COLORS = ["#1b9e77", "#66a61e", "#d95f02", "#7570b3", "#e6ab02", "#e7298a"]
-ORDERS = ["pump|+0", "pump|+1", "pump|-1", "mixing|+0", "mixing|-1", "mixing|+1"]
+ORDERS = [
+    "pump|+0",
+    "pump|+1",
+    "pump|-1",
+    "mixing|+0",
+    "mixing|-1",
+    "mixing|+1",
+    "pump|near",
+]
 ORDER_TO_COLOR = dict(zip(ORDERS, ORDER_COLORS))
 
 

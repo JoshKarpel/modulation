@@ -82,9 +82,7 @@ def quality_factor_vs_wavelength(index, microsphere_radius, fiber_radii, separat
         )
 
         quality_factors.append(q)
-        labels.append(
-            fr'$R_{{\mathrm{{fiber}}}} = {fiber_radius / u.um:.1f} \, \mathrm{{\mu m}}, \, s = {separation / u.um:.3f} \, \mathrm{{\mu m}}$'
-        )
+        labels.append(fr'$s = {separation / u.um:.3f} \, \mathrm{{\mu m}}$')
 
     si.vis.xy_plot(
         "quality_factor_vs_wavelength",
@@ -96,27 +94,25 @@ def quality_factor_vs_wavelength(index, microsphere_radius, fiber_radii, separat
         y_label=r"$Q_c$",
         y_log_axis=True,
         hlines=[1e8],
-        vlines=np.array([1180, 1120, 1064, 1010, 968, 865, 831, 800, 771, 744]) * u.nm,
-        font_size_legend=10,
-        legend_on_right=True,
+        vlines=np.array([1120, 1064, 800, 771]) * u.nm,
         **PLOT_KWARGS,
     )
 
 
 if __name__ == "__main__":
     with LOGMAN as logger:
-        index = refraction.ConstantIndex(1.45)
+        index = refraction.SellmeierIndex.from_name("silica")
         microsphere_radius = 50 * u.um
 
         fiber_radii = [1 * u.um]
-        wavelengths = (
-            np.array([1180, 1120, 1064, 1010, 968, 865, 831, 800, 771, 744]) * u.nm
-        )
-        separations = [341 * u.nm]
+        # wavelengths = (
+        #     np.array([1180, 1120, 1064, 1010, 968, 865, 831, 800, 771, 744]) * u.nm
+        # )
+        separations = [341 * u.nm, 175 * u.nm]
 
-        quality_factor_vs_separation(
-            index, microsphere_radius, fiber_radii=fiber_radii, wavelengths=wavelengths
-        )
+        # quality_factor_vs_separation(
+        #     index, microsphere_radius, fiber_radii=fiber_radii, wavelengths=wavelengths
+        # )
         quality_factor_vs_wavelength(
             index, microsphere_radius, fiber_radii=fiber_radii, separations=separations
         )

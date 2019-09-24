@@ -48,7 +48,7 @@ def create_scan(tag):
     shared.ask_intrinsic_q(parameters)
 
     store_mode_amplitudes_vs_time = si.cluster.ask_for_bool(
-        "Store mode amplitudes vs time?"
+        "Store mode amplitudes vs time?", default="No"
     )
     lookback_time = shared.ask_lookback_time()
 

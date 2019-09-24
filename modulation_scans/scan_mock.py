@@ -93,19 +93,29 @@ def create_scan(tag):
     shared.ask_time_step(parameters)
 
     shared.ask_intrinsic_q(parameters)
+    qc_calc = si.Parameter(
+        "coupling_quality_factor_calculation",
+        si.ask_for_choices(
+            "Coupling Quality Factor Calculation?",
+            choices=["pump_critical", "all_critical", "separation"],
+        ),
+    )
+    parameters.append(qc_calc)
+
     parameters.append(
         si.Parameter(
-            "use_scaling_coupling_quality_factor",
-            si.ask_for_bool(
-                "Use Scaling Coupling Quality Factor (critical at pump)?", default=True
-            ),
+            "fiber_separation",
+            value=u.um * si.ask_for_eval("Fiber Separations?", default="[.341]"),
+            expandable=True,
         )
     )
 
     shared.ask_four_mode_detuning_cutoff(parameters)
     shared.ask_ignore_self_interaction(parameters)
 
-    store_mode_amplitudes_vs_time = si.ask_for_bool("Store mode amplitudes vs time?")
+    store_mode_amplitudes_vs_time = si.ask_for_bool(
+        "Store mode amplitudes vs time?", default="No"
+    )
     lookback_time = shared.ask_lookback_time()
 
     # CREATE SPECS
@@ -197,16 +207,16 @@ def run(params):
 
             intrinsic_q = {m: params["intrinsic_q"] for m in modes}
 
-            if params["use_scaling_coupling_quality_factor"]:
+            kwargs_for_coupling_q = dict(
+                microsphere_index_of_refraction=material.index_of_refraction,
+                fiber_index_of_refraction=material.index_of_refraction,
+                microsphere_radius=params["microsphere_radius"],
+                fiber_taper_radius=params["fiber_taper_radius"],
+                l=0,
+                m=0,
+            )
+            if params["coupling_quality_factor_calculation"] == "pump_critical":
                 pump_mode = order_to_mode["pump|+0"]
-                kwargs_for_coupling_q = dict(
-                    microsphere_index_of_refraction=material.index_of_refraction,
-                    fiber_index_of_refraction=material.index_of_refraction,
-                    microsphere_radius=params["microsphere_radius"],
-                    fiber_taper_radius=params["fiber_taper_radius"],
-                    l=0,
-                    m=0,
-                )
                 separation = opt.brentq(
                     lambda x: intrinsic_q[pump_mode]
                     - microspheres.coupling_quality_factor_for_tapered_fiber(
@@ -229,8 +239,21 @@ def run(params):
                     )
                     for m in modes
                 }
-            else:
+            elif params["coupling_quality_factor_calculation"] == "fixed_separation":
+                coupling_q = {
+                    m: microspheres.coupling_quality_factor_for_tapered_fiber(
+                        separation=params["fiber_separation"],
+                        wavelength=m.wavelength,
+                        **kwargs_for_coupling_q,
+                    )
+                    for m in modes
+                }
+            elif params["coupling_quality_factor_calculation"] == "all_critical":
                 coupling_q = intrinsic_q  # all modes critically coupled
+            else:
+                raise ValueError(
+                    "unknown choice for coupling_quality_factor_calculation"
+                )
 
             spec = params["spec_type"](
                 params["component"],

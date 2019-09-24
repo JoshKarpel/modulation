@@ -106,7 +106,9 @@ def create_scan(tag):
     shared.ask_four_mode_detuning_cutoff(parameters)
     shared.ask_ignore_self_interaction(parameters)
 
-    store_mode_amplitudes_vs_time = si.ask_for_bool("Store mode amplitudes vs time?")
+    store_mode_amplitudes_vs_time = si.ask_for_bool(
+        "Store mode amplitudes vs time?", default="No"
+    )
     lookback_time = shared.ask_lookback_time()
 
     # CREATE SPECS
