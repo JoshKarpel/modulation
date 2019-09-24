@@ -97,7 +97,7 @@ def create_scan(tag):
         "coupling_quality_factor_calculation",
         si.ask_for_choices(
             "Coupling Quality Factor Calculation?",
-            choices=["pump_critical", "all_critical", "separation"],
+            choices=["pump_critical", "all_critical", "fiber_separation"],
         ),
     )
     parameters.append(qc_calc)
@@ -239,7 +239,7 @@ def run(params):
                     )
                     for m in modes
                 }
-            elif params["coupling_quality_factor_calculation"] == "fixed_separation":
+            elif params["coupling_quality_factor_calculation"] == "fiber_separation":
                 coupling_q = {
                     m: microspheres.coupling_quality_factor_for_tapered_fiber(
                         separation=params["fiber_separation"],
