@@ -21,23 +21,23 @@ import htmap
 def create_scan(tag):
     parameters = []
 
-    parameters.append(si.cluster.Parameter("spec_type", shared.ask_spec_type()))
+    parameters.append(si.Parameter("spec_type", shared.ask_spec_type()))
 
     material = shared.ask_material()
 
     parameters.extend(
         [
-            si.cluster.Parameter(
+            si.Parameter(
                 "microsphere_radius",
                 u.um
-                * si.cluster.ask_for_input(
+                * si.ask_for_input(
                     "Microsphere radius (in um)?", default=50, cast_to=float
                 ),
             ),
-            si.cluster.Parameter(
+            si.Parameter(
                 "fiber_taper_radius",
                 u.um
-                * si.cluster.ask_for_input(
+                * si.ask_for_input(
                     "Fiber taper radius (in um)?", default=1, cast_to=float
                 ),
             ),
@@ -45,14 +45,14 @@ def create_scan(tag):
     )
 
     parameters.append(
-        si.cluster.Parameter(
+        si.Parameter(
             "mode_volume",
-            si.cluster.ask_for_eval("Mode volume inside resonator?", default="[1e-20]"),
+            si.ask_for_eval("Mode volume inside resonator?", default="[1e-20]"),
             expandable=True,
         )
     )
     mvi = modulation.resonators.mock.MockVolumeIntegrator(
-        volume_integral_result=si.cluster.ask_for_input(
+        volume_integral_result=si.ask_for_input(
             "Four-mode overlap integral result?", default=1e-25, cast_to=float
         )
     )
@@ -60,16 +60,16 @@ def create_scan(tag):
     shared.ask_laser_parameters("pump", parameters)
     shared.ask_laser_parameters("mixing", parameters)
 
-    num_pump_stokes = si.cluster.ask_for_input(
+    num_pump_stokes = si.ask_for_input(
         "Number of Pump Stokes Orders?", default=1, cast_to=int
     )
-    num_pump_antistokes = si.cluster.ask_for_input(
+    num_pump_antistokes = si.ask_for_input(
         "Number of Pump Antistokes Orders?", default=1, cast_to=int
     )
-    num_mixing_stokes = si.cluster.ask_for_input(
+    num_mixing_stokes = si.ask_for_input(
         "Number of Mixing Stokes Orders?", default=1, cast_to=int
     )
-    num_mixing_antistokes = si.cluster.ask_for_input(
+    num_mixing_antistokes = si.ask_for_input(
         "Number of Mixing Antistokes Orders?", default=1, cast_to=int
     )
 
@@ -79,15 +79,13 @@ def create_scan(tag):
     ]
     orders += ["pump|near"]
 
-    parameters.append(si.cluster.Parameter("orders", orders))
+    parameters.append(si.Parameter("orders", orders))
     for order in orders:
         parameters.append(
-            si.cluster.Parameter(
+            si.Parameter(
                 f"{order}_mode_detuning",
                 u.MHz
-                * np.array(
-                    si.cluster.ask_for_eval(f"{order} mode detuning (in MHz)?", "[0]")
-                ),
+                * np.array(si.ask_for_eval(f"{order} mode detuning (in MHz)?", "[0]")),
                 expandable=True,
             )
         )
@@ -97,9 +95,9 @@ def create_scan(tag):
 
     shared.ask_intrinsic_q(parameters)
     parameters.append(
-        si.cluster.Parameter(
+        si.Parameter(
             "use_scaling_coupling_quality_factor",
-            si.cluster.ask_for_bool(
+            si.ask_for_bool(
                 "Use Scaling Coupling Quality Factor (critical at pump)?", default=True
             ),
         )
@@ -108,9 +106,7 @@ def create_scan(tag):
     shared.ask_four_mode_detuning_cutoff(parameters)
     shared.ask_ignore_self_interaction(parameters)
 
-    store_mode_amplitudes_vs_time = si.cluster.ask_for_bool(
-        "Store mode amplitudes vs time?"
-    )
+    store_mode_amplitudes_vs_time = si.ask_for_bool("Store mode amplitudes vs time?")
     lookback_time = shared.ask_lookback_time()
 
     # CREATE SPECS
@@ -125,7 +121,7 @@ def create_scan(tag):
     )
 
     print("Expanding parameters...")
-    expanded_parameters = si.cluster.expand_parameters(parameters)
+    expanded_parameters = si.expand_parameters(parameters)
 
     final_parameters = [
         dict(component=c, **params, **extra_parameters)

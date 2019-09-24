@@ -32,14 +32,14 @@ def make_spinner(*args, **kwargs):
 
 
 def ask_for_tag():
-    tag = si.cluster.ask_for_input("Map Tag?", default=None)
+    tag = si.ask_for_input("Map Tag?", default=None)
     if tag is None:
         raise ValueError("tag cannot be None")
     return tag
 
 
 def ask_spec_type():
-    return si.cluster.ask_for_choices(
+    return si.ask_for_choices(
         "SRS or FWM?",
         choices={
             "SRS": modulation.raman.StimulatedRamanScatteringSpecification,
@@ -51,58 +51,45 @@ def ask_spec_type():
 
 def ask_material():
     choices = {k: k for k in modulation.raman.material.MATERIAL_DATA.keys()}
-    choices["CUSTOM"] = "CUSTOM"
-    choice = si.cluster.ask_for_choices(
+    choice = si.ask_for_choices(
         "What Raman material to use?", choices=choices, default="silica"
     )
-
-    if choice == "CUSTOM":
-        return modulation.raman.RamanMaterial(
-            modulation_omega=si.cluster.ask_for_eval("Modulation Omega?"),
-            coupling_prefactor_squared=si.cluster.ask_for_eval("Coupling Prefactor?"),
-            raman_linewidth=si.cluster.ask_for_eval("Raman Linewidth?"),
-            number_density=si.cluster.ask_for_eval("Number Density?"),
-        )
 
     return modulation.raman.RamanMaterial.from_name(choice)
 
 
 def ask_fiber_parameters(parameters):
     parameters.append(
-        si.cluster.Parameter(
+        si.Parameter(
             "fiber_taper_radius",
             value=u.um
-            * si.cluster.ask_for_input(
-                "Fiber Taper Radius (in um)?", default=1, cast_to=int
-            ),
+            * si.ask_for_input("Fiber Taper Radius (in um)?", default=1, cast_to=int),
         )
     )
 
 
 def ask_sideband_parameters(parameters, material):
-    pump_stokes_orders = si.cluster.Parameter(
+    pump_stokes_orders = si.Parameter(
         "pump_stokes_orders",
-        si.cluster.ask_for_input(
-            "Number of Stokes Orders for Pump?", cast_to=int, default=1
-        ),
+        si.ask_for_input("Number of Stokes Orders for Pump?", cast_to=int, default=1),
     )
-    pump_antistokes_orders = si.cluster.Parameter(
+    pump_antistokes_orders = si.Parameter(
         "pump_antistokes_orders",
-        si.cluster.ask_for_input(
+        si.ask_for_input(
             "Number of Anti-Stokes Orders for Pump?", cast_to=int, default=0
         ),
     )
-    mixing_stokes_orders = si.cluster.Parameter(
+    mixing_stokes_orders = si.Parameter(
         "mixing_stokes_orders",
-        si.cluster.ask_for_input(
+        si.ask_for_input(
             "Number of Stokes Orders for Mixing?",
             cast_to=int,
             default=pump_stokes_orders.value,
         ),
     )
-    mixing_antistokes_orders = si.cluster.Parameter(
+    mixing_antistokes_orders = si.Parameter(
         "mixing_antistokes_orders",
-        si.cluster.ask_for_input(
+        si.ask_for_input(
             "Number of Anti-Stokes Orders for Mixing?",
             cast_to=int,
             default=pump_antistokes_orders.value,
@@ -114,27 +101,25 @@ def ask_sideband_parameters(parameters, material):
             pump_antistokes_orders,
             mixing_stokes_orders,
             mixing_antistokes_orders,
-            si.cluster.Parameter(
+            si.Parameter(
                 "group_bandwidth",
                 (material.raman_linewidth / u.twopi)
-                * si.cluster.ask_for_input(
+                * si.ask_for_input(
                     "Mode Group Bandwidth (in Raman Linewidths)",
                     cast_to=float,
                     default=0.1,
                 ),
             ),
-            si.cluster.Parameter(
+            si.Parameter(
                 "max_radial_mode_number",
-                si.cluster.ask_for_input(
-                    "Maximum Radial Mode Number?", cast_to=int, default=5
-                ),
+                si.ask_for_input("Maximum Radial Mode Number?", cast_to=int, default=5),
             ),
         ]
     )
 
 
 def ask_laser_parameters(name, parameters):
-    selection_method = si.cluster.ask_for_choices(
+    selection_method = si.ask_for_choices(
         f"{name.title()} Wavelength Selection Method?",
         choices={"raw": "raw", "offset": "offset", "symmetric": "symmetric"},
         default="raw",
@@ -142,11 +127,11 @@ def ask_laser_parameters(name, parameters):
 
     if selection_method == "raw":
         parameters.append(
-            si.cluster.Parameter(
+            si.Parameter(
                 f"launched_{name}_wavelength",
                 u.nm
                 * np.array(
-                    si.cluster.ask_for_eval(
+                    si.ask_for_eval(
                         f"{name.title()} laser wavelength (in nm)?", default="[1064]"
                     )
                 ),
@@ -156,20 +141,20 @@ def ask_laser_parameters(name, parameters):
     elif selection_method == "offset":
         parameters.extend(
             [
-                si.cluster.Parameter(
+                si.Parameter(
                     f"launched_{name}_wavelength",
                     u.nm
-                    * si.cluster.ask_for_input(
+                    * si.ask_for_input(
                         f"Launched {name.title()} wavelength (in nm)?",
                         default=1064,
                         cast_to=float,
                     ),
                 ),
-                si.cluster.Parameter(
+                si.Parameter(
                     f"launched_{name}_detuning",
                     u.MHz
                     * np.array(
-                        si.cluster.ask_for_eval(
+                        si.ask_for_eval(
                             f"Launched {name.title()} detunings (in MHz)", default="[0]"
                         )
                     ),
@@ -178,11 +163,11 @@ def ask_laser_parameters(name, parameters):
             ]
         )
     elif selection_method == "symmetric":
-        pump_wavelength = u.nm * si.cluster.ask_for_input(
+        pump_wavelength = u.nm * si.ask_for_input(
             f"{name.title()} laser wavelength (in nm)?", default=1064, cast_to=float
         )
         pump_detunings_raw = u.MHz * np.array(
-            si.cluster.ask_for_eval(
+            si.ask_for_eval(
                 f"Launched {name.title()} detunings (in MHz)", default="[0]"
             )
         )
@@ -195,19 +180,19 @@ def ask_laser_parameters(name, parameters):
 
         parameters.extend(
             [
-                si.cluster.Parameter(f"launched_{name}_wavelength", pump_wavelength),
-                si.cluster.Parameter(
+                si.Parameter(f"launched_{name}_wavelength", pump_wavelength),
+                si.Parameter(
                     f"launched_{name}_detuning", frequency_offsets, expandable=True
                 ),
             ]
         )
 
     parameters.append(
-        si.cluster.Parameter(
+        si.Parameter(
             f"launched_{name}_power",
             u.mW
             * np.array(
-                si.cluster.ask_for_eval(
+                si.ask_for_eval(
                     f"Launched {name.title()} power (in mW)?", default="[1]"
                 )
             ),
@@ -218,13 +203,11 @@ def ask_laser_parameters(name, parameters):
 
 def ask_time_final(parameters):
     parameters.append(
-        si.cluster.Parameter(
+        si.Parameter(
             "time_final",
             sorted(
                 u.usec
-                * np.array(
-                    si.cluster.ask_for_eval("Final time (in us)?", default="[10]")
-                ),
+                * np.array(si.ask_for_eval("Final time (in us)?", default="[10]")),
                 key=lambda x: -x,
             ),
             expandable=True,
@@ -234,13 +217,10 @@ def ask_time_final(parameters):
 
 def ask_time_step(parameters):
     parameters.append(
-        si.cluster.Parameter(
+        si.Parameter(
             "time_step",
             sorted(
-                u.psec
-                * np.array(
-                    si.cluster.ask_for_eval("Time step (in ps)?", default="[10]")
-                )
+                u.psec * np.array(si.ask_for_eval("Time step (in ps)?", default="[10]"))
             ),
             expandable=True,
         )
@@ -248,29 +228,25 @@ def ask_time_step(parameters):
 
 
 def ask_intrinsic_q(parameters):
-    q = si.cluster.ask_for_eval("Mode Intrinsic Quality Factor?", default="[1e8]")
-    parameters.append(si.cluster.Parameter("intrinsic_q", q, expandable=True))
+    q = si.ask_for_eval("Mode Intrinsic Quality Factor?", default="[1e8]")
+    parameters.append(si.Parameter("intrinsic_q", q, expandable=True))
 
     return q
 
 
 def ask_four_mode_detuning_cutoff(parameters):
-    cutoff = si.cluster.ask_for_eval(
-        "Four-mode Detuning Cutoff (in THz)?", default="[None]"
-    )
+    cutoff = si.ask_for_eval("Four-mode Detuning Cutoff (in THz)?", default="[None]")
     cutoff = [c * u.THz if c is not None else AUTO_CUTOFF for c in cutoff]
     parameters.append(
-        si.cluster.Parameter("four_mode_detuning_cutoff", cutoff, expandable=True)
+        si.Parameter("four_mode_detuning_cutoff", cutoff, expandable=True)
     )
 
 
 def ask_ignore_self_interaction(parameters):
     parameters.append(
-        si.cluster.Parameter(
+        si.Parameter(
             "ignore_self_interaction",
-            si.cluster.ask_for_eval(
-                "Ignore Self-Interaction Terms?", default="[False]"
-            ),
+            si.ask_for_eval("Ignore Self-Interaction Terms?", default="[False]"),
             expandable=True,
         )
     )
@@ -278,9 +254,9 @@ def ask_ignore_self_interaction(parameters):
 
 def ask_ignore_triplets(parameters):
     parameters.append(
-        si.cluster.Parameter(
+        si.Parameter(
             "ignore_triplets",
-            si.cluster.ask_for_eval("Ignore Triplet Terms?", default="[False]"),
+            si.ask_for_eval("Ignore Triplet Terms?", default="[False]"),
             expandable=True,
         )
     )
@@ -288,16 +264,16 @@ def ask_ignore_triplets(parameters):
 
 def ask_ignore_doublets(parameters):
     parameters.append(
-        si.cluster.Parameter(
+        si.Parameter(
             "ignore_doublets",
-            si.cluster.ask_for_eval("Ignore Doublet Terms?", default="[False]"),
+            si.ask_for_eval("Ignore Doublet Terms?", default="[False]"),
             expandable=True,
         )
     )
 
 
 def ask_lookback_time():
-    return u.nsec * si.cluster.ask_for_input(
+    return u.nsec * si.ask_for_input(
         "Lookback time (in ns)?", default=10, cast_to=float
     )
 
@@ -358,11 +334,11 @@ def run(spec):
 
 
 def ask_htmap_settings():
-    docker_image = si.cluster.ask_for_input("Docker image (repository:tag)?")
+    docker_image = si.ask_for_input("Docker image (repository:tag)?")
     htmap.settings["DOCKER.IMAGE"] = docker_image
     htmap.settings["SINGULARITY.IMAGE"] = f"docker://{docker_image}"
 
-    delivery_method = si.cluster.ask_for_choices(
+    delivery_method = si.ask_for_choices(
         "Use Docker or Singularity?",
         choices={"docker": "docker", "singularity": "singularity"},
         default="docker",
@@ -375,17 +351,13 @@ def ask_htmap_settings():
 
 def ask_map_options() -> (dict, dict):
     opts = {
-        "request_memory": si.cluster.ask_for_input("Memory?", default="500MB"),
-        "request_disk": si.cluster.ask_for_input("Disk?", default="1GB"),
+        "request_memory": si.ask_for_input("Memory?", default="500MB"),
+        "request_disk": si.ask_for_input("Disk?", default="1GB"),
         "max_idle": "100",
     }
     custom_opts = {
-        "wantflocking": str(
-            si.cluster.ask_for_bool("Want flocking?", default=False)
-        ).lower(),
-        "wantglidein": str(
-            si.cluster.ask_for_bool("Want gliding?", default=False)
-        ).lower(),
+        "wantflocking": str(si.ask_for_bool("Want flocking?", default=False)).lower(),
+        "wantglidein": str(si.ask_for_bool("Want gliding?", default=False)).lower(),
     }
 
     return opts, custom_opts
