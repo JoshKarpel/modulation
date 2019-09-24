@@ -25,7 +25,7 @@ def create_scan(tag):
     microsphere = microspheres.Microsphere(
         radius=u.um
         * si.cluster.ask_for_input(
-            "Microsphere radius (in um)?", cast_to=float, default=50
+            "Microsphere radius (in um)?", callback=float, default=50
         ),
         index_of_refraction=material.index_of_refraction,
     )

@@ -63,7 +63,7 @@ def ask_fiber_parameters(parameters):
         si.Parameter(
             "fiber_taper_radius",
             value=u.um
-            * si.ask_for_input("Fiber Taper Radius (in um)?", default=1, cast_to=int),
+            * si.ask_for_input("Fiber Taper Radius (in um)?", default=1, callback=int),
         )
     )
 
@@ -71,19 +71,19 @@ def ask_fiber_parameters(parameters):
 def ask_sideband_parameters(parameters, material):
     pump_stokes_orders = si.Parameter(
         "pump_stokes_orders",
-        si.ask_for_input("Number of Stokes Orders for Pump?", cast_to=int, default=1),
+        si.ask_for_input("Number of Stokes Orders for Pump?", callback=int, default=1),
     )
     pump_antistokes_orders = si.Parameter(
         "pump_antistokes_orders",
         si.ask_for_input(
-            "Number of Anti-Stokes Orders for Pump?", cast_to=int, default=0
+            "Number of Anti-Stokes Orders for Pump?", callback=int, default=0
         ),
     )
     mixing_stokes_orders = si.Parameter(
         "mixing_stokes_orders",
         si.ask_for_input(
             "Number of Stokes Orders for Mixing?",
-            cast_to=int,
+            callback=int,
             default=pump_stokes_orders.value,
         ),
     )
@@ -91,7 +91,7 @@ def ask_sideband_parameters(parameters, material):
         "mixing_antistokes_orders",
         si.ask_for_input(
             "Number of Anti-Stokes Orders for Mixing?",
-            cast_to=int,
+            callback=int,
             default=pump_antistokes_orders.value,
         ),
     )
@@ -106,13 +106,15 @@ def ask_sideband_parameters(parameters, material):
                 (material.raman_linewidth / u.twopi)
                 * si.ask_for_input(
                     "Mode Group Bandwidth (in Raman Linewidths)",
-                    cast_to=float,
+                    callback=float,
                     default=0.1,
                 ),
             ),
             si.Parameter(
                 "max_radial_mode_number",
-                si.ask_for_input("Maximum Radial Mode Number?", cast_to=int, default=5),
+                si.ask_for_input(
+                    "Maximum Radial Mode Number?", callback=int, default=5
+                ),
             ),
         ]
     )
@@ -147,7 +149,7 @@ def ask_laser_parameters(name, parameters):
                     * si.ask_for_input(
                         f"Launched {name.title()} wavelength (in nm)?",
                         default=1064,
-                        cast_to=float,
+                        callback=float,
                     ),
                 ),
                 si.Parameter(
@@ -164,7 +166,7 @@ def ask_laser_parameters(name, parameters):
         )
     elif selection_method == "symmetric":
         pump_wavelength = u.nm * si.ask_for_input(
-            f"{name.title()} laser wavelength (in nm)?", default=1064, cast_to=float
+            f"{name.title()} laser wavelength (in nm)?", default=1064, callback=float
         )
         pump_detunings_raw = u.MHz * np.array(
             si.ask_for_eval(
@@ -274,7 +276,7 @@ def ask_ignore_doublets(parameters):
 
 def ask_lookback_time():
     return u.nsec * si.ask_for_input(
-        "Lookback time (in ns)?", default=10, cast_to=float
+        "Lookback time (in ns)?", default=10, callback=float
     )
 
 

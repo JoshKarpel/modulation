@@ -31,14 +31,14 @@ def create_scan(tag):
                 "microsphere_radius",
                 u.um
                 * si.ask_for_input(
-                    "Microsphere radius (in um)?", default=50, cast_to=float
+                    "Microsphere radius (in um)?", default=50, callback=float
                 ),
             ),
             si.Parameter(
                 "fiber_taper_radius",
                 u.um
                 * si.ask_for_input(
-                    "Fiber taper radius (in um)?", default=1, cast_to=float
+                    "Fiber taper radius (in um)?", default=1, callback=float
                 ),
             ),
         ]
@@ -53,7 +53,7 @@ def create_scan(tag):
     )
     mvi = modulation.resonators.mock.MockVolumeIntegrator(
         volume_integral_result=si.ask_for_input(
-            "Four-mode overlap integral result?", default=1e-25, cast_to=float
+            "Four-mode overlap integral result?", default=1e-25, callback=float
         )
     )
 
@@ -61,16 +61,16 @@ def create_scan(tag):
     shared.ask_laser_parameters("mixing", parameters)
 
     num_pump_stokes = si.ask_for_input(
-        "Number of Pump Stokes Orders?", default=1, cast_to=int
+        "Number of Pump Stokes Orders?", default=1, callback=int
     )
     num_pump_antistokes = si.ask_for_input(
-        "Number of Pump Antistokes Orders?", default=1, cast_to=int
+        "Number of Pump Antistokes Orders?", default=1, callback=int
     )
     num_mixing_stokes = si.ask_for_input(
-        "Number of Mixing Stokes Orders?", default=1, cast_to=int
+        "Number of Mixing Stokes Orders?", default=1, callback=int
     )
     num_mixing_antistokes = si.ask_for_input(
-        "Number of Mixing Antistokes Orders?", default=1, cast_to=int
+        "Number of Mixing Antistokes Orders?", default=1, callback=int
     )
 
     orders = [f"pump|{n:+}" for n in range(-num_pump_stokes, num_pump_antistokes + 1)]
