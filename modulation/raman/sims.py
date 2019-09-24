@@ -320,13 +320,9 @@ class RamanSimulation(si.Simulation):
 
         return info
 
-    def save(
-        self, target_dir: Optional[str] = None, file_extension: str = "sim", **kwargs
-    ) -> Path:
+    def save(self, *args, **kwargs) -> Path:
         del self.times
-        return super().save(
-            target_dir=target_dir, file_extension=file_extension, **kwargs
-        )
+        return super().save(*args, **kwargs)
 
 
 class StimulatedRamanScatteringSimulation(RamanSimulation):
