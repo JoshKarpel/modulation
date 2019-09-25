@@ -225,8 +225,8 @@ def run(params):
                         wavelength=pump_mode.wavelength,
                         **kwargs_for_coupling_q,
                     ),
-                    0,
-                    10 * u.um,
+                    0.1 * u.um,
+                    3 * u.um,
                 )
                 params["fiber_separation"] = separation
                 logger.info(
