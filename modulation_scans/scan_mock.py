@@ -93,14 +93,16 @@ def create_scan(tag):
     shared.ask_time_step(parameters)
 
     shared.ask_intrinsic_q(parameters)
-    qc_calc = si.Parameter(
-        "coupling_quality_factor_calculation",
+    qc_calc = (
         si.ask_for_choices(
             "Coupling Quality Factor Calculation?",
             choices=["pump_critical", "all_critical", "fiber_separation"],
         ),
     )
-    parameters.append(qc_calc)
+
+    parameters.append(
+        "qc_calc", value=si.Parameter("coupling_quality_factor_calculation", qc_calc)
+    )
     if qc_calc == "fiber_separation":
         parameters.append(
             si.Parameter(

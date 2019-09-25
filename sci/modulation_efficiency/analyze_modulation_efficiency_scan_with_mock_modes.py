@@ -574,20 +574,38 @@ if __name__ == "__main__":
     with LOGMAN as logger:
         BASE = Path(__file__).parent
 
+        # mode_energy_and_modulation_efficiency_plots_vs_attribute(
+        #     BASE / "sep-scan.sims",
+        #     attr="fiber_separation",
+        #     x_unit="um",
+        #     x_label="Fiber Separation",
+        #     x_log=False,
+        #     per_attrs=["launched_pump_power", "launched_mixing_wavelength"],
+        # )
+        #
+        # mode_energy_and_modulation_efficiency_plots_vs_attribute(
+        #     BASE / "test-near-pump.sims",
+        #     attr="pump|near_mode_detuning",
+        #     x_unit="MHz",
+        #     x_label="Extra Near-Pump Mode Detuning from Pump",
+        #     x_log=True,
+        #     per_attrs=["pump|-2_mode_detuning", "launched_pump_power"],
+        # )
+
         mode_energy_and_modulation_efficiency_plots_vs_attribute(
-            BASE / "sep-scan.sims",
-            attr="fiber_separation",
-            x_unit="um",
-            x_label="Fiber Separation",
-            x_log=False,
-            per_attrs=["launched_pump_power", "launched_mixing_wavelength"],
+            BASE / "multiple-qi-2.sims",
+            attr="launched_pump_power",
+            x_unit="mW",
+            x_label="Launched Pump Power",
+            x_log=True,
+            per_attrs=["intrinsic_q", "launched_mixing_power"],
         )
 
         mode_energy_and_modulation_efficiency_plots_vs_attribute(
-            BASE / "test-near-pump.sims",
-            attr="pump|near_mode_detuning",
-            x_unit="MHz",
-            x_label="Extra Near-Pump Mode Detuning from Pump",
+            BASE / "multiple-qi-3.sims",
+            attr="launched_pump_power",
+            x_unit="mW",
+            x_label="Launched Pump Power",
             x_log=True,
-            per_attrs=["pump|-2_mode_detuning", "launched_pump_power"],
+            per_attrs=["intrinsic_q", "launched_mixing_power"],
         )
