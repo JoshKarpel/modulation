@@ -80,11 +80,11 @@ if __name__ == "__main__":
     index = refraction.SellmeierIndex.from_name("silica")
     print(index.info())
 
-    plot_index_vs_temperature(
-        index,
-        np.array([632, 800, 1064]) * u.nm,
-        u.zero_celsius + np.linspace(-50, 100) * u.K,
-    )
+    # plot_index_vs_temperature(
+    #     index,
+    #     np.array([632, 800, 1064]) * u.nm,
+    #     u.zero_celsius + np.linspace(-50, 100) * u.K,
+    # )
 
     temps = u.zero_celsius + (20 * u.K) + (np.linspace(0, 10, 10) * u.K)
 

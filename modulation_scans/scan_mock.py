@@ -101,14 +101,15 @@ def create_scan(tag):
         ),
     )
     parameters.append(qc_calc)
-
-    parameters.append(
-        si.Parameter(
-            "fiber_separation",
-            value=u.um * si.ask_for_eval("Fiber Separations?", default="[.341]"),
-            expandable=True,
+    if qc_calc == "fiber_separation":
+        parameters.append(
+            si.Parameter(
+                "fiber_separation",
+                value=u.um
+                * np.array(si.ask_for_eval("Fiber Separations?", default="[.341]")),
+                expandable=True,
+            )
         )
-    )
 
     shared.ask_four_mode_detuning_cutoff(parameters)
     shared.ask_ignore_self_interaction(parameters)
