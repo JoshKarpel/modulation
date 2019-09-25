@@ -97,12 +97,8 @@ def create_scan(tag):
         "Coupling Quality Factor Calculation?",
         choices=["pump_critical", "all_critical", "fiber_separation"],
     )
-
     parameters.append(
-        si.Parameter(
-            "qc_calc",
-            value=si.Parameter("coupling_quality_factor_calculation", qc_calc),
-        )
+        si.Parameter("coupling_quality_factor_calculation", value=qc_calc)
     )
     if qc_calc == "fiber_separation":
         parameters.append(
@@ -118,7 +114,7 @@ def create_scan(tag):
     shared.ask_ignore_self_interaction(parameters)
 
     store_mode_amplitudes_vs_time = si.ask_for_bool(
-        "Store mode amplitudes vs time?", default="No"
+        "Store mode amplitudes vs time?", default=False
     )
     lookback_time = shared.ask_lookback_time()
 
