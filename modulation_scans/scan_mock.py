@@ -101,7 +101,10 @@ def create_scan(tag):
     )
 
     parameters.append(
-        "qc_calc", value=si.Parameter("coupling_quality_factor_calculation", qc_calc)
+        si.Parameter(
+            "qc_calc",
+            value=si.Parameter("coupling_quality_factor_calculation", qc_calc),
+        )
     )
     if qc_calc == "fiber_separation":
         parameters.append(
