@@ -8,6 +8,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 import numpy as np
+import scipy.optimize as opt
 
 import simulacra as si
 import simulacra.units as u
@@ -93,6 +94,14 @@ def mode_energy_and_modulation_efficiency_plots_vs_attribute(
 
     ps = analysis.ParameterScan.from_file(path)
 
+    for param in dir(ps[0].spec):
+        try:
+            param_set = ps.parameter_set(param)
+        except Exception:
+            pass
+        if 1 < len(param_set) < len(ps):
+            print(param)
+
     s = ps[0].spec
     modes = s.modes
     idxs = [ps[0].mode_to_index[mode] for mode in modes]
@@ -121,6 +130,25 @@ def mode_energy_and_modulation_efficiency_plots_vs_attribute(
             line_kwargs.append(mode_kwargs(idx, mode))
             line_labels.append(fr"${mode.tex}$")
 
+        coupling_vlines = []
+        if attr == "fiber_separation":
+            for idx, mode in zip(idxs, modes):
+                coupling_vlines.append(
+                    find_critical_q(
+                        mode,
+                        intrinsic_q=s.mode_intrinsic_quality_factors[idx],
+                        material=s.material,
+                        microsphere_radius=s.microsphere_radius,
+                        fiber_taper_radius=s.fiber_taper_radius,
+                    )
+                )
+            extra_plot_kwargs = dict(
+                vlines=coupling_vlines,
+                vline_kwargs=[{"linestyle": ":", **kw} for kw in line_kwargs],
+            )
+        else:
+            extra_plot_kwargs = {}
+
         si.vis.xy_plot(
             f"mode_energies__{postfix}".replace("|", "_"),
             scan_variable,
@@ -137,6 +165,7 @@ def mode_energy_and_modulation_efficiency_plots_vs_attribute(
             y_upper_limit=1e4 * u.pJ,
             legend_on_right=True,
             target_dir=OUT_DIR / path.stem,
+            **extra_plot_kwargs,
             **PLOT_KWARGS,
         )
 
@@ -156,8 +185,33 @@ def mode_energy_and_modulation_efficiency_plots_vs_attribute(
             y_lower_limit=1e-10,
             y_upper_limit=1,
             target_dir=OUT_DIR / path.stem,
+            **extra_plot_kwargs,
             **PLOT_KWARGS,
         )
+
+
+def find_critical_q(
+    mode, intrinsic_q, material, microsphere_radius, fiber_taper_radius
+):
+    kwargs_for_coupling_q = dict(
+        microsphere_index_of_refraction=material.index_of_refraction,
+        fiber_index_of_refraction=material.index_of_refraction,
+        microsphere_radius=microsphere_radius,
+        fiber_taper_radius=fiber_taper_radius,
+        l=0,
+        m=0,
+    )
+
+    separation = opt.brentq(
+        lambda x: intrinsic_q
+        - microspheres.coupling_quality_factor_for_tapered_fiber(
+            separation=x, wavelength=mode.wavelength, **kwargs_for_coupling_q
+        ),
+        0.01 * u.um,
+        3 * u.um,
+    )
+
+    return separation
 
 
 def mode_energy_and_power_differential_against_zero_mixing_plots_vs_attribute(
@@ -186,10 +240,6 @@ def mode_energy_and_power_differential_against_zero_mixing_plots_vs_attribute(
             ps.select(**{**per_attr_key_value, **dict(launched_mixing_power=0)}),
             key=get_attr_from_sim,
         )
-
-        print(len(sims))
-        print(len(no_mixing_sims))
-        assert len(sims) == len(no_mixing_sims)
 
         scan_variable = np.array([get_attr_from_sim(sim) for sim in sims])
 
@@ -574,38 +624,28 @@ if __name__ == "__main__":
     with LOGMAN as logger:
         BASE = Path(__file__).parent
 
-        # mode_energy_and_modulation_efficiency_plots_vs_attribute(
-        #     BASE / "sep-scan.sims",
-        #     attr="fiber_separation",
-        #     x_unit="um",
-        #     x_label="Fiber Separation",
-        #     x_log=False,
-        #     per_attrs=["launched_pump_power", "launched_mixing_wavelength"],
-        # )
-        #
-        # mode_energy_and_modulation_efficiency_plots_vs_attribute(
-        #     BASE / "test-near-pump.sims",
-        #     attr="pump|near_mode_detuning",
-        #     x_unit="MHz",
-        #     x_label="Extra Near-Pump Mode Detuning from Pump",
-        #     x_log=True,
-        #     per_attrs=["pump|-2_mode_detuning", "launched_pump_power"],
-        # )
-
         mode_energy_and_modulation_efficiency_plots_vs_attribute(
-            BASE / "multiple-qi-2.sims",
-            attr="launched_pump_power",
-            x_unit="mW",
-            x_label="Launched Pump Power",
-            x_log=True,
-            per_attrs=["intrinsic_q", "launched_mixing_power"],
+            BASE / "fiber-separation.sims",
+            attr="fiber_separation",
+            x_unit="um",
+            x_label="Fiber Separation",
+            x_log=False,
+            per_attrs=[
+                "launched_pump_power",
+                "launched_mixing_wavelength",
+                "launched_mixing_power",
+            ],
         )
 
         mode_energy_and_modulation_efficiency_plots_vs_attribute(
-            BASE / "multiple-qi-3.sims",
+            BASE / "multiple-qi.sims",
             attr="launched_pump_power",
             x_unit="mW",
             x_label="Launched Pump Power",
             x_log=True,
-            per_attrs=["intrinsic_q", "launched_mixing_power"],
+            per_attrs=[
+                "intrinsic_q",
+                "launched_mixing_power",
+                "launched_mixing_wavelength",
+            ],
         )
