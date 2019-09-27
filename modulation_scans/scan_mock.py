@@ -264,7 +264,7 @@ def run(params):
             elif params["coupling_quality_factor_calculation"] == "manual":
                 coupling_q = {
                     mode: params[f"coupling_q_for_order_{order}"]
-                    for order, mode in order_to_mode
+                    for order, mode in order_to_mode.items()
                 }
             else:
                 raise ValueError(
