@@ -95,7 +95,7 @@ def create_scan(tag):
     shared.ask_intrinsic_q(parameters)
     qc_calc = si.ask_for_choices(
         "Coupling Quality Factor Calculation?",
-        choices=["pump_critical", "all_critical", "fiber_separation"],
+        choices=["pump_critical", "all_critical", "fiber_separation", "manual"],
     )
     parameters.append(
         si.Parameter("coupling_quality_factor_calculation", value=qc_calc)
@@ -109,6 +109,17 @@ def create_scan(tag):
                 expandable=True,
             )
         )
+    elif qc_calc == "manual":
+        for order in orders:
+            parameters.append(
+                si.Parameter(
+                    f"coupling_q_for_order_{order}",
+                    value=si.ask_for_eval(
+                        f"Coupling Quality Factor for Order {order}?", default="[1e8]"
+                    ),
+                    expandable=True,
+                )
+            )
 
     shared.ask_four_mode_detuning_cutoff(parameters)
     shared.ask_ignore_self_interaction(parameters)
@@ -250,6 +261,11 @@ def run(params):
                 }
             elif params["coupling_quality_factor_calculation"] == "all_critical":
                 coupling_q = intrinsic_q  # all modes critically coupled
+            elif params["coupling_quality_factor_calculation"] == "manual":
+                coupling_q = {
+                    mode: params[f"coupling_q_for_order_{order}"]
+                    for order, mode in order_to_mode
+                }
             else:
                 raise ValueError(
                     "unknown choice for coupling_quality_factor_calculation"

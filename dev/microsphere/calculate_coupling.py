@@ -56,7 +56,6 @@ def quality_factor_vs_separation(index, microsphere_radius, fiber_radii, wavelen
         y_label=r"$Q_c$",
         y_log_axis=True,
         hlines=[1e8],
-        font_size_legend=10,
         legend_on_right=True,
         **PLOT_KWARGS,
     )
@@ -105,14 +104,14 @@ if __name__ == "__main__":
         microsphere_radius = 50 * u.um
 
         fiber_radii = [1 * u.um]
-        # wavelengths = (
-        #     np.array([1180, 1120, 1064, 1010, 968, 865, 831, 800, 771, 744]) * u.nm
-        # )
+        wavelengths = (
+            np.array([1180, 1120, 1064, 1010, 968, 865, 831, 800, 771, 744]) * u.nm
+        )
         separations = [341 * u.nm, 175 * u.nm]
 
-        # quality_factor_vs_separation(
-        #     index, microsphere_radius, fiber_radii=fiber_radii, wavelengths=wavelengths
-        # )
+        quality_factor_vs_separation(
+            index, microsphere_radius, fiber_radii=fiber_radii, wavelengths=wavelengths
+        )
         quality_factor_vs_wavelength(
             index, microsphere_radius, fiber_radii=fiber_radii, separations=separations
         )
