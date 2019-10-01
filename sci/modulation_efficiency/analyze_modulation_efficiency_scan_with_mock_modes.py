@@ -105,7 +105,6 @@ def mode_energy_and_modulation_efficiency_plots_vs_attribute(
     s = ps[0].spec
     modes = s.modes
     idxs = [ps[0].mode_to_index[mode] for mode in modes]
-    modulated_mode_index = s.modes.index(s.order_to_mode[target_mode_order])
 
     per_attr_sets = [ps.parameter_set(attr) for attr in per_attrs]
     for per_attr_values in tqdm(list(itertools.product(*per_attr_sets))):
@@ -169,25 +168,31 @@ def mode_energy_and_modulation_efficiency_plots_vs_attribute(
             **PLOT_KWARGS,
         )
 
-        getter = lambda s: s.mode_output_powers(s.lookback.mean)[modulated_mode_index]
-        efficiences = [getter(s) / s.spec.launched_mixing_power for s in sims]
+        try:
+            modulated_mode_index = s.modes.index(s.order_to_mode[target_mode_order])
+            getter = lambda s: s.mode_output_powers(s.lookback.mean)[
+                modulated_mode_index
+            ]
+            efficiences = [getter(s) / s.spec.launched_mixing_power for s in sims]
 
-        si.vis.xy_plot(
-            f"modulation_efficiency__{postfix}".replace("|", "_"),
-            scan_variable,
-            efficiences,
-            title=rf"Modulation Efficiency",
-            x_label=x_label,
-            y_label="Modulation Efficiency",
-            x_unit=x_unit,
-            x_log_axis=x_log,
-            y_log_axis=True,
-            y_lower_limit=1e-10,
-            y_upper_limit=1,
-            target_dir=OUT_DIR / path.stem,
-            **extra_plot_kwargs,
-            **PLOT_KWARGS,
-        )
+            si.vis.xy_plot(
+                f"modulation_efficiency__{postfix}".replace("|", "_"),
+                scan_variable,
+                efficiences,
+                title=rf"Modulation Efficiency",
+                x_label=x_label,
+                y_label="Modulation Efficiency",
+                x_unit=x_unit,
+                x_log_axis=x_log,
+                y_log_axis=True,
+                y_lower_limit=1e-10,
+                y_upper_limit=1,
+                target_dir=OUT_DIR / path.stem,
+                **extra_plot_kwargs,
+                **PLOT_KWARGS,
+            )
+        except KeyError:
+            pass
 
 
 def find_critical_q(
@@ -625,27 +630,74 @@ if __name__ == "__main__":
         BASE = Path(__file__).parent
 
         mode_energy_and_modulation_efficiency_plots_vs_attribute(
-            BASE / "fiber-separation.sims",
-            attr="fiber_separation",
-            x_unit="um",
-            x_label="Fiber Separation",
-            x_log=False,
-            per_attrs=[
-                "launched_pump_power",
-                "launched_mixing_wavelength",
-                "launched_mixing_power",
-            ],
-        )
-
-        mode_energy_and_modulation_efficiency_plots_vs_attribute(
-            BASE / "multiple-qi.sims",
+            BASE / "manual-qc.sims",
             attr="launched_pump_power",
             x_unit="mW",
             x_label="Launched Pump Power",
             x_log=True,
             per_attrs=[
-                "intrinsic_q",
-                "launched_mixing_power",
-                "launched_mixing_wavelength",
+                "coupling_q_for_order_mixing|+1",
+                "coupling_q_for_order_pump|-1",
             ],
         )
+
+        # mode_energy_and_modulation_efficiency_plots_vs_attribute(
+        #     BASE / "scan-wavelength.sims",
+        #     attr="launched_mixing_wavelength",
+        #     x_unit="nm",
+        #     x_label="Launched Mixing Wavelength",
+        #     x_log=False,
+        #     per_attrs=["launched_pump_power"],
+        # )
+
+        # mode_energy_and_modulation_efficiency_plots_vs_attribute(
+        #     BASE / "staircase.sims",
+        #     attr="launched_pump_power",
+        #     x_unit="mW",
+        #     x_label="Launched Pump Power",
+        #     x_log=True,
+        # )
+
+        # mode_energy_and_modulation_efficiency_plots_vs_attribute(
+        #     BASE / "scan-pump-power-at-fixed-s.sims",
+        #     attr="launched_pump_power",
+        #     x_unit="mW",
+        #     x_label="Launched Pump Power",
+        #     x_log=True,
+        #     per_attrs=["launched_mixing_wavelength", "fiber_separation"],
+        # )
+        #
+        # mode_energy_and_modulation_efficiency_plots_vs_attribute(
+        #     BASE / "scan-s-at-fixed-pump-power.sims",
+        #     attr="fiber_separation",
+        #     x_unit="nm",
+        #     x_label="Fiber Separation",
+        #     x_log=False,
+        #     per_attrs=["launched_pump_power"],
+        # )
+
+        # mode_energy_and_modulation_efficiency_plots_vs_attribute(
+        #     BASE / "fiber-separation.sims",
+        #     attr="fiber_separation",
+        #     x_unit="um",
+        #     x_label="Fiber Separation",
+        #     x_log=False,
+        #     per_attrs=[
+        #         "launched_pump_power",
+        #         "launched_mixing_wavelength",
+        #         "launched_mixing_power",
+        #     ],
+        # )
+        #
+        # mode_energy_and_modulation_efficiency_plots_vs_attribute(
+        #     BASE / "multiple-qi.sims",
+        #     attr="launched_pump_power",
+        #     x_unit="mW",
+        #     x_label="Launched Pump Power",
+        #     x_log=True,
+        #     per_attrs=[
+        #         "intrinsic_q",
+        #         "launched_mixing_power",
+        #         "launched_mixing_wavelength",
+        #     ],
+        # )

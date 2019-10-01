@@ -38,7 +38,7 @@ if __name__ == "__main__":
     temperature = (20 + 273.15) * u.K
 
     wavelength_P = 1064 * u.nm
-    wavelength_M = 532 * u.nm
+    wavelength_M = 800 * u.nm
 
     wavelength_S = u.c / ((u.c / wavelength_P) - freq_m)
     wavelength_T = u.c / ((u.c / wavelength_M) + freq_m)
