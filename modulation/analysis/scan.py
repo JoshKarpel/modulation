@@ -26,14 +26,19 @@ class ParameterScan:
         if path in CACHE:
             return CACHE[path]
 
-        sims = []
         with gzip.open(path, mode="rb") as f:
+            first = pickle.load(f)
+
             # first entry is the number of entries
-            it = range(pickle.load(f))
-            if show_progress:
-                it = tqdm(it)
-            for _ in it:
-                sims.append(pickle.load(f))
+            if isinstance(first, int):
+                sims = []
+                it = range(pickle.load(f))
+                if show_progress:
+                    it = tqdm(it)
+                for _ in it:
+                    sims.append(pickle.load(f))
+            else:  # it's just a list of sims
+                sims = first
 
         ps = cls(path.stem, sims)
 

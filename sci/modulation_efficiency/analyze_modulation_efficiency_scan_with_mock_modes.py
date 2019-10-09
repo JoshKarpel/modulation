@@ -81,6 +81,7 @@ def mode_energy_and_modulation_efficiency_plots_vs_attribute(
     x_unit=None,
     x_label=None,
     x_log=True,
+    x_upper_limit=None,
     per_attrs=None,
     target_mode_order="mixing|+1",
 ):
@@ -162,6 +163,7 @@ def mode_energy_and_modulation_efficiency_plots_vs_attribute(
             y_log_axis=True,
             y_lower_limit=1e-10 * u.pJ,
             y_upper_limit=1e4 * u.pJ,
+            x_upper_limit=x_upper_limit,
             legend_on_right=True,
             target_dir=OUT_DIR / path.stem,
             **extra_plot_kwargs,
@@ -185,6 +187,7 @@ def mode_energy_and_modulation_efficiency_plots_vs_attribute(
                 x_unit=x_unit,
                 x_log_axis=x_log,
                 y_log_axis=True,
+                x_upper_limit=x_upper_limit,
                 y_lower_limit=1e-10,
                 y_upper_limit=1,
                 target_dir=OUT_DIR / path.stem,
@@ -630,16 +633,34 @@ if __name__ == "__main__":
         BASE = Path(__file__).parent
 
         mode_energy_and_modulation_efficiency_plots_vs_attribute(
-            BASE / "manual-qc.sims",
-            attr="launched_pump_power",
-            x_unit="mW",
-            x_label="Launched Pump Power",
+            BASE / "test-near-pump.sims",
+            attr="pump|near_mode_detuning",
+            x_unit="MHz",
+            x_label="Extra Near-Pump Mode Detuning from Pump",
             x_log=True,
-            per_attrs=[
-                "coupling_q_for_order_mixing|+1",
-                "coupling_q_for_order_pump|-1",
-            ],
+            x_upper_limit=1 * u.GHz,
+            per_attrs=["pump|-2_mode_detuning", "launched_pump_power"],
         )
+
+        # mode_energy_and_modulation_efficiency_plots_vs_attribute(
+        #     BASE / "scan-with-5xG.sims",
+        #     attr="launched_pump_power",
+        #     x_unit="mW",
+        #     x_label="Launched Pump Power",
+        #     per_attrs=["launched_mixing_wavelength"],
+        # )
+
+        # mode_energy_and_modulation_efficiency_plots_vs_attribute(
+        #     BASE / "manual-qc.sims",
+        #     attr="launched_pump_power",
+        #     x_unit="mW",
+        #     x_label="Launched Pump Power",
+        #     x_log=True,
+        #     per_attrs=[
+        #         "coupling_q_for_order_mixing|+1",
+        #         "coupling_q_for_order_pump|-1",
+        #     ],
+        # )
 
         # mode_energy_and_modulation_efficiency_plots_vs_attribute(
         #     BASE / "scan-wavelength.sims",

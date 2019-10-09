@@ -8,13 +8,13 @@ python:
 install:
   - sudo apt-get install --no-install-recommends build-essential
   - pip install git+https://github.com/JoshKarpel/simulacra.git
-  - pip install -e .
   - pip install --upgrade -r requirements-dev.txt
+  - pip install -e .
   - python -c "import modulation"
   - pip install codecov
 
 script:
-  - pytest --cov -n 2 tests/
+  - pytest --cov -n 2 -- tests/
 
 after_success:
   - codecov
