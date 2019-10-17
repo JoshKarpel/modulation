@@ -21,6 +21,7 @@ RUN conda install -y python=3.7 \
 ARG CACHEBUST=1
 
 # my packages
-RUN pip install git+https://github.com/JoshKarpel/simulacra.git \
+RUN pip install --no-cache-dir \
+                git+https://github.com/JoshKarpel/simulacra.git \
                 git+https://github.com/JoshKarpel/modulation.git \
  && python3 -c "import modulation"

@@ -349,21 +349,9 @@ def find_mode_locations(
                 # find where the two kinds of Bessels in the denominator
                 # have asymptotes, which is where those Bessels have zeros
 
-                # these are the ones with the in-medium wavenumber (including
-                # index of refraction), so we need to do a little extra work
-                j_asymptotes, y_asymptotes = find_bessel_zeros(
-                    order=l, num_zeros=max_radial_mode_number
+                good_asymptotes, bad_asymptotes = get_good_and_bad_asymptotes(
+                    l, max_radial_mode_number, microsphere
                 )
-                wavelength_over_index = (u.twopi * microsphere.radius) / j_asymptotes
-                good_asymptotes = opt.root(
-                    lambda wavelength: (wavelength / microsphere.index(wavelength))
-                    - wavelength_over_index,
-                    1000 * u.nm * np.ones_like(wavelength_over_index),
-                ).x
-
-                # the others are just a straight conversion from Bessel argument
-                # to wavelength
-                bad_asmyptotes = microsphere.radius * u.twopi / y_asymptotes
 
                 # extra arguments for the modal equation
                 args = (l, polarization, microsphere)
@@ -412,6 +400,27 @@ def find_mode_locations(
                 mode_locations.extend(new_locations)
 
     return sorted(mode_locations, key=lambda x: x.wavelength)
+
+
+def get_good_and_bad_asymptotes(l, max_radial_mode_number, microsphere):
+    j_asymptotes, y_asymptotes = find_bessel_zeros(
+        order=l, num_zeros=max_radial_mode_number
+    )
+
+    # these are the ones with the in-medium wavenumber (including
+    # index of refraction), so we need to do a little extra work
+    wavelength_over_index = (u.twopi * microsphere.radius) / j_asymptotes
+    good_asymptotes = opt.root(
+        lambda wavelength: (wavelength / microsphere.index(wavelength))
+        - wavelength_over_index,
+        1000 * u.nm * np.ones_like(wavelength_over_index),
+    ).x
+
+    # the others are just a straight conversion from Bessel argument
+    # to wavelength
+    bad_asmyptotes = microsphere.radius * u.twopi / y_asymptotes
+
+    return good_asymptotes, bad_asmyptotes
 
 
 def _z_from_zeta(z, xi):
